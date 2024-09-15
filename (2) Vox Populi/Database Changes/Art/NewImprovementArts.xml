@@ -184,7 +184,7 @@
 			<ImprovementType>ART_DEF_IMPROVEMENT_SIHEYUAN</ImprovementType>
 			<ResourceType>ART_DEF_RESOURCE_ALL</ResourceType>
 			<State>UnderConstruction</State>
-			<Scale>0.8</Scale>
+			<Scale>0.6</Scale>
 			<LayoutHandler>SNAPSHOT</LayoutHandler>
 			<Model>SIHEYUAN_HB.fxsxml</Model>
 			<TerrainContour>1</TerrainContour>
@@ -193,7 +193,7 @@
 			<ImprovementType>ART_DEF_IMPROVEMENT_SIHEYUAN</ImprovementType>
 			<ResourceType>ART_DEF_RESOURCE_ALL</ResourceType>
 			<State>Constructed</State>
-			<Scale>0.8</Scale>
+			<Scale>0.6</Scale>
 			<LayoutHandler>SNAPSHOT</LayoutHandler>
 			<Model>SIHEYUAN.fxsxml</Model>
 			<TerrainContour>1</TerrainContour>
@@ -202,7 +202,7 @@
 			<ImprovementType>ART_DEF_IMPROVEMENT_SIHEYUAN</ImprovementType>
 			<ResourceType>ART_DEF_RESOURCE_ALL</ResourceType>
 			<State>Pillaged</State>
-			<Scale>0.8</Scale>
+			<Scale>0.6</Scale>
 			<LayoutHandler>SNAPSHOT</LayoutHandler>
 			<Model>Siheyuan_PL.fxsxml</Model>
 			<TerrainContour>1</TerrainContour>
