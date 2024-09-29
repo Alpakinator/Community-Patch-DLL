@@ -16265,25 +16265,24 @@ int CvUnit::GetGenericMeleeStrengthModifier(const CvUnit* pOtherUnit, const CvPl
 			if (!pOtherUnit->isBarbarian() && !GET_PLAYER(pOtherUnit->getOwner()).isMinorCiv() && pOtherUnit->getOwner() != NO_PLAYER)
 			{
 				ReligionTypes eOwnedReligion = kPlayer.GetReligions()->GetOwnedReligion();
-				ReligionTypes eTheirReligion = GET_PLAYER(pOtherUnit->getOwner()).GetReligions()->GetStateReligion();
 
 				if (eOwnedReligion != NO_RELIGION)
 				{
 					const CvReligion* pReligion = pReligions->GetReligion(eOwnedReligion, getOwner());
 					if (pReligion)
 					{
-						CvCity* pHolyCity = pReligion->GetHolyCity();
-
 						//Full bonus against different religion
+						ReligionTypes eTheirReligion = GET_PLAYER(pOtherUnit->getOwner()).GetReligions()->GetStateReligion();
 						int iScaler = (eTheirReligion != eOwnedReligion) ? 1 : 2;
-						int iOtherOwn = pReligion->m_Beliefs.GetCombatVersusOtherReligionOwnLands(getOwner(), pHolyCity);
-						int iOtherTheir = pReligion->m_Beliefs.GetCombatVersusOtherReligionTheirLands(getOwner(), pHolyCity);
+
+						int iOtherOwn = 0, iOtherTheir = 0;
+						pReligion->GetCombatBonusesVsOtherReligion(iOtherOwn, iOtherTheir);
 
 						// Bonus in own land
-						if((iOtherOwn > 0) && pBattlePlot->IsFriendlyTerritory(getOwner()))
+						if(iOtherOwn > 0 && pBattlePlot->IsFriendlyTerritory(getOwner()))
 							iModifier += iOtherOwn/iScaler;
 						//Bonus in their land
-						if((iOtherTheir > 0) && pBattlePlot->IsFriendlyTerritory(pOtherUnit->getOwner()))
+						if(iOtherTheir > 0 && pBattlePlot->IsFriendlyTerritory(pOtherUnit->getOwner()))
 							iModifier += iOtherTheir/iScaler;
 					}
 				}
@@ -16710,26 +16709,17 @@ int CvUnit::GetEmbarkedUnitDefense() const
 //	--------------------------------------------------------------------------------
 int CvUnit::GetResistancePower(const CvUnit* pOtherUnit) const
 {
-	if (pOtherUnit->getOwner() == NO_PLAYER)
-		return 0;
-
-	if (pOtherUnit->isBarbarian() || isBarbarian())
-		return 0;
-
-	if (GET_PLAYER(pOtherUnit->getOwner()).isMinorCiv() || GET_PLAYER(getOwner()).isMinorCiv())
-		return 0;
-
-	// No bonus if we're attacking in their territory
+	// No bonus if we're in their territory
 	if (plot()->getOwner() == pOtherUnit->getOwner())
 		return 0;
 
 	int iResistance = GET_PLAYER(getOwner()).GetDominationResistance(pOtherUnit->getOwner());
 
-	// Not our territory?
-	if (!plot()->IsFriendlyTerritory(getOwner()))
-		iResistance /= 2;
-
-	return iResistance;
+	// Full bonus only in friendly territory
+	if (plot()->IsFriendlyTerritory(getOwner()))
+		return iResistance;
+	else
+		return iResistance / 2;
 }
 //	--------------------------------------------------------------------------------
 bool CvUnit::canSiege(TeamTypes eTeam) const

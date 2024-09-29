@@ -622,6 +622,9 @@ public:
 	void SetLastTurnCSAnnexed(int iValue);
 	int GetLastTurnCSAnnexed() const;
 
+	int getCachedDominationResistance(PlayerTypes eAttacker, PlayerTypes eDefender);
+	void clearDominationResistanceCache();
+
 	template<typename Game, typename Visitor>
 	static void Serialize(Game& game, Visitor& visitor);
 	void Read(FDataStream& kStream);
@@ -1017,6 +1020,7 @@ protected:
 
 	CvDistanceMapByPathLength m_cityDistancePathLength;
 	CvDistanceMapByPlots m_cityDistancePlots;
+	vector<int> m_vCachedDominationResistance;
 
 	//----------------------------------------------------------------
 

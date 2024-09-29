@@ -2578,7 +2578,6 @@ int CvReligionBeliefs::GetCombatVersusOtherReligionOwnLands(PlayerTypes ePlayer,
 	CvBeliefXMLEntries* pBeliefs = GC.GetGameBeliefs();
 	int rtnValue = 0;
 
-
 	for(BeliefList::const_iterator it = m_ReligionBeliefs.begin(); it != m_ReligionBeliefs.end(); ++it)
 	{
 		int iValue = pBeliefs->GetEntry(*it)->GetCombatVersusOtherReligionOwnLands();

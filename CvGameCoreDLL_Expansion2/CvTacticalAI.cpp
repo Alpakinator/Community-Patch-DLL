@@ -3576,10 +3576,11 @@ CvPlot* CvTacticalAI::FindAirTargetNearTarget(CvUnit* pUnit, CvPlot* pApproximat
 
 void CvTacticalAI::ExecuteAirSweep(CvPlot* pTargetPlot)
 {
-	if (!pTargetPlot)
+	//maybe there are no interceptors and we just had the fighter for air recon ...
+	if (!pTargetPlot && pTargetPlot->GetInterceptorCount(m_pPlayer->GetID(),NULL,false,true)==0)
 		return;
 
-	// Start by sending possible air sweeps
+	//start by sending possible air sweeps
 	for(unsigned int iI = 0; iI < m_CurrentAirSweepUnits.size(); iI++)
 	{
 		CvUnit* pUnit = m_pPlayer->getUnit(m_CurrentAirSweepUnits[iI].GetID());
@@ -3589,7 +3590,8 @@ void CvTacticalAI::ExecuteAirSweep(CvPlot* pTargetPlot)
 			if(pUnit->canAirSweep())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_AIR_SWEEP(), pTargetPlot->getX(), pTargetPlot->getY());
-				UnitProcessed(m_CurrentAirSweepUnits[iI].GetID());
+				if (pUnit->isOutOfAttacks())
+					UnitProcessed(m_CurrentAirSweepUnits[iI].GetID());
 			}
 
 			if(GC.getLogging() && GC.getAILogging())
@@ -3659,12 +3661,36 @@ bool CvTacticalAI::ExecuteSpotterMove(const vector<CvUnit*>& vUnits, CvPlot* pTa
 		}
 	}
 
-	if (vOptions.empty())
-		return false;
+	if (!vOptions.empty())
+	{
+		std::stable_sort(vOptions.begin(), vOptions.end());
+		ExecuteMoveToPlot(vOptions.front().option.first, vOptions.front().option.second, false, CvUnit::MOVEFLAG_NO_EMBARK);
+		return true;
+	}
 
-	std::stable_sort(vOptions.begin(), vOptions.end());
-	ExecuteMoveToPlot(vOptions.front().option.first, vOptions.front().option.second, false, CvUnit::MOVEFLAG_NO_EMBARK);
-	return true;
+	//last resort. use an air sweep to an adjacent plot for recon
+	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(pTargetPlot);
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
+		if (pAdjacentPlot != NULL && pAdjacentPlot->isVisible(m_pPlayer->getTeam()))
+		{
+			for (unsigned int iI = 0; iI < m_CurrentAirSweepUnits.size(); iI++)
+			{
+				CvUnit* pUnit = m_pPlayer->getUnit(m_CurrentAirSweepUnits[iI].GetID());
+				if (pUnit && pUnit->canAirSweepAt(pAdjacentPlot->getX(), pAdjacentPlot->getY()))
+				{
+					pUnit->PushMission(CvTypes::getMISSION_AIR_SWEEP(), pAdjacentPlot->getX(), pAdjacentPlot->getY());
+					CUSTOMLOG("using air sweep for recon!")
+					if (pUnit->isOutOfAttacks())
+						UnitProcessed(m_CurrentAirSweepUnits[iI].GetID());
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 bool CvTacticalAI::ExecuteAttackWithCitiesAndGarrisons(CvUnit* pDefender)
@@ -4872,10 +4898,11 @@ CvPlot* CvTacticalAI::GetBestRepositionPlot(CvUnit* pUnit, CvPlot* plotTarget, i
 //AMS: Fills m_CurrentAirSweepUnits with all units able to sweep at target plot.
 void CvTacticalAI::FindAirUnitsToAirSweep(CvPlot* pTarget)
 {
-	m_CurrentAirSweepUnits.clear();
-	int interceptionsOnPlot = pTarget->GetInterceptorCount(m_pPlayer->GetID(),NULL,false,true);
+	// Always use one if available in case we need it for recon
+	int interceptionsOnPlot = max(1,pTarget->GetInterceptorCount(m_pPlayer->GetID(),NULL,false,true));
 
 	// Loop through all units available to tactical AI this turn
+	m_CurrentAirSweepUnits.clear();
 	for (list<int>::iterator it = m_CurrentTurnUnits.begin(); it != m_CurrentTurnUnits.end() && interceptionsOnPlot > 0; ++it)
 	{
 		CvUnit* pLoopUnit = m_pPlayer->getUnit(*it);

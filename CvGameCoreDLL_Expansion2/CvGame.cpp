@@ -1299,6 +1299,8 @@ void CvGame::reset(HandicapTypes eHandicap, bool bConstructorCall)
 
 	m_iGlobalAssetCounterAllPreviousTurns = 1000; //0 is invalid
 	m_iGlobalAssetCounterCurrentTurn = 0;
+
+	m_vCachedDominationResistance = vector<int>(MAX_PLAYERS * MAX_PLAYERS, -1);
 }
 
 //	--------------------------------------------------------------------------------
@@ -10844,6 +10846,39 @@ int CvGame::GetLastTurnCSAnnexed() const
 	return m_iLastTurnCSSurrendered;
 }
 
+int CvGame::getCachedDominationResistance(PlayerTypes eAttacker, PlayerTypes eDefender)
+{
+	if (eAttacker == NO_PLAYER || eDefender == NO_PLAYER)
+		return 0;
+
+	int iIndex = (int)eAttacker * MAX_PLAYERS + (int)eDefender;
+	int iValue = m_vCachedDominationResistance[iIndex];
+
+	//check if valid
+	if (iValue > -1)
+		return iValue;
+
+	//update cache, start with default
+	int iNewValue = 0;
+	if (GET_PLAYER(eAttacker).isMajorCiv() && GET_PLAYER(eDefender).isMajorCiv())
+	{
+		int iResistance = GET_PLAYER(eAttacker).GetDiplomacyAI()->GetOtherPlayerWarmongerAmount(eDefender);
+		if (iResistance > 0)
+		{
+			int iHandicapCap = GET_PLAYER(eDefender).isHuman() ? std::max(0, GET_PLAYER(eDefender).getHandicapInfo().getResistanceCap()) : std::max(0, GC.getGame().getHandicapInfo().getAIResistanceCap());
+			iNewValue = min(iHandicapCap, iResistance / 25);
+		}
+	}
+
+	m_vCachedDominationResistance[iIndex] = iNewValue;
+	return iNewValue;
+}
+
+void CvGame::clearDominationResistanceCache()
+{
+	m_vCachedDominationResistance = vector<int>(MAX_PLAYERS * MAX_PLAYERS, -1);
+}
+
 //	--------------------------------------------------------------------------------
 const CvReplayMessage* CvGame::getReplayMessage(uint i) const
 {
@@ -11457,6 +11492,8 @@ void CvGame::doUpdateCacheOnTurn()
 		CvPlot* pLoopPlot = GC.getMap().plotByIndexUnchecked(iI);
 		pLoopPlot->updateWaterFlags();
 	}
+
+	clearDominationResistanceCache();
 }
 
 //	--------------------------------------------------------------------------------
