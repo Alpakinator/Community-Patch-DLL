@@ -2287,29 +2287,6 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		}
 	}
 
-	//should be the same everywhere so we can reuse paths
-	int iMoveFlags = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_MAXIMIZE_EXPLORE | CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER;
-
-	//performance: if we have a leftover path to a far-away (expensive) target an it's still good, then reuse it!
-	if ( pUnit->GetMissionAIType()==MISSIONAI_EXPLORE && pUnit->GetMissionAIPlot() && plotDistance(*pUnit->plot(),*pUnit->GetMissionAIPlot())>10 )
-	{
-		CvPlot* pDestPlot = pUnit->GetMissionAIPlot();
-		const std::vector<SPlotWithScore>& vExplorePlots = m_pPlayer->GetEconomicAI()->GetExplorationPlots(pUnit->getDomainType());
-
-		SPlotWithScore dummy(pDestPlot,0);
-		if ( std::find( vExplorePlots.begin(),vExplorePlots.end(),dummy ) != vExplorePlots.end() )
-		{
-			pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pDestPlot->getX(), pDestPlot->getY(), 
-				iMoveFlags, false, false, MISSIONAI_EXPLORE, pDestPlot);
-
-			if (!pUnit->canMove())
-			{
-				UnitProcessed(pUnit->GetID());
-				return true;
-			}
-		}
-	}
-
 	ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
 	if(pkScriptSystem)
 	{
@@ -2339,7 +2316,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 				{
 					if (!GET_TEAM(pUnit->getTeam()).isAtWar(GET_PLAYER(eLoopPlotOwner).getTeam()))
 					{
-						if(GET_PLAYER(eLoopPlotOwner).isMinorCiv())
+						if (GET_PLAYER(eLoopPlotOwner).isMinorCiv())
 						{
 							ePlotOwner = eLoopPlotOwner;
 							break;
@@ -2348,15 +2325,14 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 				}
 			}
 		}
-		if(ePlotOwner != NO_PLAYER)
-			fRewardFactor *= 100;
-		else
-			fRewardFactor /= 10;
 
-		if (fRewardFactor >= 0.5f)
+		if (ePlotOwner != NO_PLAYER)
+			fRewardFactor *= 10;
+
+		if (fRewardFactor >= 5.f)
 		{
 			pUnit->PushMission(CvTypes::getMISSION_SELL_EXOTIC_GOODS());
-			if(GC.getLogging() && GC.getAILogging())
+			if (GC.getLogging() && GC.getAILogging())
 			{
 				CvString strLogString;
 				CvString strTemp = pUnit->getUnitInfo().GetDescription();
@@ -2368,7 +2344,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 	CvPlot* pBestPlot = NULL;
 	int iBestPlotScore = 0;
-		
+
 	//first check our immediate neighborhood (ie the tiles we can reach within one turn)
 	//if the scout is already embarked, we need to allow it so we don't get stuck!
 	int iMoveFlagsLocal = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY;
@@ -2376,27 +2352,28 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		iMoveFlagsLocal |= CvUnit::MOVEFLAG_NO_EMBARK;
 
 	ReachablePlots eligiblePlots = TacticalAIHelpers::GetAllPlotsInReachThisTurn(pUnit, pUnit->plot(), iMoveFlagsLocal);
-	for (ReachablePlots::iterator tile=eligiblePlots.begin(); tile!=eligiblePlots.end(); ++tile)
+	for (ReachablePlots::iterator tile = eligiblePlots.begin(); tile != eligiblePlots.end(); ++tile)
 	{
 		CvPlot* pEvalPlot = GC.getMap().plotByIndexUnchecked(tile->iPlotIndex);
 
-		if(!pEvalPlot)
+		if (!pEvalPlot)
 			continue;
 
 		//we can pass through a minor's territory but we don't want to stay there (unless we're friends)
 		//this check shouldn't be necessary because of IsValidExplorerEndTurnPlot() but sometimes it is
-		if(pEvalPlot->isOwned() && GET_PLAYER(pEvalPlot->getOwner()).isMinorCiv() && !GET_PLAYER(pEvalPlot->getOwner()).GetMinorCivAI()->IsPlayerHasOpenBorders(m_pPlayer->GetID()))
+		if (pEvalPlot->isOwned() && GET_PLAYER(pEvalPlot->getOwner()).isMinorCiv() && !GET_PLAYER(pEvalPlot->getOwner()).GetMinorCivAI()->IsPlayerHasOpenBorders(m_pPlayer->GetID()))
 			continue;
 
 		//don't embark to reach a close-range target
-		if(!pUnit->isEmbarked() && pEvalPlot->needsEmbarkation(pUnit))
+		if (!pUnit->isEmbarked() && pEvalPlot->needsEmbarkation(pUnit))
 			continue;
 
-		//see if we can make an easy kill (AI only - automated units cannot attack!)
+		//try some harassment
 		if (!pUnit->IsAutomated())
 		{
+			//see if we can make an easy kill (AI only - automated units cannot attack!)
 			std::vector<CvUnit*> vAttackers = m_pPlayer->GetPossibleAttackers(*pEvalPlot, m_pPlayer->getTeam());
-			if (vAttackers.size()==1 && TacticalAIHelpers::KillLoneEnemyIfPossible(pUnit, vAttackers[0]))
+			if (vAttackers.size() == 1 && TacticalAIHelpers::KillLoneEnemyIfPossible(pUnit, vAttackers[0]))
 			{
 				if (GC.getLogging() && GC.getAILogging())
 				{
@@ -2418,6 +2395,18 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
 				//continue if can still move
 				return !pUnit->canMove();
+			}
+
+			//if there is an improvement to plunder and we can flee
+			if (tile->iMovesLeft > GC.getMOVE_DENOMINATOR() &&
+				pEvalPlot->getRevealedImprovementType(pUnit->getTeam()) != NO_IMPROVEMENT &&
+				pEvalPlot->getResourceType() != NO_RESOURCE &&
+				!pEvalPlot->IsImprovementPillaged() &&
+				pUnit->GetDanger(pEvalPlot) < pUnit->GetCurrHitPoints())
+			{
+				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
+				pUnit->PushMission(CvTypes::getMISSION_PILLAGE());
+				return true;
 			}
 		}
 
@@ -2476,6 +2465,30 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		}
 	}
 
+	//should be the same everywhere so we can reuse paths
+	int iMoveFlags = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_MAXIMIZE_EXPLORE | CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER;
+
+	//step 1: ignore the near target for now - if we have a leftover path to a far-away (expensive) target an it's still good, then reuse it!
+	if (pUnit->GetMissionAIType() == MISSIONAI_EXPLORE && pUnit->GetMissionAIPlot() && plotDistance(*pUnit->plot(), *pUnit->GetMissionAIPlot()) > 10)
+	{
+		CvPlot* pDestPlot = pUnit->GetMissionAIPlot();
+		const std::vector<SPlotWithScore>& vExplorePlots = m_pPlayer->GetEconomicAI()->GetExplorationPlots(pUnit->getDomainType());
+
+		SPlotWithScore dummy(pDestPlot, 0);
+		if (std::find(vExplorePlots.begin(), vExplorePlots.end(), dummy) != vExplorePlots.end())
+		{
+			pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pDestPlot->getX(), pDestPlot->getY(),
+				iMoveFlags, false, false, MISSIONAI_EXPLORE, pDestPlot);
+
+			if (!pUnit->canMove())
+			{
+				UnitProcessed(pUnit->GetID());
+				return true;
+			}
+		}
+	}
+
+	//step 2: use the nearby target
 	if (pBestPlot && pBestPlot != pUnit->plot())
 	{
 		if (GC.getLogging() && GC.getAILogging())
@@ -2496,8 +2509,8 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 		return bStuck || !pUnit->canMove();
 	}
 
-	//step 2: if we didn't find a worthwhile plot among our adjacent plots, check the global targets
-	if (!pBestPlot && pUnit->movesLeft() > 0)
+	//step 3: if we didn't find a worthwhile plot among our adjacent plots, check the global targets and pick a new one
+	if (pUnit->movesLeft() > 0)
 	{
 		//check at least 5 candidates
 		pBestPlot = GetBestExploreTarget(pUnit, 5, 5);
