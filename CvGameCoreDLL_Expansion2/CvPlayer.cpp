@@ -2140,7 +2140,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 		{
 			m_pDiplomacyRequests->Init(eID);
 		}
-		m_pDangerPlots->Init(eID, false /*bAllocate*/);
+		m_pDangerPlots->Init(eID);
 		m_pTreasury->Init(this);
 		m_pTraits->Init(GC.GetGameTraits(), this);
 		m_pEspionage->Init(this);
@@ -2321,18 +2321,18 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_iPreviousBestSettlePlot = -1;
 }
 
-/// This is called after the map and other game constructs have been setup and just before the game starts.
+/// This is called after the map and other game constructs have been setup and just before the game starts (also after reload!)
 void CvPlayer::gameStartInit()
 {
-	//make sure the non-serialized infos are up to date
-	m_pDangerPlots->Init(GetID(), true);
-
 	verifyAlive();
 	if (!isAlive())
 		return;
 
 	if (!GC.GetEngineUserInterface()->IsLoadedGame())
 		UpdatePlots();
+
+	//force the first update to restore the non-serialized state
+	m_pDangerPlots->UpdateDanger();
 
 	if (GC.getGame().isNetworkMultiPlayer())
 	{
@@ -9683,9 +9683,9 @@ int CvPlayer::GetNumUnitPromotions(PromotionTypes ePromotion)
 }
 
 //	-----------------------------------------------------------------------------------------------
-void CvPlayer::UpdateDangerPlots(bool bKeepKnownUnits)
+void CvPlayer::UpdateDangerPlots()
 {
-	m_pDangerPlots->UpdateDanger(bKeepKnownUnits);
+	m_pDangerPlots->UpdateDanger();
 }
 
 //	-----------------------------------------------------------------------------------------------
@@ -10182,7 +10182,7 @@ void CvPlayer::doTurnPostDiplomacy()
 		UpdatePlots();
 		UpdateAreaEffectUnits();
 		UpdateAreaEffectPlots();
-		UpdateDangerPlots(true);
+		UpdateDangerPlots();
 		GetTacticalAI()->GetTacticalAnalysisMap()->Invalidate();
 		UpdateMilitaryStats();
 		GET_TEAM(getTeam()).ClearWarDeclarationCache();
@@ -32656,10 +32656,6 @@ void CvPlayer::setTurnActive(bool bNewValue, bool bDoTurn) // R: bDoTurn default
 					GetHomelandAI()->Invalidate();
 				}
 
-				// update danger plots before the turn
-				// causes MP desyncs otherwise (see #10147), affects SP just a little
-				UpdateDangerPlots(false);
-
 				if(kGame.isFinalInitialized())
 				{
 					if(isAlive())
@@ -44112,11 +44108,6 @@ int CvPlayer::GetPlotDanger(const CvPlot& pPlot, bool bFixedDamageOnly)
 void CvPlayer::ResetDangerCache(const CvPlot & Plot, int iRange)
 {
 	m_pDangerPlots->ResetDangerCache(&Plot, iRange);
-}
-
-int CvPlayer::GetDangerPlotAge() const
-{
-	return m_pDangerPlots->GetTurnSliceBuilt();
 }
 
 bool CvPlayer::IsVanishedUnit(const IDInfo& id) const
