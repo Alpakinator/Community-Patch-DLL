@@ -569,6 +569,7 @@ protected:
 	LUAAPIEXTN(GetReligionBuildingYieldRateModifier, int);
 	LUAAPIEXTN(SetYieldPerTurnFromMinors, int);
 	LUAAPIEXTN(GetYieldPerTurnFromMinors, int);
+	LUAAPIEXTN(GetBaseYieldRateFromNonSpecialists, int);
 	LUAAPIEXTN(GetBaseYieldRateFromCSAlliance, int);
 	LUAAPIEXTN(GetBuildingYieldChangeFromCorporationFranchises, int);
 	LUAAPIEXTN(GetYieldChangeFromCorporationFranchises, int);
