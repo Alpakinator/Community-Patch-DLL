@@ -28595,7 +28595,7 @@ bool CvUnit::shouldHeal(bool bBeforeAttacks) const
 		if (GetNumEnemyUnitsAdjacent()>0)
 		{
 			//only run away if strictly necessary
-			return isProjectedToDieNextTurn() || (GetDanger() > GetCurrHitPoints() && getDamage() > 0);
+			return isProjectedToDieNextTurn() && (GetDanger() > GetCurrHitPoints());
 		}
 		else
 		{
