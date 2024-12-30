@@ -44153,7 +44153,7 @@ CvCity* CvPlayer::GetClosestCity(const CvPlot* pPlot, int iSearchRadius, bool bS
 	for(CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 	{
 		//need to check area
-		if (bSameLandmass && !pLoopCity->HasAccessToLandmass(pPlot->getLandmass()))
+		if (bSameLandmass && !pLoopCity->HasAccessToLandmassOrOcean(pPlot->getLandmass()))
 			continue;
 
 		int iDistance = plotDistance(pPlot->getX(), pPlot->getY(), pLoopCity->getX(), pLoopCity->getY());
