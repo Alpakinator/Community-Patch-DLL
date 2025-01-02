@@ -7560,11 +7560,6 @@ int CvUnit::GetPower() const
 //	--------------------------------------------------------------------------------
 bool CvUnit::canHeal(const CvPlot* pPlot, bool bCheckMovement) const
 {
-	VALIDATE_OBJECT();
-
-	if (!IsHurt())
-		return false;
-
 	if (isHuman() && !IsFortified())
 	{
 		if (!canEndTurnAtPlot(pPlot))
@@ -28592,7 +28587,7 @@ bool CvUnit::shouldHeal(bool bBeforeAttacks) const
 	}
 	else 
 	{
-		if (GetNumEnemyUnitsAdjacent()>0)
+		if (GetNumEnemyUnitsAdjacent()>0 || IsEnemyCityAdjacent())
 		{
 			//only run away if strictly necessary
 			return isProjectedToDieNextTurn() && (GetDanger() > GetCurrHitPoints());
