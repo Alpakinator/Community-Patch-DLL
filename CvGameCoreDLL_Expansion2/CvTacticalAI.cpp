@@ -3648,23 +3648,25 @@ CvPlot* CvTacticalAI::FindAirTargetNearTarget(CvUnit* pUnit, CvPlot* pApproximat
 
 void CvTacticalAI::ExecuteAirSweep(CvPlot* pTargetPlot)
 {
-	if (!pTargetPlot)
+	//maybe there are no interceptors and we just had the fighter for air recon ...
+	if (!pTargetPlot && pTargetPlot->GetInterceptorCount(m_pPlayer->GetID(), NULL, false, true) == 0)
 		return;
 
-	// Start by sending possible air sweeps
-	for(unsigned int iI = 0; iI < m_CurrentAirSweepUnits.size(); iI++)
+	//start by sending possible air sweeps
+	for (unsigned int iI = 0; iI < m_CurrentAirSweepUnits.size(); iI++)
 	{
 		CvUnit* pUnit = m_pPlayer->getUnit(m_CurrentAirSweepUnits[iI].GetID());
 
-		if(pUnit && pUnit->canMove())
+		if (pUnit && pUnit->canMove())
 		{
-			if(pUnit->canAirSweep())
+			if (pUnit->canAirSweep())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_AIR_SWEEP(), pTargetPlot->getX(), pTargetPlot->getY());
-				UnitProcessed(m_CurrentAirSweepUnits[iI].GetID());
+				if (pUnit->isOutOfAttacks())
+					UnitProcessed(m_CurrentAirSweepUnits[iI].GetID());
 			}
 
-			if(GC.getLogging() && GC.getAILogging())
+			if (GC.getLogging() && GC.getAILogging())
 			{
 				CvString strMsg;
 				strMsg.Format("Starting air sweep with %s %d before attack on X: %d, Y: %d", pUnit->getName().c_str(), pUnit->GetID(), pTargetPlot->getX(), pTargetPlot->getY());
@@ -4972,10 +4974,11 @@ CvPlot* CvTacticalAI::GetBestRepositionPlot(CvUnit* pUnit, CvPlot* plotTarget, i
 //AMS: Fills m_CurrentAirSweepUnits with all units able to sweep at target plot.
 void CvTacticalAI::FindAirUnitsToAirSweep(CvPlot* pTarget)
 {
-	m_CurrentAirSweepUnits.clear();
-	int interceptionsOnPlot = pTarget->GetInterceptorCount(m_pPlayer->GetID(),NULL,false,true);
+	// Always use one if available in case we need it for recon
+	int interceptionsOnPlot = max(1, pTarget->GetInterceptorCount(m_pPlayer->GetID(), NULL, false, true));
 
 	// Loop through all units available to tactical AI this turn
+	m_CurrentAirSweepUnits.clear();
 	for (list<int>::iterator it = m_CurrentTurnUnits.begin(); it != m_CurrentTurnUnits.end() && interceptionsOnPlot > 0; ++it)
 	{
 		CvUnit* pLoopUnit = m_pPlayer->getUnit(*it);
@@ -7933,7 +7936,7 @@ STacticalAssignment ScorePlotForCombatUnitMove(const SUnitStats& unit, const CvT
 			{  1, 12, 6, 1, -1 }, //firstline (note that it's ok to evaluate the score in an enemy plot for a firstline unit -> meleekill) 
 			{ -1, 6, 12, 2, -1 }, //secondline
 			{ -1, 1, 8, 12, -1 }, //thirdline (ranged and damaged melee units)
-			{ -1, 1, 8,  8, -1 }, //support
+			{ -1, 1, 8,  8, -1 }, //support (can also happen for damaged melee units)
 		};
 		iPlotScore = iPlotScoreForEnemyDistance[unit.eMoveStrategy][testPlot.getEnemyDistance(eRelevantDomain)];
 	}
@@ -7944,10 +7947,10 @@ STacticalAssignment ScorePlotForCombatUnitMove(const SUnitStats& unit, const CvT
 
 		int iPlotScoreForTargetDistance[5][5] = {
 			{ -1,-1,-1,-1,-1 }, //none (should not occur)
-			{  1, 2, 4, 8, 8 }, //firstline
-			{  4, 4, 2, 1, 1 }, //secondline
-			{  8, 8, 2, 1, 1 }, //thirdline
-			{  8, 8, 2, 1, 1 }, //support (can happen for damaged melee units)
+			{  6, 6, 5, 3, 1 }, //firstline can go anywhere but outside when in doubt
+			{  8, 8, 3, 2, 1 }, //secondline prefers "inside"
+			{  10, 10, 2, 1, 1 }, //thirdline prefers inside even more
+			{  8, 8, 2, 1, 1 }, //support (can also happen for damaged melee units)
 		};
 		iPlotScore = iPlotScoreForTargetDistance[unit.eMoveStrategy][iTargetDistance];
 	}
@@ -7978,10 +7981,8 @@ STacticalAssignment ScorePlotForCombatUnitMove(const SUnitStats& unit, const CvT
 		result.eAssignmentType = A_FINISH;
 
 		// unit giving extra strength to an adjacent city?
-		if (pUnit->GetAdjacentCityDefenseMod() > 0 && (pTestPlot->IsAdjacentCity(pUnit->getTeam()) || (pTestPlot->isCity() && pTestPlot->getTeam() == pUnit->getTeam())))
-		{
-			iPlotScore += pUnit->GetAdjacentCityDefenseMod();
-		}
+		if (pUnit->GetAdjacentCityDefenseMod() > 0 && GET_PLAYER(assumedPosition.getPlayer()).GetCityDistanceInPlots(pTestPlot)<=1)
+			iPlotScore++;
 
 		iDangerScore = ScoreTurnEnd(pUnit, unit.eLastAssignment, testPlot, movePlot.iMovesLeft, eRelevantDomain, unit.iSelfDamage, -1, assumedPosition, evalMode, false);
 
@@ -8221,7 +8222,7 @@ STacticalAssignment ScorePlotForRangedAttack(const SUnitStats& unit, const CvTac
 	if (newAssignment.iScore < 0)
 		return newAssignment;
 
-	//times 10 to match with ScorePlotForCombatUnitOffensive()
+	//times 10 to match with ScorePlotForCombatUnitMove()
 	newAssignment.iScore *= 10;
 
 	//small bias for staying close to our cities, to have a way to retreat if necessary
