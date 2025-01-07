@@ -92,6 +92,9 @@ public:
 	CvString GetName() const;
 	CvCity* GetHolyCity() const;
 
+	void GetCombatBonusesVsOtherReligion(int& ownLandsBonus, int& theirLandsBonus) const;
+	void UpdateCombatBonusesVsOtherReligion(PlayerTypes eOwner);
+
 	// Public data
 	ReligionTypes m_eReligion;
 	PlayerTypes m_eFounder;
@@ -100,11 +103,13 @@ public:
 	int m_iTurnFounded;
 	bool m_bPantheon;
 	bool m_bEnhanced;
-#if defined(MOD_BALANCE_CORE)
 	bool m_bReformed;
-#endif
+
 	char m_szCustomName[128];
 	CvReligionBeliefs m_Beliefs;
+
+protected:
+	pair<int, int> m_cachedCombatBonusVsOtherReligion;
 };
 
 FDataStream& operator>>(FDataStream&, CvReligion&);

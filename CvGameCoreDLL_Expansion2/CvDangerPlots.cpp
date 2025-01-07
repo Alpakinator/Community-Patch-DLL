@@ -783,6 +783,8 @@ int CvDangerPlotContents::GetAirUnitDamage(const CvUnit* pUnit, AirActionType iA
 }
 
 #define DANGER_MAX_CACHE_SIZE 9
+unsigned long gDangerCacheHit = 0;
+unsigned long gDangerCacheMiss = 0;
 
 // Get the maximum damage unit could receive at this plot in the next turn (update this with CvUnitCombat changes!)
 int CvDangerPlotContents::GetDanger(const CvUnit* pUnit, const UnitIdContainer& unitsToIgnore, int iExtraDamage, AirActionType iAirAction)
@@ -864,8 +866,15 @@ int CvDangerPlotContents::GetDanger(const CvUnit* pUnit, const UnitIdContainer& 
 	if (unitStats.addIgnoredUnits(unitsToIgnore))
 	{
 		for (size_t i = 0; i < m_lastUnitDangerResults.size(); i++)
+		{
 			if (unitStats == m_lastUnitDangerResults[i].first)
+			{
+				gDangerCacheHit++;
 				return m_lastUnitDangerResults[i].second;
+			}
+		}
+
+		gDangerCacheMiss++;
 	}
 
 	// Capturing a city with a garrisoned unit destroys the garrisoned unit

@@ -10038,6 +10038,16 @@ void CvPlayer::doTurn()
 		}
 	}
 
+	//make sure we always have up to date combat bonuses
+	ReligionTypes eOwnedReligion = GetReligions()->GetOwnedReligion();
+	if (eOwnedReligion != NO_RELIGION)
+	{
+		//could also cache on player level but at this point, who cares
+		CvReligion* pReligion = const_cast<CvReligion*>(GC.getGame().GetGameReligions()->GetReligion(eOwnedReligion, GetID()));
+		if (pReligion)
+			pReligion->UpdateCombatBonusesVsOtherReligion(GetID());
+	}
+
 	if (!isBarbarian())
 	{
 		DoWarValueLostDecay();
@@ -10775,6 +10785,15 @@ void CvPlayer::UpdateReligion()
 
 			pLoopCity->UpdateSpecialReligionYields(eYield);
 		}
+	}
+
+	ReligionTypes eOwnedReligion = GetReligions()->GetOwnedReligion();
+	if (eOwnedReligion != NO_RELIGION)
+	{
+		//could also cache on player level but at this point, who cares
+		CvReligion* pReligion = const_cast<CvReligion*>(GC.getGame().GetGameReligions()->GetReligion(eOwnedReligion, GetID()));
+		if (pReligion)
+			pReligion->UpdateCombatBonusesVsOtherReligion(GetID());
 	}
 
 	GetReligions()->UpdateStateReligion();
@@ -30023,16 +30042,7 @@ bool CvPlayer::IsUnderrepresentedUnitType(UnitAITypes eType) const
 
 int CvPlayer::GetDominationResistance(PlayerTypes ePlayer)
 {
-	if (!isMajorCiv() || !GET_PLAYER(ePlayer).isMajorCiv())
-		return 0;
-
-	int iResistance = GetDiplomacyAI()->GetOtherPlayerWarmongerAmount(ePlayer);
-	if (iResistance == 0)
-		return 0;
-
-	int iHandicapCap = GET_PLAYER(ePlayer).isHuman() ? std::max(0, GET_PLAYER(ePlayer).getHandicapInfo().getResistanceCap()) : std::max(0, GC.getGame().getHandicapInfo().getAIResistanceCap());
-
-	return min(iHandicapCap, iResistance/25);
+	return GC.getGame().getCachedDominationResistance(m_eID,ePlayer);
 }
 int CvPlayer::GetArchaeologicalDigTourism() const
 {

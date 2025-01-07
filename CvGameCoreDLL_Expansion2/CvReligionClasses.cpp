@@ -150,6 +150,8 @@ CvReligion::CvReligion(ReligionTypes eReligion, PlayerTypes eFounder, CvCity* pH
 	}
 	m_iTurnFounded = GC.getGame().getGameTurn();
 	ZeroMemory(m_szCustomName, sizeof(m_szCustomName));
+
+	m_cachedCombatBonusVsOtherReligion = make_pair<int, int>(-1, -1);
 }
 
 ///
@@ -206,6 +208,23 @@ CvCity * CvReligion::GetHolyCity() const
 		return pHolyCityPlot->getPlotCity();
 
 	return NULL;
+}
+
+void CvReligion::GetCombatBonusesVsOtherReligion(int& ownLandsBonus, int& theirLandsBonus) const
+{
+	//need to cache this for performance
+	ownLandsBonus = m_cachedCombatBonusVsOtherReligion.first;
+	theirLandsBonus = m_cachedCombatBonusVsOtherReligion.second;
+}
+
+void CvReligion::UpdateCombatBonusesVsOtherReligion(PlayerTypes eOwner)
+{
+	CvCity* pHolyCity = GetHolyCity();
+
+	int iOwn = m_Beliefs.GetCombatVersusOtherReligionOwnLands(eOwner, pHolyCity);
+	int iTheir = m_Beliefs.GetCombatVersusOtherReligionTheirLands(eOwner, pHolyCity);
+
+	m_cachedCombatBonusVsOtherReligion = make_pair<int,int>(iOwn,iTheir);
 }
 
 //=====================================
