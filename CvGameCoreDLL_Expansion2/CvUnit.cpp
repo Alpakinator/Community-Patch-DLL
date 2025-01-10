@@ -7740,15 +7740,17 @@ int CvUnit::healRate(const CvPlot* pPlot) const
 #if defined(MOD_BALANCE_CORE)
 	}
 #endif
-	// Heal from units
-	int iBestHealFromUnits = 0;
+	//start with this unit
+	int iBestHealFromUnits = getSameTileHeal();
+
+	//same plot units, excluding this unit (if it were to move)
 	pUnitNode = pPlot->headUnitNode();
 	while(pUnitNode != NULL)
 	{
 		pLoopUnit = ::GetPlayerUnit(*pUnitNode);
 		pUnitNode = pPlot->nextUnitNode(pUnitNode);
 
-		if(pLoopUnit && pLoopUnit->getTeam() == getTeam())
+		if(pLoopUnit && pLoopUnit->getTeam() == getTeam() && pLoopUnit != this)
 		{
 			int iHeal = pLoopUnit->getSameTileHeal();
 
@@ -7758,6 +7760,7 @@ int CvUnit::healRate(const CvPlot* pPlot) const
 			}
 		}
 	}
+	//neighboring units excluding this unit (if it were to move)
 	for(int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
 	{
 		pLoopPlot = plotDirection(pPlot->getX(), pPlot->getY(), ((DirectionTypes)iI));
@@ -7771,7 +7774,7 @@ int CvUnit::healRate(const CvPlot* pPlot) const
 				pLoopUnit = ::GetPlayerUnit(*pUnitNode);
 				pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
 
-				if(pLoopUnit && pLoopUnit->getTeam() == getTeam() && pLoopUnit->getDomainType() == getDomainType())
+				if(pLoopUnit && pLoopUnit->getTeam() == getTeam() && pLoopUnit->getDomainType() == getDomainType() && pLoopUnit != this)
 				{
 					int iHeal = pLoopUnit->getAdjacentTileHeal();
 
@@ -10166,6 +10169,19 @@ bool CvUnit::shouldPillage(const CvPlot* pPlot, bool bConservative) const
 	if (hasFreePillageMove() && pPlot->IsAdjacentCity())
 		return true;
 
+	// Citadel here?
+	ImprovementTypes eImprovement = pPlot->getImprovementType();
+	if (eImprovement != NO_IMPROVEMENT)
+	{
+		int iDamage = GC.getImprovementInfo(eImprovement)->GetNearbyEnemyDamage();
+		if (iDamage != 0 && pPlot->getOwner() != NO_PLAYER && GET_TEAM(getTeam()).isAtWar(pPlot->getTeam()))
+			return true;
+	}
+
+	//be careful "wasting" movement for slow units
+	if (GetDanger() > GetCurrHitPoints() + GD_INT_GET(PILLAGE_HEAL_AMOUNT) && getMoves() < GC.getMOVE_DENOMINATOR() * 3 && !hasFreePillageMove())
+		return false;
+
 	if (pPlot->getOwningCity() != NULL && pPlot->getOwner() != NO_PLAYER && pPlot->getOwner() != BARBARIAN_PLAYER)
 	{
 		if (GET_PLAYER(m_eOwner).GetTacticalAI()->IsInFocusArea(pPlot))
@@ -10183,17 +10199,6 @@ bool CvUnit::shouldPillage(const CvPlot* pPlot, bool bConservative) const
 			return true;
 
 		if (!GET_PLAYER(m_eOwner).GetMilitaryAI()->IsPreferredAttackTarget(pPlot->getOwningCity()))
-			return true;
-	}
-
-	ImprovementTypes eImprovement = pPlot->getImprovementType();
-
-	// Citadel here?
-	if (eImprovement != NO_IMPROVEMENT)
-	{
-		int iDamage = GC.getImprovementInfo(eImprovement)->GetNearbyEnemyDamage();
-
-		if (iDamage != 0 && pPlot->getOwner() != NO_PLAYER && GET_TEAM(getTeam()).isAtWar(pPlot->getTeam()))
 			return true;
 	}
 
@@ -17425,7 +17430,7 @@ int CvUnit::GetRangeCombatSplashDamage(const CvPlot* pTargetPlot) const
 	if (getSplashDamage() != 0)
 	{
 		CvPlot** aNeighbors = GC.getMap().getNeighborsUnchecked(pTargetPlot);
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < NUM_DIRECTION_TYPES; i++)
 		{
 			CvPlot* pNeighbor = aNeighbors[i];
 			if (pNeighbor && canEverRangeStrikeAt(pNeighbor->getX(), pNeighbor->getY(),plot(),false))
@@ -27331,7 +27336,7 @@ CvUnit* CvUnit::GetPotentialUnitToPushOut(const CvPlot& pushPlot, CvPlot** ppToP
 
 				//does it have a free plot
 				CvPlot** aNeighbors = GC.getMap().getNeighborsUnchecked(&pushPlot);
-				for (int i = 0; i < 6; i++)
+				for (int i = 0; i < NUM_DIRECTION_TYPES; i++)
 				{
 					CvPlot* pNeighbor = aNeighbors[i];
 					if (!pNeighbor)
