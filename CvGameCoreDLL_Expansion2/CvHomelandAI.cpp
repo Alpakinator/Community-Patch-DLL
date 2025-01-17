@@ -2411,9 +2411,7 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 			//if there is an improvement to plunder and we can flee
 			if (tile->iMovesLeft > GC.getMOVE_DENOMINATOR() &&
-				pEvalPlot->getRevealedImprovementType(pUnit->getTeam()) != NO_IMPROVEMENT &&
-				pEvalPlot->getResourceType() != NO_RESOURCE &&
-				!pEvalPlot->IsImprovementPillaged() &&
+				pUnit->canPillage(pEvalPlot) &&
 				pUnit->GetDanger(pEvalPlot) < pUnit->GetCurrHitPoints())
 			{
 				pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pEvalPlot->getX(), pEvalPlot->getY());
@@ -2587,7 +2585,8 @@ bool CvHomelandAI::ExecuteExplorerMoves(CvUnit* pUnit)
 
 		//in case it was non-native scout, reset the unit AI
 		pUnit->AI_setUnitAIType(pUnit->getUnitInfo().GetDefaultUnitAIType());
-		return true; //nothing left to do
+		ExecuteMovesToSafestPlot(pUnit);
+		return true;
 	}
 }
 
@@ -6205,7 +6204,6 @@ const char* homelandMoveNames[] =
 	"H_MOVE_SENTRY",
 	"H_MOVE_SENTRY_NAVAL",
 	"H_MOVE_WORKER",
-	"H_MOVE_WORKER_SEA",
 	"H_MOVE_PATROL",
 	"H_MOVE_UPGRADE",
 	"H_MOVE_WRITER",
@@ -6227,7 +6225,6 @@ const char* homelandMoveNames[] =
 	"H_MOVE_DIPLOMAT_EMBASSY",
 	"H_MOVE_MESSENGER",
 	"H_MOVE_SECONDARY_SETTLER",
-	"H_MOVE_SECONDARY_WORKER",
 };
 
 const char* directiveNames[] = 
