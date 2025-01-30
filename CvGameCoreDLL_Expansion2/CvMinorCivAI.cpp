@@ -4882,41 +4882,10 @@ void CvMinorCivAI::DoChangeAliveStatus(bool bAlive)
 		{
 			PlayerTypes e = (PlayerTypes)i;
 			// special workaround to allow status changes despite minor already being dead
-			DoFriendshipChangeEffects(e, GetEffectiveFriendshipWithMajorTimes100(e), vNewInfluence.at(i), /*bFromQuest*/ false, /*bIgnoreMinorDeath*/ true);
+			DoFriendshipChangeEffects(e, GetEffectiveFriendshipWithMajorTimes100(e), vNewInfluence.at(i), /*bFromQuest*/ false, /*bAliveStatusChanged*/ true);
 			SetFriendshipWithMajor(e, vNewInfluence.at(i));
 		}
 		SetDisableNotifications(false);
-	}
-
-	// Apply or Remove any active bonuses
-	for(int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
-	{
-		PlayerTypes ePlayer = (PlayerTypes) iPlayerLoop;
-		if (!GET_PLAYER(ePlayer).isAlive())
-			continue;
-
-		bool bFriends = false;
-		bool bAllies = false;
-		if (IsFriendshipAboveFriendsThreshold(ePlayer, GetEffectiveFriendshipWithMajor(ePlayer)))
-		{
-			//make sure we are consistent
-			if (bAlive && !IsFriends(ePlayer))
-			{
-				CUSTOMLOG("inconsistent friendship state after resurrection!");
-				SetFriends(ePlayer, true);
-			}
-			bFriends = true;
-		}
-		if(GetAlly() == ePlayer)
-		{
-			CvAssertMsg(bAlive, "A Minor about to die still has an Ally, when it should have none.");
-			bAllies = true;
-		}
-		if(bFriends || bAllies)
-		{
-			GET_PLAYER(ePlayer).GetDiplomacyAI()->LogMinorStatusChange(m_pPlayer->GetID(), bAlive ? "restore bonus yields after resurrection" : "remove bonus yields after elimination");
-			DoSetBonus(ePlayer, bAlive, bFriends, bAllies);
-		}
 	}
 
 	// Death - Reset the cached ally and barbarian threat counter
@@ -12181,7 +12150,7 @@ void CvMinorCivAI::ResetFriendshipWithMajor(PlayerTypes ePlayer)
 	else
 	{
 		// special workaround to allow status changes despite minor already being dead
-		DoFriendshipChangeEffects(ePlayer, iOldFriendshipTimes100, iResetFriendship * 100, /*bFromQuest*/ false, /*bIgnoreMinorDeath*/ true);
+		DoFriendshipChangeEffects(ePlayer, iOldFriendshipTimes100, iResetFriendship * 100, /*bFromQuest*/ false, /*bAliveStatusChanged*/ true);
 		SetFriendshipWithMajor(ePlayer, iResetFriendship);
 	}
 
@@ -12761,29 +12730,23 @@ int CvMinorCivAI::GetFriendshipNeededForNextLevel(PlayerTypes ePlayer)
 }
 
 /// What happens when Friendship changes?
-void CvMinorCivAI::DoFriendshipChangeEffects(const PlayerTypes ePlayer, const int iOldFriendshipTimes100, const int iNewFriendshipTimes100, const bool bFromQuest, const bool bIgnoreMinorDeath)
+void CvMinorCivAI::DoFriendshipChangeEffects(const PlayerTypes ePlayer, const int iOldFriendshipTimes100, const int iNewFriendshipTimes100, const bool bFromQuest, const bool bAliveStatusChanged)
 {
-	if (iOldFriendshipTimes100 == iNewFriendshipTimes100)
+	if (iOldFriendshipTimes100 == iNewFriendshipTimes100 && !bAliveStatusChanged)
 		return;
 
 	int iOldFriendship = iOldFriendshipTimes100 / 100;
 	int iNewFriendship = iNewFriendshipTimes100 / 100;
 
-	// Can't give out bonuses if we're dead!
-	if (!bIgnoreMinorDeath && !GetPlayer()->isAlive())
-		return;
-
-	Localization::String strMessage;
-	Localization::String strSummary;
-
 	PlayerTypes eOldAlly = GetAlly();
-
 	bool bAdd = false;
 	bool bFriendsChange = false;
 	bool bAlliesChange = false;
 	bool bWasFriends = IsFriends(ePlayer);
-	bool bNowFriends = IsFriendshipAboveFriendsThreshold(ePlayer, iNewFriendship);
-	bool bNowAllies = IsFriendshipAboveAlliesThreshold(ePlayer, iNewFriendship);
+
+	// Can't give out bonuses if we're dead!
+	bool bNowFriends = IsFriendshipAboveFriendsThreshold(ePlayer, iNewFriendship) && GetPlayer()->isAlive();
+	bool bNowAllies = IsFriendshipAboveAlliesThreshold(ePlayer, iNewFriendship) && GetPlayer()->isAlive();
 
 	// If we are Friends now, mark that we've been Friends at least once this game
 	if (bNowFriends)

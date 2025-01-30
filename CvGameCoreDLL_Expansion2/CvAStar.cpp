@@ -46,6 +46,7 @@
 int giKnownCostWeight = 1;
 int giHeuristicCostWeight = 1;
 int giLastStartIndex = 0;
+int giLastStartSlice = 0;
 
 unsigned int saiRuntimeHistogram[100] = {0};
 
@@ -414,35 +415,27 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 	saiRuntimeHistogram[iBin]++;
 
 	CvUnit* pUnit = m_sData.iUnitID > 0 ? GET_PLAYER(m_sData.ePlayer).getUnit(m_sData.iUnitID) : NULL;
+
 #if defined(VPDEBUG)
-	if ( timer.GetDeltaInSeconds()>0.2 && m_sData.ePath==PT_UNIT_MOVEMENT )
+	int iStartIndex = GC.getMap().plotNum(m_iXstart, m_iYstart);
+	if ( timer.GetDeltaInSeconds()>0.1 && m_sData.ePath==PT_UNIT_MOVEMENT && HasValidDestination() )
 	{
 		//debug hook
-		int iStartIndex = GC.getMap().plotNum(m_iXstart, m_iYstart);
-		if (iStartIndex==giLastStartIndex && iStartIndex>0)
+		if (iStartIndex==giLastStartIndex && giLastStartSlice==GC.getGame().getTurnSlice() && iStartIndex>0)
 		{
 			OutputDebugString("Repeated pathfinding start\n");
 			gStackWalker.ShowCallstack(5);
+
+			//in some cases we have no destination plot, so exhaustion is not always a "fail"
+			CvString msg = CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
+				m_iCurrentGenerationID, m_sData.ePath, bSuccess || !HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown",
+				m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds,
+				(100 * m_iProcessedNodes) / GC.getMap().numPlots(), timer.GetDeltaInSeconds() * 1000);
+			OutputDebugString(msg.c_str());
 		}
-		giLastStartIndex = iStartIndex;
-
-		int iNumPlots = GC.getMap().numPlots();
-
-		//in some cases we have no destination plot, so exhaustion is not always a "fail"
-		CvString msg = CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
-			m_iCurrentGenerationID, m_sData.ePath, bSuccess||!HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown",
-			m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds,
-			(100 * m_iProcessedNodes) / iNumPlots, timer.GetDeltaInSeconds() * 1000);
-		OutputDebugString( msg.c_str() );
-
-#ifdef STACKWALKER
-		//FILogFile* pLog = LOGFILEMGR.GetLog("PathfinderLongRun.txt", FILogFile::kDontTimeStamp);
-		//pLog->Msg(msg.c_str());
-		//gStackWalker.SetLog(pLog);
-		//gStackWalker.ShowCallstack(5);
-		//gStackWalker.SetLog(NULL);
-#endif
 	}
+	giLastStartIndex = iStartIndex;
+	giLastStartSlice = GC.getGame().getTurnSlice();
 #endif
 
 	if (g_bPathFinderLogging)
