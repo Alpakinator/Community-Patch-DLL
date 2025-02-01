@@ -424,11 +424,11 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 		if (iStartIndex==giLastStartIndex && giLastStartSlice==GC.getGame().getTurnSlice() && iStartIndex>0)
 		{
 			OutputDebugString("Repeated pathfinding start\n");
-			gStackWalker.ShowCallstack(5);
+			//gStackWalker.ShowCallstack(5);
 
 			//in some cases we have no destination plot, so exhaustion is not always a "fail"
-			CvString msg = CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
-				m_iCurrentGenerationID, m_sData.ePath, bSuccess || !HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown",
+			CvString msg = CvString::format("Run %d: Path type %d %s (%s %d from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
+				m_iCurrentGenerationID, m_sData.ePath, bSuccess || !HasValidDestination() ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown", pUnit->GetID(),
 				m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds,
 				(100 * m_iProcessedNodes) / GC.getMap().numPlots(), timer.GetDeltaInSeconds() * 1000);
 			OutputDebugString(msg.c_str());
