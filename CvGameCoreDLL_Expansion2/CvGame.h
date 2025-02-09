@@ -139,6 +139,7 @@ public:
 	bool isTeamGame() const;
 
 	void ReviveActivePlayer();
+	PlayerTypes getFirstAlivePlayer() const;
 
 	int getNumHumanPlayers();
 	int GetNumMajorCivsEver(bool bOnlyStart = false) const;
