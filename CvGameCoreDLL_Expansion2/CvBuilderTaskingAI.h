@@ -25,8 +25,9 @@ struct BuilderDirective
 	    BUILD_IMPROVEMENT,			   // improving a tile
 	    BUILD_ROUTE,				   // build a route on a tile
 	    REPAIR,						   // repairing a pillaged route or improvement
-	    CHOP,						   // remove a feature to improve production
+	    REMOVE_FEATURE,				   // remove a feature to improve production
 	    REMOVE_ROAD,				   // remove a road from a plot
+		KEEP_IMPROVEMENT,			   // will not actually be executed but needed for planning
 	    NUM_DIRECTIVES ENUM_META_VALUE
 	};
 
