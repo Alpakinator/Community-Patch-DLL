@@ -7300,10 +7300,6 @@ bool CvUnit::canUseForTacticalAI() const
 	if (AI_getUnitAIType() == UNITAI_CARRIER_SEA || AI_getUnitAIType() == UNITAI_ICBM)
 		return false;
 
-	//do not poach important garrisons
-	if (IsGarrisoned() && GetGarrisonedCity()->NeedsGarrison())
-		return false;
-
 	//we want all barbarians ...
 	if (isBarbarian())
 		return true;
