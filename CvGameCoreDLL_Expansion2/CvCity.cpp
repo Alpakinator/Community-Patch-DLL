@@ -33046,7 +33046,10 @@ bool CvCity::IsInDanger(PlayerTypes eEnemy) const
 		for (int j = 0; j < pPlot->getNumUnits(); j++)
 		{
 			CvUnit* pUnit = pPlot->getUnitByIndex(j);
-			if (pUnit->IsCombatUnit())
+			if (pUnit->isDelayedDeath())
+				continue;
+
+			if (pUnit->IsCombatUnit() || pUnit->IsCanAttackRanged())
 			{
 				if (pUnit->getTeam() == getTeam())
 				{
@@ -33078,6 +33081,15 @@ bool CvCity::IsInDanger(PlayerTypes eEnemy) const
 						iEnemyOtherPower += pUnit->GetPower();
 					}
 				}
+			}
+			else if (pUnit->canNuke())
+			{
+				// Is there a high chance of total interception?
+				if (pUnit->GetNukeDamageLevel() == 1 && getNukeInterceptionChance() >= 75)
+					continue;
+
+				// Regardless of comparative unit power, a city is in danger if an enemy nuke is nearby.
+				return true;
 			}
 			if (pUnit->GetGreatGeneralCount() > 0)
 			{
@@ -33124,19 +33136,14 @@ bool CvCity::IsInDanger(PlayerTypes eEnemy) const
 	return iEnemyPower > iFriendlyPower;
 }
 
-bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
+CvWeightedVector<PlayerTypes> CvCity::CalculateDangerLevels() const
 {
-	if (vWarAllies.empty())
-		return false;
-
-	//unit strength doesn't matter if the city is low on hitpoints
-	if (isInDangerOfFalling(true))
-		return true;
+	CvWeightedVector<PlayerTypes> viBlankVector;
 
 	//cannot use the tactical zone here, because it's not specific to a certain enemy
 	//but we can use the danger plots to exclude some cities
-	if (GET_PLAYER(getOwner()).GetPlotDanger(this) == 0)
-		return false;
+	if (getDamageTakenThisTurn() == 0 && getDamageTakenLastTurn() == 0 && GET_PLAYER(getOwner()).GetPlotDanger(this) == 0)
+		return viBlankVector;
 
 	int iFriendlyLandPower = GetPower();
 	int iFriendlySeaPower = 0;
@@ -33145,8 +33152,187 @@ bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
 	bool bFriendlyAdmiralInTheVicinity = false;
 
 	// Store each enemy's power by domain in weighted vectors to facilitate the Great General/Admiral buffs applying to those players only
-	vector<PlayerTypes> vOtherGGNearby;
-	vector<PlayerTypes> vOtherGANearby;
+	vector<TeamTypes> vOtherGGNearby;
+	vector<TeamTypes> vOtherGANearby;
+	CvWeightedVector<PlayerTypes> veEnemyLandPowers;
+	CvWeightedVector<PlayerTypes> veEnemySeaPowers;
+	CvWeightedVector<PlayerTypes> veEnemyOtherPowers;
+	for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
+	{
+		veEnemyLandPowers.push_back(iPlayerLoop, 0);
+		veEnemySeaPowers.push_back(iPlayerLoop, 0);
+		veEnemyOtherPowers.push_back(iPlayerLoop, 0);
+	}
+
+	for (int i = RING0_PLOTS; i < RING4_PLOTS; i++)
+	{
+		CvPlot* pPlot = iterateRingPlots(plot(), i);
+		if (!pPlot)
+			continue;
+
+		for (int j = 0; j < pPlot->getNumUnits(); j++)
+		{
+			CvUnit* pUnit = pPlot->getUnitByIndex(j);
+			if (pUnit->isDelayedDeath())
+				continue;
+
+			if (pUnit->IsCombatUnit() || pUnit->IsCanAttackRanged())
+			{
+				if (pUnit->getTeam() == getTeam())
+				{
+					DomainTypes eDomainType = pUnit->getDomainType();
+					switch (eDomainType)
+					{
+					case DOMAIN_LAND:
+						iFriendlyLandPower += pUnit->GetPower();
+						break;
+					case DOMAIN_SEA:
+						iFriendlySeaPower += pUnit->GetPower();
+						break;
+					default:
+						iFriendlyOtherPower += pUnit->GetPower();
+					}
+				}
+				else
+				{
+					PlayerTypes eOwner = pUnit->getOwner();
+					DomainTypes eDomainType = pUnit->getDomainType();
+					switch (eDomainType)
+					{
+					case DOMAIN_LAND:
+						veEnemyLandPowers.IncreaseWeight(eOwner, pUnit->GetPower());
+						break;
+					case DOMAIN_SEA:
+						veEnemySeaPowers.IncreaseWeight(eOwner, pUnit->GetPower());
+						break;
+					default:
+						veEnemyOtherPowers.IncreaseWeight(eOwner, pUnit->GetPower());
+					}
+				}
+			}
+			else if (pUnit->canNuke())
+			{
+				// Is there a high chance of total interception?
+				if (pUnit->GetNukeDamageLevel() == 1 && getNukeInterceptionChance() >= 75)
+					continue;
+
+				// Regardless of comparative unit power, a city is in danger if an enemy nuke is nearby.
+				veEnemyOtherPowers.SetWeight(pUnit->getOwner(), 100000000);
+			}
+			if (pUnit->GetGreatGeneralCount() > 0)
+			{
+				if (pUnit->getTeam() == getTeam())
+					bFriendlyGeneralInTheVicinity = true;
+				else
+					vOtherGGNearby.push_back(pUnit->getTeam());
+			}
+			if (pUnit->GetGreatAdmiralCount() > 0)
+			{
+				if (pUnit->getTeam() == getTeam())
+					bFriendlyAdmiralInTheVicinity = true;
+				else
+					vOtherGANearby.push_back(pUnit->getTeam());
+			}
+		}
+	}
+
+	// Tally up friendly power
+	if (bFriendlyGeneralInTheVicinity)
+	{
+		iFriendlyLandPower *= 11;
+		iFriendlyLandPower /= 10;
+	}
+	if (bFriendlyAdmiralInTheVicinity)
+	{
+		iFriendlySeaPower *= 11;
+		iFriendlySeaPower /= 10;
+	}
+	int iFriendlyPower = iFriendlyLandPower + iFriendlySeaPower + iFriendlyOtherPower;
+
+	for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
+	{
+		PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+		TeamTypes eTeam = GET_PLAYER(eLoopPlayer).getTeam();
+		if (eTeam == getTeam())
+		{
+			if (eLoopPlayer == getOwner())
+				viDangerLevels.push_back(eLoopPlayer, iFriendlyPower);
+			else
+				viDangerLevels.push_back(eLoopPlayer, 0);
+
+			continue;
+		}
+
+		// Increase enemy land power if there's a general nearby
+		int iEnemyLandPower = veEnemyLandPowers.GetWeight(eLoopPlayer);
+		if (std::find(vOtherGGNearby.begin(), vOtherGGNearby.end(), eTeam) != vOtherGGNearby.end())
+		{
+			iEnemyLandPower *= 11;
+			iEnemyLandPower /= 10;
+		}
+
+		// Increase enemy sea power if there's an admiral nearby
+		int iEnemySeaPower = veEnemySeaPowers.GetWeight(eLoopPlayer);
+		if (std::find(vOtherGANearby.begin(), vOtherGANearby.end(), eTeam) != vOtherGANearby.end())
+		{
+			iEnemySeaPower *= 11;
+			iEnemySeaPower /= 10;
+		}
+
+		int iEnemyPower = iEnemyLandPower + iEnemySeaPower + veEnemyOtherPowers.GetWeight(eLoopPlayer);
+		viDangerLevels.push_back(eLoopPlayer, iEnemyPower);
+	}
+
+	return viDangerLevels;
+}
+
+bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies, CvWeightedVector<PlayerTypes> viDangerLevels) const
+{
+	if (vWarAllies.empty())
+		return false;
+
+	//cannot use the tactical zone here, because it's not specific to a certain enemy
+	//but we can use the danger plots to exclude some cities
+	if (getDamageTakenThisTurn() == 0 && getDamageTakenLastTurn() == 0 && GET_PLAYER(getOwner()).GetPlotDanger(this) == 0)
+		return false;
+
+	// If viDangerLevels is NOT empty, then that means the calculation has been done before in CalculateDangerLevels(). We just need to compare.
+	if (!viDangerLevels.empty())
+	{
+		int iPrecomputedFriendlyPower = 0;
+		int iPrecomputedEnemyPower = 0;
+		for (int i = 0; i < viDangerLevels.size(); i++)
+		{
+			PlayerTypes eIndex = viDangerLevels.GetElement(i);
+			if (eIndex == getOwner())
+			{
+				iPrecomputedFriendlyPower = viDangerLevels.GetWeight(i);
+			}
+			if (std::find(vWarAllies.begin(), vWarAllies.end(), eIndex) != vWarAllies.end())
+			{
+				int iEnemyPower = viDangerLevels.GetWeight(i);
+				if (iEnemyPower > 0)
+				{
+					//unit strength doesn't matter if the city is low on hitpoints
+					if (isInDangerOfFalling(true))
+						return true;
+
+					iPrecomputedEnemyPower += iEnemyPower;
+				}
+			}
+		}
+		return iPrecomputedEnemyPower > iPrecomputedFriendlyPower;
+	}
+
+	int iFriendlyLandPower = GetPower();
+	int iFriendlySeaPower = 0;
+	int iFriendlyOtherPower = 0;
+	bool bFriendlyGeneralInTheVicinity = false;
+	bool bFriendlyAdmiralInTheVicinity = false;
+
+	// Store each enemy's power by domain in weighted vectors to facilitate the Great General/Admiral buffs applying to those players only
+	vector<TeamTypes> vOtherGGNearby;
+	vector<TeamTypes> vOtherGANearby;
 	CvWeightedVector<PlayerTypes> veEnemyLandPowers;
 	CvWeightedVector<PlayerTypes> veEnemySeaPowers;
 	CvWeightedVector<PlayerTypes> veEnemyOtherPowers;
@@ -33170,6 +33356,9 @@ bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
 		for (int j = 0; j < pPlot->getNumUnits(); j++)
 		{
 			CvUnit* pUnit = pPlot->getUnitByIndex(j);
+			if (pUnit->isDelayedDeath())
+				continue;
+
 			if (pUnit->IsCombatUnit() || pUnit->IsCanAttackRanged())
 			{
 				if (pUnit->getTeam() == getTeam())
@@ -33192,6 +33381,10 @@ bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
 					std::map<PlayerTypes, int>::iterator vectorIndexFinder = vectorIndices.find(pUnit->getOwner());
 					if (vectorIndexFinder != vectorIndices.end())
 					{
+						//unit strength doesn't matter if the city is low on hitpoints
+						if (isInDangerOfFalling(true))
+							return true;
+
 						iIndex = vectorIndexFinder->second;
 						DomainTypes eDomainType = pUnit->getDomainType();
 						switch (eDomainType)
@@ -33224,14 +33417,14 @@ bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
 				if (pUnit->getTeam() == getTeam())
 					bFriendlyGeneralInTheVicinity = true;
 				else
-					vOtherGGNearby.push_back(pUnit->getOwner());
+					vOtherGGNearby.push_back(pUnit->getTeam());
 			}
 			if (pUnit->GetGreatAdmiralCount() > 0)
 			{
 				if (pUnit->getTeam() == getTeam())
 					bFriendlyAdmiralInTheVicinity = true;
 				else
-					vOtherGANearby.push_back(pUnit->getOwner());
+					vOtherGANearby.push_back(pUnit->getTeam());
 			}
 		}
 	}
@@ -33255,32 +33448,27 @@ bool CvCity::IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const
 	for (int i = 0; i < veEnemyLandPowers.size(); i++)
 	{
 		PlayerTypes eIndex = veEnemyLandPowers.GetElement(i);
+		TeamTypes eTeam = GET_PLAYER(eIndex).getTeam();
 		int iEnemyLandPower = veEnemyLandPowers.GetWeight(i);
 
-		if (std::find(vOtherGGNearby.begin(), vOtherGGNearby.end(), eIndex) != vOtherGGNearby.end())
+		// Increase enemy land power if there's a general nearby
+		if (std::find(vOtherGGNearby.begin(), vOtherGGNearby.end(), eTeam) != vOtherGGNearby.end())
 		{
 			iEnemyLandPower *= 11;
 			iEnemyLandPower /= 10;
 		}
 
 		iEnemyPower += iEnemyLandPower;
-	}
-	for (int i = 0; i < veEnemySeaPowers.size(); i++)
-	{
-		PlayerTypes eIndex = veEnemySeaPowers.GetElement(i);
-		int iEnemySeaPower = veEnemySeaPowers.GetWeight(i);
 
-		if (std::find(vOtherGANearby.begin(), vOtherGANearby.end(), eIndex) != vOtherGANearby.end())
+		// Increase enemy sea power if there's an admiral nearby
+		int iEnemySeaPower = veEnemySeaPowers.GetWeight(i);
+		if (std::find(vOtherGANearby.begin(), vOtherGANearby.end(), eTeam) != vOtherGANearby.end())
 		{
 			iEnemySeaPower *= 11;
 			iEnemySeaPower /= 10;
 		}
 
-		iEnemyPower += iEnemySeaPower;
-	}
-	for (int i = 0; i < veEnemyOtherPowers.size(); i++)
-	{
-		iEnemyPower += veEnemyOtherPowers.GetWeight(i);
+		iEnemyPower += iEnemySeaPower + veEnemyOtherPowers.GetWeight(i);
 	}
 
 	// Final assessment
@@ -34529,6 +34717,11 @@ int CvCity::CountNumWorkedRiverTiles(TerrainTypes eTerrain)
 
 //	--------------------------------------------------------------------------------
 #if defined(MOD_CORE_PER_TURN_DAMAGE)
+int CvCity::getDamageTakenThisTurn() const
+{
+	return m_iDamageTakenThisTurn;
+}
+
 int CvCity::addDamageReceivedThisTurn(int iDamage, CvUnit* pAttacker)
 {
 	if (pAttacker && !isHuman())

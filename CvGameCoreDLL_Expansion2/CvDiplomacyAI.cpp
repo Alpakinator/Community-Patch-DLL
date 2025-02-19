@@ -26768,7 +26768,7 @@ void CvDiplomacyAI::DoUpdatePeaceTreatyOffers(vector<TeamTypes>& vMakePeaceTeams
 }
 
 /// Helper function to return various danger-related stats for a peace evaluation
-int CvDiplomacyAI::GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>& vOurWarAllies, vector<PlayerTypes>& vTheirWarAllies, int& iTheirDanger, bool& bSeriousDangerUs, bool& bSeriousDangerThem, vector<int>& vEnemyCitiesEndangered, vector<int>& vEnemyCitiesEndangeredByUs)
+int CvDiplomacyAI::GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>& vOurWarAllies, vector<PlayerTypes>& vTheirWarAllies, CvWeightedVector<PlayerTypes> viDangerLevels, int& iTheirDanger, bool& bSeriousDangerUs, bool& bSeriousDangerThem, vector<CvCity*>& vEnemyCitiesEndangered, vector<CvCity*>& vEnemyCitiesEndangeredByUs)
 {
 	int iOurDanger = 0;
 	ReligionTypes eMyReligion = GetPlayer()->GetReligions()->GetOwnedReligion();	
@@ -26778,7 +26778,7 @@ int CvDiplomacyAI::GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>
 
 	for (CvCity* pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
 	{
-		if (pLoopCity->IsInDangerFromPlayers(vTheirWarAllies)) // Only care if we're in danger from them!
+		if (pLoopCity->IsInDangerFromPlayers(vTheirWarAllies, viDangerLevels)) // Only care if we're in danger from them!
 		{
 			int iDangerMod = 1;
 
@@ -26827,9 +26827,10 @@ int CvDiplomacyAI::GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>
 		}
 	}
 
+	CvWeightedVector<PlayerTypes> viBlankVector;
 	for (CvCity* pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 	{
-		if (pLoopCity->IsInDangerFromPlayers(vOurWarAllies)) // Only care if they're in danger from us!
+		if (pLoopCity->IsInDangerFromPlayers(vOurWarAllies, viBlankVector)) // Only care if they're in danger from us!
 		{
 			int iDangerMod = 1;
 
@@ -26857,11 +26858,11 @@ int CvDiplomacyAI::GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>
 
 			if (iDangerMod > 1)
 			{
-				vEnemyCitiesEndangered.push_back(pLoopCity->GetID());
+				vEnemyCitiesEndangered.push_back(pLoopCity);
 
 				if (pLoopCity->IsInDangerFromPlayers(vMyTeam))
 				{
-					vEnemyCitiesEndangeredByUs.push_back(pLoopCity->GetID());
+					vEnemyCitiesEndangeredByUs.push_back(pLoopCity);
 
 					if (pLoopCity->IsInDanger(GetID()) && GetPlayer()->GetMilitaryAI()->IsPreferredAttackTarget(pLoopCity))
 					{

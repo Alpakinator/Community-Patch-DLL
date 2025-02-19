@@ -1566,7 +1566,8 @@ public:
 	void DoNearbyEnemy();
 
 	bool IsInDanger(PlayerTypes eEnemy) const;
-	bool IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies) const;
+	CvWeightedVector<PlayerTypes> CalculateDangerLevels() const;
+	bool IsInDangerFromPlayers(vector<PlayerTypes>& vWarAllies, CvWeightedVector<PlayerTypes> viDangerLevels) const;
 
 	void IncrementUnitStatCount(CvUnit* pUnit);
 	void CheckForAchievementBuilding(BuildingTypes eBuilding);
@@ -1761,6 +1762,7 @@ public:
 	int GetConnectionGoldTimes100() const;
 
 #if defined(MOD_CORE_PER_TURN_DAMAGE)
+	int getDamageTakenThisTurn() const;
 	int addDamageReceivedThisTurn(int iDamage, CvUnit* pAttacker = NULL);
 	void flipDamageReceivedPerTurn();
 	bool isInDangerOfFalling(bool bExtraCareful=false) const;

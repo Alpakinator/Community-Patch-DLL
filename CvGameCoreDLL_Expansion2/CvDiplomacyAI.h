@@ -33,6 +33,24 @@ public:
 		bool bQuickBoost;
 		int iGoldAmount;
 	};
+	struct PrecomputedDiploData
+	{
+		vector<PlayerTypes> RelevantMajors;
+		vector<PlayerTypes> AllMajors;
+		vector<PlayerTypes> RelevantMinors;
+		vector<PlayerTypes> AllMinors;
+		std::map<PlayerTypes, std::vector<PlayerTypes>> OurOffensiveWarAllies;
+		std::map<PlayerTypes, std::vector<PlayerTypes>> OurDefensiveWarAllies;
+		std::map<PlayerTypes, std::vector<PlayerTypes>> TheirOffensiveWarAllies;
+		std::map<PlayerTypes, std::vector<PlayerTypes>> TheirDefensiveWarAllies;
+		std::map<PlayerTypes, int> OurDangerAmounts;
+		std::map<PlayerTypes, int> TheirDangerAmounts;
+		std::map<PlayerTypes, bool> OurSeriousDanger;
+		std::map<PlayerTypes, bool> TheirSeriousDanger;
+		std::map<PlayerTypes, std::vector<CvCity*>> EnemyCitiesEndangered;
+		std::map<PlayerTypes, std::vector<CvCity*>> EnemyCitiesEndangeredByOurTeam;
+		std::map<CvCity*, CvWeightedVector<PlayerTypes>> MyCityDanger;
+	};
 
 	// ************************************
 	// Initialization & Serialization
@@ -1191,7 +1209,7 @@ public:
 
 	void DoUpdatePeaceTreatyWillingness(bool bMyTurn = false);
 	void DoUpdatePeaceTreatyOffers(vector<TeamTypes>& vMakePeaceTeams, bool bCriticalState);
-	int GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>& vOurWarAllies, vector<PlayerTypes>& vTheirWarAllies, int& iTheirDanger, bool& bSeriousDangerUs, bool& bSeriousDangerThem, vector<int>& vEnemyCitiesEndangered, vector<int>& vEnemyCitiesEndangeredByUs);
+	int GetComparativeDanger(PlayerTypes ePlayer, vector<PlayerTypes>& vOurWarAllies, vector<PlayerTypes>& vTheirWarAllies, CvWeightedVector<PlayerTypes> viDangerLevels, int& iTheirDanger, bool& bSeriousDangerUs, bool& bSeriousDangerThem, vector<CvCity*>& vEnemyCitiesEndangered, vector<CvCity*>& vEnemyCitiesEndangeredByUs);
 	bool IsWantsPeaceWithPlayer(PlayerTypes ePlayer) const;
 	bool IsPeaceBlocked(PlayerTypes ePlayer) const;
 	PeaceBlockReasons GetPeaceBlockReason(PlayerTypes ePlayer) const;
