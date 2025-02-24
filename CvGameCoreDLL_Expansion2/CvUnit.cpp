@@ -14491,7 +14491,7 @@ SpecialUnitTypes CvUnit::getSpecialUnitType() const
 //	--------------------------------------------------------------------------------
 bool CvUnit::IsGreatPerson() const
 {
-	SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
+	static SpecialUnitTypes eSpecialUnitGreatPerson = (SpecialUnitTypes) GC.getInfoTypeForString("SPECIALUNIT_PEOPLE");
 
 	return (getSpecialUnitType() == eSpecialUnitGreatPerson);
 }
@@ -17085,7 +17085,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			int iTempModifier = unitCombatModifier(eUnitCombat);
 			if (pOtherUnit->getUnitInfo().IsMounted())
 			{
-				UnitCombatTypes eMountedCombat = (UnitCombatTypes) GC.getInfoTypeForString("UNITCOMBAT_MOUNTED", true);
+				static UnitCombatTypes eMountedCombat = (UnitCombatTypes) GC.getInfoTypeForString("UNITCOMBAT_MOUNTED", true);
 				if (eMountedCombat != eUnitCombat)
 					iTempModifier += unitCombatModifier(eMountedCombat);
 			}
@@ -20325,7 +20325,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 				}
 
 				// Is this a missionary and do we have a belief that converts barbarians here?
-				UnitClassTypes eMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY", true);
+				static UnitClassTypes eMissionary = (UnitClassTypes)GC.getInfoTypeForString("UNITCLASS_MISSIONARY", true);
 				if (eMissionary != NO_UNITCLASS)
 				{
 					if (getUnitClassType() == eMissionary)
@@ -26463,7 +26463,7 @@ bool CvUnit::canAcquirePromotion(PromotionTypes ePromotion) const
 	}
 #if defined(MOD_BALANCE_CORE)
 	CvPlayer& kPlayer = GET_PLAYER(getOwner());
-	PromotionTypes ePromotionRoughTerrain = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_ROUGH_TERRAIN_ENDS_TURN");
+	static PromotionTypes ePromotionRoughTerrain = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_ROUGH_TERRAIN_ENDS_TURN");
 	if(ePromotion == ePromotionRoughTerrain && kPlayer.GetPlayerTraits()->IsConquestOfTheWorld())
 	{
 		return false;
@@ -31711,7 +31711,7 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 	// M + nM + R + mR + nR + AA: +15 (antiair land) 1, +20 2 , +25 3.
 	if (iTemp != 0)
 	{
-		MilitaryAIStrategyTypes eStrategy = (MilitaryAIStrategyTypes)GC.getInfoTypeForString("MILITARYAISTRATEGY_NEED_AIR");
+		static MilitaryAIStrategyTypes eStrategy = (MilitaryAIStrategyTypes)GC.getInfoTypeForString("MILITARYAISTRATEGY_NEED_AIR");
 		if(GET_PLAYER(getOwner()).GetMilitaryAI()->IsUsingStrategy(eStrategy))
 		{
 			iTemp *= 2;		// Not mine but I assume it's useful
