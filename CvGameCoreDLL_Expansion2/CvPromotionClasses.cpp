@@ -3584,7 +3584,7 @@ bool CvUnitPromotions::IsInUseByPlayer(PromotionTypes eIndex, PlayerTypes ePlaye
 void PromotionArrayHelpers::ReadV3(FDataStream& kStream, CvBitfield& kPromotions)
 {
 	int iNumEntries = 0;
-	FStringFixedBuffer(sTemp, 64);
+	CvString sTemp;
 	int iType = 0;
 
 	kStream >> iNumEntries;
@@ -3632,7 +3632,7 @@ void PromotionArrayHelpers::Read(FDataStream& kStream, CvBitfield& kPromotions)
 	kPromotions.SetSize( iNumEntries );
 
 	uint uiHashTemp = 0;
-	uint uiOligarchyHash = FString::Hash("PROMOTION_OLIGARCHY");
+	uint uiOligarchyHash = FStringHash("PROMOTION_OLIGARCHY");
 	for(int iI = 0; iI < iNumEntries; iI++)
 	{
 		kStream >> uiHashTemp;
@@ -3687,7 +3687,7 @@ void PromotionArrayHelpers::Write(FDataStream& kStream, const CvBitfield& kPromo
 			CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
 			if(pkPromotionInfo)
 			{
-				uint uiHash = FString::Hash( pkPromotionInfo->GetType() );		// Save just the hash
+				uint uiHash = FStringHash( pkPromotionInfo->GetType() );		// Save just the hash
 				kStream << uiHash;
 				kStream << bValue;
 			}
