@@ -16243,7 +16243,7 @@ int CvCity::getGrowthMods(CvString* toolTipSink, int iAssumedLocalHappinessChang
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_FOODMOD_LEAGUE", iMod);
 	}
 
-	return max(-100, iTotalMod);
+	return range(iTotalMod,-50,+50);
 }
 
 //	--------------------------------------------------------------------------------
