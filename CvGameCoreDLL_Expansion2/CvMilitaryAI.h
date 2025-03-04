@@ -208,7 +208,7 @@ public:
 	int GetNumberCivsAtWarWith(bool bIncludeMinor = true) const;
 	int GetRecommendedMilitarySize() const
 	{
-		return m_iRecDefensiveLandUnits + m_iRecOffensiveLandUnits + m_iRecOffensiveNavalUnits;
+		return m_iRecDefensiveLandUnits + m_iRecDefensiveNavalUnits + m_iRecOffensiveLandUnits + m_iRecOffensiveNavalUnits;
 	};
 
 	int GetPowerOfStrongestBuildableUnit(DomainTypes eDomain);
@@ -270,7 +270,7 @@ public:
 	};
 	int GetRecommendNavySize() const
 	{
-		return m_iRecOffensiveNavalUnits;
+		return m_iRecOffensiveNavalUnits + m_iRecDefensiveNavalUnits;
 	};
 	int GetNumLandUnits() const
 	{
@@ -343,6 +343,7 @@ private:
 	int m_iNumLandUnitsInArmies;
 	int m_iNumNavalUnitsInArmies;
 	int m_iRecOffensiveNavalUnits;
+	int m_iRecDefensiveNavalUnits;
 	int m_iNumAirUnits;
 	int m_iNumAntiAirUnits;
 	int m_iBarbarianCampCount;

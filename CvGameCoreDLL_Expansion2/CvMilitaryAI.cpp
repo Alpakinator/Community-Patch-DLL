@@ -21,7 +21,7 @@
 #include "LintFree.h"
 
 // set this to 1 in debugger if needed
-int gDebugOutput = 0;
+int gDebugOutput = 1;
 
 CvMilitaryAIStrategyXMLEntry::CvMilitaryAIStrategyXMLEntry(void):
 	m_piPlayerFlavorValue(NULL),
@@ -312,6 +312,7 @@ void CvMilitaryAI::Reset()
 	m_iBarbarianCampCount = 0;
 	m_iVisibleBarbarianCount = 0;
 	m_iRecDefensiveLandUnits = 0;
+	m_iRecDefensiveNavalUnits = 0;
 	m_iRecOffensiveLandUnits = 0;
 	m_iRecOffensiveNavalUnits = 0;
 	m_eLandDefenseState = NO_DEFENSE_STATE;
@@ -1548,7 +1549,7 @@ void CvMilitaryAI::LogDeficitScrapUnit(CvUnit* pUnit, bool bGifted)
 		}
 		else
 		{
-			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size %d, ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits);
+			strTemp.Format("Num Naval Units: %d, In Armies %d, Rec Size %d, ", m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits + m_iRecDefensiveNavalUnits);
 		}
 
 		strOutBuf += strTemp;
@@ -1702,11 +1703,21 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 			iNumUnitsWantedDefense++;
 	}
 
-	// put it together
-	m_iRecDefensiveLandUnits = max(iMinNumUnits,(iNumUnitsWantedDefense*iModifier)/100);
+	// now how many should be naval units?
+	int iCoastalPercent = (iNumCoastalCities * 100) / max(1,m_pPlayer->getNumCities());
+	int iFlavorNaval = m_pPlayer->GetFlavorManager()->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_NAVAL"));
+	int iNavalPercent = range(iFlavorNaval*5,10,50) + iCoastalPercent/3;
+
+	if (iNumCoastalCities > 0)
+		m_iRecDefensiveNavalUnits = max(iMinNumUnits, (iNavalPercent*iNumUnitsWantedDefense*iModifier)/10000);
+	else
+		m_iRecDefensiveNavalUnits = 0;
+
+	m_iRecDefensiveLandUnits = max(iMinNumUnits,((iNumUnitsWantedDefense*iModifier)/100) - m_iRecDefensiveNavalUnits);
 
 	// how many units can we afford?
-	int iMaxOffensiveUnitsPossible = max(0, m_pPlayer->GetNumUnitsSupplied() - m_iRecDefensiveLandUnits);
+	int iMaxOffensiveUnitsPossible = max(0, m_pPlayer->GetNumUnitsSupplied() - 
+	(m_iRecDefensiveLandUnits + m_iRecDefensiveNavalUnits));
 
 	// offense is simple for minors
 	if (m_pPlayer->isMinorCiv())
@@ -1742,10 +1753,6 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	if (m_pPlayer->isMajorCiv() && m_pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest())
 		iNumUnitsWantedOffense += /*6*/ GD_INT_GET(BALANCE_BASIC_ATTACK_ARMY_SIZE);
 
-	// now how many should be naval units?
-	int iCoastalPercent = (iNumCoastalCities * 100) / max(1,m_pPlayer->getNumCities());
-	int iFlavorNaval = m_pPlayer->GetFlavorManager()->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_NAVAL"));
-	int iNavalPercent = range(iFlavorNaval*5,10,50) + iCoastalPercent/3;
 
 	//you don't always get what you want ...
 	iNumUnitsWantedOffense = min(iNumUnitsWantedOffense, iMaxOffensiveUnitsPossible);
@@ -1793,15 +1800,15 @@ void CvMilitaryAI::UpdateDefenseState()
 		}
 	}
 
-	if(m_iNumNavalUnits <= (m_iRecOffensiveNavalUnits / 2))
+	if(m_iNumNavalUnits <= m_iRecDefensiveNavalUnits)
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_CRITICAL;
 	}
-	else if(m_iNumNavalUnits <= m_iRecOffensiveNavalUnits)
+	else if(m_iNumNavalUnits <= (m_iRecDefensiveNavalUnits+m_iRecOffensiveNavalUnits) * 3 / 4)
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_NEEDED;
 	}
-	else if(m_iNumNavalUnits <= m_iRecOffensiveNavalUnits * 5 / 4)
+	else if(m_iNumNavalUnits <= (m_iRecDefensiveNavalUnits+m_iRecOffensiveNavalUnits) * 5 / 4)
 	{
 		m_eNavalDefenseState = DEFENSE_STATE_NEUTRAL;
 	}
@@ -2103,7 +2110,7 @@ void CvMilitaryAI::UpdateMilitaryStrategies()
 					{
 						m_aiTempFlavors[iFlavorLoop] = pStrategy->GetPlayerFlavorValue(iFlavorLoop);
 					}
-
+					// adds stategy flavor to current civilization flavor
 					GetPlayer()->GetFlavorManager()->ChangeActivePersonalityFlavors(m_aiTempFlavors, pStrategy->GetType(), true);
 
 					for(iFlavorLoop = 0; iFlavorLoop < GC.getNumFlavorTypes(); iFlavorLoop++)
@@ -2925,7 +2932,7 @@ void CvMilitaryAI::LogMilitaryStatus()
 		strOutBuf = strBaseString + strTemp;
 
 		// Military size Info
-		strTemp.Format("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecOffensiveLandUnits, m_iRecDefensiveLandUnits, m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits, m_iNumMeleeLandUnits, m_iNumMobileLandUnits, m_iNumReconLandUnits, m_iNumArcherLandUnits, m_iNumSiegeLandUnits, m_iNumSkirmisherLandUnits, m_iNumRangedLandUnits, m_iNumAntiAirUnits, m_iNumMeleeNavalUnits, m_iNumRangedNavalUnits, m_iNumSubmarineNavalUnits, m_iNumCarrierNavalUnits, m_iNumAirUnits, m_iNumBomberAirUnits, m_iNumFighterAirUnits, m_pPlayer->getNumNukeUnits(), m_iNumMissileUnits);
+		strTemp.Format("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, ", m_iNumLandUnits, m_iNumLandUnitsInArmies, m_iRecOffensiveLandUnits, m_iRecDefensiveLandUnits, m_iRecDefensiveNavalUnits, m_iNumNavalUnits, m_iNumNavalUnitsInArmies, m_iRecOffensiveNavalUnits, m_iNumMeleeLandUnits, m_iNumMobileLandUnits, m_iNumReconLandUnits, m_iNumArcherLandUnits, m_iNumSiegeLandUnits, m_iNumSkirmisherLandUnits, m_iNumRangedLandUnits, m_iNumAntiAirUnits, m_iNumMeleeNavalUnits, m_iNumRangedNavalUnits, m_iNumSubmarineNavalUnits, m_iNumCarrierNavalUnits, m_iNumAirUnits, m_iNumBomberAirUnits, m_iNumFighterAirUnits, m_pPlayer->getNumNukeUnits(), m_iNumMissileUnits);
 		strOutBuf += strTemp;
 
 		// Unit supply
