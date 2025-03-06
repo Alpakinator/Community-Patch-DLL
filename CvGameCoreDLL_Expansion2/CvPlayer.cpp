@@ -304,6 +304,8 @@ CvPlayer::CvPlayer() :
 	, m_iNuclearMight()
 	, m_iEconomicMight()
 	, m_iProductionMight()
+	, m_iNoPupProductionMight()
+	, m_iNoPupNavalProductionMight()
 	, m_iTurnSliceMightRecomputed()
 	, m_iNewCityExtraPopulation()
 	, m_iFreeFoodBox()
@@ -771,14 +773,12 @@ CvPlayer::CvPlayer() :
 	, m_iFractionOriginalCapitalsUnderControl()
 	, m_iAvgUnitExp100()
 #endif
-#if defined(MOD_BATTLE_ROYALE)
 	, m_iNumMilitarySeaUnits()
 	, m_iNumMilitaryAirUnits()
 	, m_iNumMilitaryLandUnits()
 	, m_iMilitarySeaMight()
 	, m_iMilitaryAirMight()
 	, m_iMilitaryLandMight()
-#endif
 	, m_refuseOpenBordersTrade(false)
 	, m_refuseEmbassyTrade(false)
 	, m_refuseDefensivePactTrade(false)
@@ -1618,6 +1618,8 @@ void CvPlayer::uninit()
 	m_iNuclearMight = 0;
 	m_iEconomicMight = 0;
 	m_iProductionMight = 0;
+	m_iNoPupProductionMight = 0;
+	m_iNoPupNavalProductionMight = 0;
 	m_iTurnSliceMightRecomputed = -1;
 	m_iNewCityExtraPopulation = 0;
 	m_iFreeFoodBox = 0;
@@ -1714,14 +1716,12 @@ void CvPlayer::uninit()
 	m_lastGameTurnInitialAIProcessed = -1;
 	m_bVassalLevy = false;
 	m_iVassalGoldMaintenanceMod = 0;
-#if defined(MOD_BATTLE_ROYALE)
 	m_iNumMilitarySeaUnits = 0;
 	m_iNumMilitaryAirUnits = 0;
 	m_iNumMilitaryLandUnits = 0;
 	m_iMilitarySeaMight = 0;
 	m_iMilitaryAirMight = 0;
 	m_iMilitaryLandMight = 0;
-#endif
 
 	m_vCityConnectionPlots.clear();
 	m_vIndustrialCityConnectionPlots.clear();
@@ -29086,8 +29086,7 @@ int CvPlayer::getNumMilitaryUnits() const
 {
 	return m_iNumMilitaryUnits;
 }
-#if defined(MOD_BATTLE_ROYALE)
-//  ----------------------------------------------------------------------------------
+
 int CvPlayer::getNumMilitarySeaUnits() const
 {
 	return m_iNumMilitarySeaUnits;
@@ -29102,7 +29101,6 @@ int CvPlayer::getNumMilitaryLandUnits() const
 {
 	return m_iNumMilitaryLandUnits;
 }
-#endif
 
 void CvPlayer::changeNumMilitaryUnits(int iChange, DomainTypes eDomain)
 {
@@ -31666,14 +31664,12 @@ void CvPlayer::updateMightStatistics()
 	m_iNuclearMight = calculateNuclearMight();
 	m_iMilitaryMight = calculateMilitaryMight() + m_iNuclearMight;
 	m_iEconomicMight = calculateEconomicMight();
-	m_iProductionMight = calculateProductionMight();
-
-	if (MOD_BATTLE_ROYALE)
-	{
-		m_iMilitarySeaMight = calculateMilitaryMight(DOMAIN_SEA);
-		m_iMilitaryAirMight = calculateMilitaryMight(DOMAIN_AIR);
-		m_iMilitaryLandMight = calculateMilitaryMight(DOMAIN_LAND);
-	}
+	m_iProductionMight = calculateProductionMight(false, false);
+	m_iNoPupProductionMight = calculateProductionMight(false, true);
+	m_iNoPupNavalProductionMight = calculateProductionMight(true, true);
+	m_iMilitarySeaMight = calculateMilitaryMight(DOMAIN_SEA);
+	m_iMilitaryAirMight = calculateMilitaryMight(DOMAIN_AIR);
+	m_iMilitaryLandMight = calculateMilitaryMight(DOMAIN_LAND);
 }
 
 int CvPlayer::getPower() const
@@ -31702,7 +31698,6 @@ int CvPlayer::GetNuclearMight() const
 
 	return m_iNuclearMight;
 }
-#if defined(MOD_BATTLE_ROYALE)
 int CvPlayer::GetMilitarySeaMight() const
 {
 	if (m_iTurnSliceMightRecomputed < GC.getGame().getGameTurn())
@@ -31727,7 +31722,6 @@ int CvPlayer::GetMilitaryLandMight() const
 	}
 	return m_iMilitaryLandMight;
 }
-#endif
 int CvPlayer::GetEconomicMight() const
 {
 	// more lazy evaluation
@@ -31744,6 +31738,24 @@ int CvPlayer::GetProductionMight() const
 		const_cast<CvPlayer*>(this)->updateMightStatistics();
 
 	return m_iProductionMight;
+}
+
+int CvPlayer::GetNoPupProductionMight() const
+{
+	// more lazy evaluation
+	if (m_iTurnSliceMightRecomputed < GC.getGame().getGameTurn())
+		const_cast<CvPlayer*>(this)->updateMightStatistics();
+
+	return m_iNoPupProductionMight;
+}
+
+int CvPlayer::GetNoPupNavalProductionMight() const
+{
+	// more lazy evaluation
+	if (m_iTurnSliceMightRecomputed < GC.getGame().getGameTurn())
+		const_cast<CvPlayer*>(this)->updateMightStatistics();
+
+	return m_iNoPupNavalProductionMight;
 }
 
 void CvPlayer::ResetMightCalcTurn()
@@ -31974,16 +31986,21 @@ int CvPlayer::calculateEconomicMight() const
 	return iEconomicMight;
 }
 
-int CvPlayer::calculateProductionMight() const
+int CvPlayer::calculateProductionMight(bool bCoastalOnly, bool bNonPuppetOnly) const
 {
-	int iMight = 0;
-	int iLoop = 0;
-	for(const CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
-	{
-		iMight += pLoopCity->getRawProductionDifference(/*bIgnoreFood*/ true, /*bOverflow*/ false);
-	}
+    int iMight = 0;
+    int iLoop = 0;
+    for(const CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+    {
+        if(bCoastalOnly && !pLoopCity->isCoastal())
+            continue;
+        if(bNonPuppetOnly && pLoopCity->IsPuppet())
+            continue;
 
-	return iMight;
+        iMight += pLoopCity->getRawProductionDifference(/*bIgnoreFood*/ true, /*bOverflow*/ false);
+    }
+
+    return iMight;
 }
 
 int CvPlayer::getCombatExperienceTimes100() const
@@ -43008,6 +43025,8 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_iNuclearMight);
 	visitor(player.m_iEconomicMight);
 	visitor(player.m_iProductionMight);
+	visitor(player.m_iNoPupProductionMight);
+	visitor(player.m_iNoPupNavalProductionMight);
 	visitor(player.m_iTurnSliceMightRecomputed);
 	visitor(player.m_iNewCityExtraPopulation);
 	visitor(player.m_iFreeFoodBox);

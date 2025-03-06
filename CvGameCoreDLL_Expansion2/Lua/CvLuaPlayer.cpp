@@ -1455,15 +1455,12 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetRecentPlayerEventChoices);
 	Method(GetRecentCityEventChoices);
 #endif
-
-#if defined(MOD_BATTLE_ROYALE)
 	Method(GetNumMilitarySeaUnits);
 	Method(GetNumMilitaryAirUnits);
 	Method(GetNumMilitaryLandUnits);
 	Method(GetMilitarySeaMight);
 	Method(GetMilitaryAirMight);
 	Method(GetMilitaryLandMight);
-#endif
 
 	Method(IsResourceNotForSale);
 	Method(SetResourceAvailable);
@@ -18083,7 +18080,6 @@ int CvLuaPlayer::lGetRecentCityEventChoices(lua_State* L)
 }
 #endif
 
-#if defined(MOD_BATTLE_ROYALE)
 //------------------------------------------------------------------------------
 //int getNumMilitarySeaUnits();
 int CvLuaPlayer::lGetNumMilitarySeaUnits(lua_State* L)
@@ -18121,7 +18117,6 @@ int CvLuaPlayer::lGetMilitaryLandMight(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlayerAI::GetMilitaryLandMight);
 }
-#endif
 
 // bool CvPlayer::IsResourceNotForSale(ResourceTypes eResource)
 int CvLuaPlayer::lIsResourceNotForSale(lua_State* L)

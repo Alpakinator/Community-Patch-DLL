@@ -1590,6 +1590,8 @@ public:
 	int GetNuclearMight() const;
 	int GetEconomicMight() const;
 	int GetProductionMight() const;
+	int GetNoPupProductionMight() const;
+	int GetNoPupNavalProductionMight() const;
 	void ResetMightCalcTurn();
 
 	int getCombatExperienceTimes100() const;
@@ -2967,7 +2969,7 @@ protected:
 	void updateMightStatistics();
 	int calculateMilitaryMight(DomainTypes eDomain = NO_DOMAIN) const;
 	int calculateEconomicMight() const;
-	int calculateProductionMight() const;
+	int calculateProductionMight(bool bCoastalOnly = false, bool bNonPuppetOnly = false) const;
 
 	SYNC_ARCHIVE_MEMBER(CvPlayer)
 
@@ -3380,6 +3382,8 @@ protected:
 	int m_iNuclearMight;
 	int m_iEconomicMight;
 	int m_iProductionMight;
+	int m_iNoPupProductionMight;
+	int m_iNoPupNavalProductionMight;
 	int m_iTurnSliceMightRecomputed;
 	int m_iNewCityExtraPopulation;
 	int m_iFreeFoodBox;
@@ -3803,14 +3807,12 @@ protected:
 	mutable int m_iNumUnitsSuppliedCached; //not serialized
 	mutable int m_iNumUnitsSuppliedCachedWarWeariness; //not serialized
 
-#if defined(MOD_BATTLE_ROYALE)
 	int m_iNumMilitarySeaUnits;
 	int m_iNumMilitaryAirUnits;
 	int m_iNumMilitaryLandUnits;
 	int m_iMilitarySeaMight;
 	int m_iMilitaryAirMight;
 	int m_iMilitaryLandMight;
-#endif
 
 	std::vector<int> m_vCityConnectionPlots; //serialized
 	std::vector<int> m_vIndustrialCityConnectionPlots; //serialized
@@ -4206,6 +4208,7 @@ SYNC_ARCHIVE_VAR(int, m_iMilitaryMight)
 SYNC_ARCHIVE_VAR(int, m_iNuclearMight)
 SYNC_ARCHIVE_VAR(int, m_iEconomicMight)
 SYNC_ARCHIVE_VAR(int, m_iProductionMight)
+SYNC_ARCHIVE_VAR(int, m_iNavalProductionMight)
 SYNC_ARCHIVE_VAR(int, m_iTurnSliceMightRecomputed)
 SYNC_ARCHIVE_VAR(int, m_iNewCityExtraPopulation)
 SYNC_ARCHIVE_VAR(int, m_iFreeFoodBox)

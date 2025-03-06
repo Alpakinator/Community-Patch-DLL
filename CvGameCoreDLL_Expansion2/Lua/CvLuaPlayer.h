@@ -1486,7 +1486,6 @@ protected:
 	static int lGetRecentPlayerEventChoices(lua_State* L);
 	static int lGetRecentCityEventChoices(lua_State* L);
 #endif
-#if defined(MOD_BATTLE_ROYALE)
 	static int lGetNumMilitarySeaUnits(lua_State* L); // Sea Units
 	static int lGetNumMilitaryAirUnits(lua_State* L); // Air Units
 	static int lGetNumMilitaryLandUnits(lua_State* L); // Land Units
@@ -1494,7 +1493,6 @@ protected:
 	static int lGetMilitarySeaMight(lua_State* L);
 	static int lGetMilitaryAirMight(lua_State* L);
 	static int lGetMilitaryLandMight(lua_State* L);
-#endif
 
 	LUAAPIEXTN(IsResourceNotForSale, bool, eResource);
 	LUAAPIEXTN(SetResourceAvailable, void, eResource);

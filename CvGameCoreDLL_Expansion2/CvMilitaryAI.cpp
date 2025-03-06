@@ -1671,6 +1671,84 @@ void CvMilitaryAI::UpdateBaseData()
 	SetRecommendedArmyNavySize();
 }
 
+// Determines how easy it is to assault a city with ships
+// Returns an integer from 0 (impossible/landlocked) to 100 (extremely easy/fully coastal)
+int CvMilitaryAI::GetCitySeaAssaultEase(const CvCity* pCity)
+{
+    if (!pCity || !pCity->isCoastal())
+        return 0;
+    
+    // Count coastal tiles at different distances
+    int iCoastalTiles[3] = {0};
+    int iTotalTiles[3] = {0};
+    
+    CvPlot* pCityPlot = pCity->plot();
+    
+    // Adjacent tiles (Ring 1)
+    for (int i = 1; i < RING1_PLOTS; i++) 
+    {
+        CvPlot* pAdjacentPlot = iterateRingPlots(pCityPlot, i);
+        if (pAdjacentPlot) 
+        {
+            iTotalTiles[0]++;
+            if (pAdjacentPlot->isWater() && !pAdjacentPlot->isLake()) 
+                iCoastalTiles[0]++;
+        }
+    }
+    
+    // Ring 2 (2 tiles away)
+    for (int i = RING1_PLOTS; i < RING2_PLOTS; i++) 
+    {
+        CvPlot* pRing2Plot = iterateRingPlots(pCityPlot, i);
+        if (pRing2Plot) 
+        {
+            iTotalTiles[1]++;
+            if (pRing2Plot->isWater() && !pRing2Plot->isLake()) 
+                iCoastalTiles[1]++;
+        }
+    }
+    
+    // Ring 3 (3 tiles away)
+    for (int i = RING2_PLOTS; i < RING3_PLOTS; i++) 
+    {
+        CvPlot* pRing3Plot = iterateRingPlots(pCityPlot, i);
+        if (pRing3Plot) 
+        {
+            iTotalTiles[2]++;
+            if (pRing3Plot->isWater() && !pRing3Plot->isLake()) 
+                iCoastalTiles[2]++;
+        }
+    }
+    
+	// adjacent tiles matter the most by far hence 50
+    const int iWeights[3] = {50, 10, 8};
+    
+    int iWeightedCoastal = 0;
+    int iWeightedTotal = 0;
+    
+    for (int i = 0; i < 3; i++)
+    {
+        iWeightedCoastal += (iCoastalTiles[i] * iWeights[i]);
+        iWeightedTotal += (iTotalTiles[i] * iWeights[i]);
+    }
+    
+    // probably not needed
+    if (iWeightedTotal <= 0)
+        return 0;
+
+	// Calculate ratio directly as 0-100 percentage
+	int iSeaPercent = (iWeightedCoastal * 100) / iWeightedTotal;
+
+    // Due to sqrti(), the ratio forms an inversely exponential curve. So it rises quickly for each extra sea tile for barely coastal cities, as each extra tile makes assault much easier. It diminishes toward 100 as naval siege easiness maxes out when a city has few land tiles. 
+    int iCitySeaAssaultEase = sqrti(iSeaPercent * 100);
+    
+    // Probably not needed
+    if (iCitySeaAssaultEase > 100)
+        iCitySeaAssaultEase = 100;
+    
+    return iCitySeaAssaultEase;
+}
+
 ///	How many military units should we have given current threats?
 void CvMilitaryAI::SetRecommendedArmyNavySize()
 {
@@ -1690,26 +1768,29 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	// tall players have few cities but many wonders
 	iNumUnitsWantedDefense += min(5, (m_pPlayer->GetNumWonders() / 3));
 
-	int iNumCoastalCities = 0;
-	int iLoop = 0;
-	for(CvCity* pCity = m_pPlayer->firstCity(&iLoop); pCity != NULL; pCity = m_pPlayer->nextCity(&iLoop))
-	{
-		//need this later
-		if (pCity->isCoastal())
-			iNumCoastalCities++;
+	 // How easy is it to attack my cities with ships?
+	 int iTotalSeaAssaultEase = 0;
+	 int iLoop = 0;
+	 for(CvCity* pCity = m_pPlayer->firstCity(&iLoop); pCity != NULL; pCity = m_pPlayer->nextCity(&iLoop))
+	 {
+		 int iMyCitySeaAssaultEase = GetCitySeaAssaultEase(pCity);
+		 iTotalMyCitySeaAssaultEase += iMyCitySeaAssaultEase;
+ 
+		 //additional units if the enemy is likely to attack here
+		 if (m_pPlayer->GetMilitaryAI()->IsExposedToEnemy(pCity,NO_PLAYER))
+			 iNumUnitsWantedDefense++;
+	 }
 
-		//additional units if the enemy is likely to attack here
-		if (m_pPlayer->GetMilitaryAI()->IsExposedToEnemy(pCity,NO_PLAYER))
-			iNumUnitsWantedDefense++;
-	}
+	// Get average city sea assault ease (0-100 scale)
+	int iAvgMyCitySeaAssaultEase = iTotalMyCitySeaAssaultEase / max(1,m_pPlayer->getNumCities());
 
-	// now how many should be naval units?
+	// now how many should be naval units to protect my cities?
 	int iCoastalPercent = (iNumCoastalCities * 100) / max(1,m_pPlayer->getNumCities());
 	int iFlavorNaval = m_pPlayer->GetFlavorManager()->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_NAVAL"));
-	int iNavalPercent = range(iFlavorNaval*5,10,50) + iCoastalPercent/3;
+	int iDefShipPercent = range(iFlavorNaval*4,8,40) + iAvgMyCitySeaAssaultEase/2;
 
 	if (iNumCoastalCities > 0)
-		m_iRecDefensiveNavalUnits = max(iMinNumUnits, (iNavalPercent*iNumUnitsWantedDefense*iModifier)/10000);
+		m_iRecDefensiveNavalUnits = max(iMinNumUnits, (iDefShipPercent*iNumUnitsWantedDefense*iModifier)/10000);
 	else
 		m_iRecDefensiveNavalUnits = 0;
 
@@ -1757,13 +1838,78 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	//you don't always get what you want ...
 	iNumUnitsWantedOffense = min(iNumUnitsWantedOffense, iMaxOffensiveUnitsPossible);
 
-	if (iNumCoastalCities > 0)
-		m_iRecOffensiveNavalUnits = max(iMinNumUnits, (iNavalPercent*iMaxOffensiveUnitsPossible) / 100);
-	else
-		m_iRecOffensiveNavalUnits = 0;
+	// For offensive naval units, calculate average sea assault ease of potential enemy targets
+    int iTotalTargetSeaAssaultEase = 0;
+    int iNumTargets = 0;
+    
+    // First check naval siege easiness of all preferred potential targets across all civs
+    for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
+    {
+        if (m_potentialAttackTargets[i].IsPreferred())
+        {
+            CvPlot* pTargetPlot = m_potentialAttackTargets[i].GetTargetPlot();
+            if (pTargetPlot && pTargetPlot->isCity() && pTargetPlot->getPlotCity())
+            {
+                iNumTargets++;
+                iTotalTargetSeaAssaultEase += GetCitySeaAssaultEase(pTargetPlot->getPlotCity());
+            }
+        }
+    }
+    
+    // If we don't have any preferred targets, use all potential targets as a fallback
+    if (iNumTargets == 0)
+    {
+        for (size_t i = 0; i < m_potentialAttackTargets.size(); i++)
+        {
+            CvPlot* pTargetPlot = m_potentialAttackTargets[i].GetTargetPlot();
+            if (pTargetPlot && pTargetPlot->isCity() && pTargetPlot->getPlotCity())
+            {
+                iNumTargets++;
+                iTotalTargetSeaAssaultEase += GetCitySeaAssaultEase(pTargetPlot->getPlotCity());
+            }
+        }
+    }
+    
+    int iAvgTargetSeaAssaultEase = (iNumTargets > 0) ? (iTotalTargetSeaAssaultEase / iNumTargets) : 0;
 
-	//the remainder is our offensive land army
-	m_iRecOffensiveLandUnits = max(iMinNumUnits, iMaxOffensiveUnitsPossible - m_iRecOffensiveNavalUnits);
+    // Factor in our production capacity (coastal city %) when determining offensive naval units
+    int iOurCoastalPercent = (iNumCoastalCities * 100) / max(1, iNumCities);
+    
+    // Balance the target sea assault ease with our own coastal percentage
+    // If we have few coastal cities, we can't easily build naval units regardless of target vulnerability
+	//double sqrti means very low costal city percent will drop naval unit count, but with half cities coastal you can still build a strong navy so 50 turns to 84.
+    int iOffShipViability = (iAvgTargetSeaAssaultEase * (sqrti(sqrti(iOurCoastalPercent*100)*100))) / 100;
+    
+    // Use the naval flavor plus a weighted factor of target naval vulnerability and our coastal production capability
+    int iOffShipPercent = range(iFlavorNaval*4, 8, 40) + (iOffShipViability  / 2);
+
+    if (iNumCoastalCities > 0)
+        m_iRecOffensiveNavalUnits = max(iMinNumUnits, (iOffShipPercent * iNumUnitsWantedOffense) / 100);
+    else
+        m_iRecOffensiveNavalUnits = 0;
+	
+    //the remainder is our offensive land army
+    m_iRecOffensiveLandUnits = max(iMinNumUnits, iNumUnitsWantedOffense - m_iRecOffensiveNavalUnits);
+
+	// Log the naval calculations for debugging
+	if(GC.getLogging() && GC.getAILogging())
+	{
+		CvString strOutBuf;
+		CvString strBaseString;
+		CvString playerName = GetPlayer()->getCivilizationShortDescription();
+		FILogFile* pLog = LOGFILEMGR.GetLog(GetLogFileName(playerName), FILogFile::kDontTimeStamp);
+		
+		// Get the leading info for this line
+		strBaseString.Format("%03d, ", GC.getGame().getElapsedGameTurns());
+		strBaseString += playerName + ", ";
+		
+		strOutBuf = strBaseString;
+		strOutBuf += "Naval Unit Planning: ";
+		strOutBuf += CvString::format("My Cities Naval Ease: %d, Target Cities Naval Ease: %d, Our Coastal%%: %d, Weighted Naval Factor: %d, Final Naval%%: %d, Preferred Targets: %d", 
+			iAvgMyCitySeaAssaultEase, iAvgTargetSeaAssaultEase, iOurCoastalPercent, iWeightedTargetNavalFactor, iNavalOffensivePercent, iNumTargets);
+		
+		pLog->Msg(strOutBuf);
+	}
 }
 
 
