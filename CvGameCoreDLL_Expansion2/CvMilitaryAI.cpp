@@ -1768,18 +1768,23 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	// tall players have few cities but many wonders
 	iNumUnitsWantedDefense += min(5, (m_pPlayer->GetNumWonders() / 3));
 
-	 // How easy is it to attack my cities with ships?
-	 int iTotalSeaAssaultEase = 0;
-	 int iLoop = 0;
-	 for(CvCity* pCity = m_pPlayer->firstCity(&iLoop); pCity != NULL; pCity = m_pPlayer->nextCity(&iLoop))
-	 {
-		 int iMyCitySeaAssaultEase = GetCitySeaAssaultEase(pCity);
-		 iTotalMyCitySeaAssaultEase += iMyCitySeaAssaultEase;
- 
-		 //additional units if the enemy is likely to attack here
-		 if (m_pPlayer->GetMilitaryAI()->IsExposedToEnemy(pCity,NO_PLAYER))
-			 iNumUnitsWantedDefense++;
-	 }
+	// How easy is it to attack my cities with ships?
+	int iNumCoastalCities = 0;
+	int iLoop = 0;
+	int iTotalMyCitySeaAssaultEase = 0;
+	for(CvCity* pCity = m_pPlayer->firstCity(&iLoop); pCity != NULL; pCity = m_pPlayer->nextCity(&iLoop))
+	{
+		//need this later
+		if (pCity->isCoastal())
+		iNumCoastalCities++;
+
+		int iMyCitySeaAssaultEase = GetCitySeaAssaultEase(pCity);
+		iTotalMyCitySeaAssaultEase += iMyCitySeaAssaultEase;
+
+		//additional units if the enemy is likely to attack here
+		if (m_pPlayer->GetMilitaryAI()->IsExposedToEnemy(pCity,NO_PLAYER))
+			iNumUnitsWantedDefense++;
+	}
 
 	// Get average city sea assault ease (0-100 scale)
 	int iAvgMyCitySeaAssaultEase = iTotalMyCitySeaAssaultEase / max(1,m_pPlayer->getNumCities());
@@ -1873,11 +1878,11 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
     int iAvgTargetSeaAssaultEase = (iNumTargets > 0) ? (iTotalTargetSeaAssaultEase / iNumTargets) : 0;
 
     // Factor in our production capacity (coastal city %) when determining offensive naval units
-    int iOurCoastalPercent = (iNumCoastalCities * 100) / max(1, iNumCities);
+    int iOurCoastalPercent = (iNumCoastalCities * 100) / max(1, m_pPlayer->getNumCities());
     
     // Balance the target sea assault ease with our own coastal percentage
     // If we have few coastal cities, we can't easily build naval units regardless of target vulnerability
-	//double sqrti means very low costal city percent will drop naval unit count, but with half cities coastal you can still build a strong navy so 50 turns to 84.
+	//double sqrti means very low coastal city percent will drop naval unit count, but with half cities coastal you can still build a strong navy so 50 turns to 84.
     int iOffShipViability = (iAvgTargetSeaAssaultEase * (sqrti(sqrti(iOurCoastalPercent*100)*100))) / 100;
     
     // Use the naval flavor plus a weighted factor of target naval vulnerability and our coastal production capability
@@ -1890,26 +1895,6 @@ void CvMilitaryAI::SetRecommendedArmyNavySize()
 	
     //the remainder is our offensive land army
     m_iRecOffensiveLandUnits = max(iMinNumUnits, iNumUnitsWantedOffense - m_iRecOffensiveNavalUnits);
-
-	// Log the naval calculations for debugging
-	if(GC.getLogging() && GC.getAILogging())
-	{
-		CvString strOutBuf;
-		CvString strBaseString;
-		CvString playerName = GetPlayer()->getCivilizationShortDescription();
-		FILogFile* pLog = LOGFILEMGR.GetLog(GetLogFileName(playerName), FILogFile::kDontTimeStamp);
-		
-		// Get the leading info for this line
-		strBaseString.Format("%03d, ", GC.getGame().getElapsedGameTurns());
-		strBaseString += playerName + ", ";
-		
-		strOutBuf = strBaseString;
-		strOutBuf += "Naval Unit Planning: ";
-		strOutBuf += CvString::format("My Cities Naval Ease: %d, Target Cities Naval Ease: %d, Our Coastal%%: %d, Weighted Naval Factor: %d, Final Naval%%: %d, Preferred Targets: %d", 
-			iAvgMyCitySeaAssaultEase, iAvgTargetSeaAssaultEase, iOurCoastalPercent, iWeightedTargetNavalFactor, iNavalOffensivePercent, iNumTargets);
-		
-		pLog->Msg(strOutBuf);
-	}
 }
 
 

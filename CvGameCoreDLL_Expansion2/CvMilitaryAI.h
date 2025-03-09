@@ -205,7 +205,7 @@ public:
 
 	// Accessors to provide military data to other AI subsystems
 	bool ShouldFightBarbarians() const;
-	int GetCitySeaAssaultEase(const CvCity* pCity)
+	int GetCitySeaAssaultEase(const CvCity* pCity);
 	int GetNumberCivsAtWarWith(bool bIncludeMinor = true) const;
 	int GetRecommendedMilitarySize() const
 	{
