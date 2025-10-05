@@ -14,8 +14,12 @@ SET Text = 'The {TXT_KEY_UNIT_AMERICAN_MINUTEMAN} is very powerful as it require
 WHERE Tag = 'TXT_KEY_UNIT_AMERICAN_MINUTEMAN_STRATEGY';
 
 UPDATE Language_en_US
-SET Text = 'The {TXT_KEY_UNIT_MONITOR} benefits a lot from Comabt Strength boosts and Dauntless Promotion, becauce the combined -8 damge reduciton works the better the less daamge enemies can deal to you. Therefore promote your {TXT_KEY_UNIT_MONITOR}s as much as you can and accompny them with Great Admirals. Unfortunately the City Defense Bonus is small, and the mian strength of this Ship lies in it's bight base Comabt Strenth. Overall it's not a very strong Unique Unit so it is not '
+SET Text = 'The {TXT_KEY_UNIT_MONITOR} benefits from Combat Strength boosts and Dauntless Promotion, because the combined -8 damage reduction works the better the less damage enemies can deal to you. Therefore promote your {TXT_KEY_UNIT_MONITOR}s as much as you can and accompany them with Great Admirals.  The City Defense Bonus is small, and the main strength of this Ship lies in high base Combat Strength so its highest strength lies in early usage and drops after future ships become available.'
 WHERE Tag = 'TXT_KEY_UNIT_MONITOR_STRATEGY';
+
+UPDATE Language_en_US
+SET Text = 'The {TXT_KEY_BUILDING_HOMESTEAD} should be the first building built in a new city if there are at least 2 tiles it can claim immediately as they will become valuable and instant production return will be big enough. Ability to make Pioneers is powerful so consider unlocking the building as soon as possible and expand aggressively when there is still terrain to settle.'
+WHERE Tag = 'TXT_KEY_BUILDING_HOMESTEAD_STRATEGY';
 
 --------------------
 -- Arabia
@@ -916,11 +920,11 @@ SET Text = '+3 [ICON_RESEARCH] Science from Temples and Shrines in this City. +1
 WHERE Tag = 'TXT_KEY_BUILDING_WAT_HELP';
 
 UPDATE Language_en_US
-SET Text = 'Unique Siamese religious building only purchaseable with Faith that does not replace any other building, making it very strong as its bonuses do not overlap with any standard building that you would build anyway. {TXT_KEY_BUILDING_WAT_DESC} should be purchased in every city as quickly as possible because it will spread your Capital religion to the city instantly. Furthermore, it gives strong Science bonus to Shrines and Temples, so they should be your priority to build. Increased influence for Diplomats trained in the city is valuable so do not build diplomats shortly before purchasing this building to not waste this bonus.'
+SET Text = '{TXT_KEY_BUILDING_WAT_DESC} is only purchaseable with Faith and does not replace any other building, making it very strong as its bonuses do not overlap with any standard building that you would build anyway. {TXT_KEY_BUILDING_WAT_DESC} should be purchased in every city as quickly as possible because it will spread your Capital religion to the city instantly. Furthermore, it gives strong Science bonus to Shrines and Temples, so they should be your priority to build. Increased influence for Diplomats trained in the city is valuable so do not build diplomats shortly before purchasing this building to not waste this bonus.'
 WHERE Tag = 'TXT_KEY_BUILDING_WAT_STRATEGY';
 
 UPDATE Language_en_US
-SET Text = 'The {TXT_KEY_BUILDING_ELEPHANT_CAMP}s main strength comes from adding +1 Culture to Lumbermills. This adds a lot of value to these already strong improvments, so from the start of the game strongly prioritise settling near forests and jungles and avoid chopping them down. Additionally, try to maintain many City-State allies that have access to strategic reources to benefit from the +1 Gold and Production in every {TXT_KEY_BUILDING_ELEPHANT_CAMP} for every 2 strategic resources imported from them. This building will not be a priority only if you do not have city-state allies with strategic resources and you do not have lumbermills.'
+SET Text = 'The {TXT_KEY_BUILDING_ELEPHANT_CAMP}s main strength comes from adding +1 Culture to Lumbermills. This adds a lot of value to this strong improvement, so from the start of the game strongly prioritise settling near forests and jungles and avoid chopping them down. Additionally, try to maintain many City-State allies that have access to strategic resources to benefit from the +1 Gold and Production in every {TXT_KEY_BUILDING_ELEPHANT_CAMP} for every 2 strategic resources imported from them. This building will not be a priority only if you do not have Lumbermills and City-State allies with strategic resources.'
 WHERE Tag = 'TXT_KEY_BUILDING_ELEPHANT_CAMP_STRATEGY';
 
 
