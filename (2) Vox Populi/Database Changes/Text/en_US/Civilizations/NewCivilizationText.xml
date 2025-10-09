@@ -84,7 +84,7 @@
 			<Text>A Homestead is a complex of buildings on a large landholding, typically a ranch, settled in accordance with the United States Homesteading Acts. The US Government implemented a policy of "free soil", allowing claimants, effectively squatters, ownership of land which they had converted into productive farms or ranches. Nearly 10% of the continental United States was settled in this way; 270 million acres of land claimed by approximately 1.6 million homesteaders between 1862 and 1930.[NEWLINE][NEWLINE]The colonization of vast swathes of the continental interior left an indelible mark on the American psyche. Legends of the frontier, the Old West, Cowboys and Indians still permeate American culture, informing their sense of independence, enterprising spirit and mastery over nature.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILDING_HOMESTEAD_STRATEGY">
-			<Text></Text>
+			<Text>The {TXT_KEY_BUILDING_HOMESTEAD} should be the first building built in a new city if there are at least 2 tiles it can claim immediately as they will become valuable and instant production return will be big enough. Ability to make Pioneers is powerful so consider unlocking the building as soon as possible and expand aggressively when there is still terrain to settle.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_UNIT_MONITOR">
@@ -97,7 +97,7 @@
 			<Text>In the Civil War, a "monitor" was an armored, steam-driven warship with a very low freeboard (as a foot from waterline to deck) mounting a few heavy guns in one or more turrets. Intended primarily for use on the rivers that cut through Southern territory, the unseaworthy craft were used to support land forces, protect riverbank positions, and control river passage; monitors were crucial to the Union victories in the West, notably along the Mississippi River.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_UNIT_MONITOR_STRATEGY">
-			<Text>The {TXT_KEY_UNIT_MONITOR} benefits a lot from Comabt Strength boosts and Dauntless Promotion, becauce the combined -8 Damage Reduction works better the less daamge enemies can deal to you. Therefore promote your {TXT_KEY_UNIT_MONITOR}s as much as you can and accompny them with Great Admirals. The City Defense Bonus is a small benefit, the main strength of this Ship lies in its high base Combat Strength.</Text>
+			<Text>The {TXT_KEY_UNIT_MONITOR} benefits from Combat Strength boosts and Dauntless Promotion, because the combined -8 damage reduction works the better the less damage enemies can deal to you. Therefore promote your {TXT_KEY_UNIT_MONITOR}s as much as you can and accompany them with Great Admirals.  The City Defense Bonus is small, and the main strength of this Ship lies in high base Combat Strength so its highest strength lies in early usage and drops after future ships become available.</Text>
 		</Row>
 
 		<!-- Arabia -->

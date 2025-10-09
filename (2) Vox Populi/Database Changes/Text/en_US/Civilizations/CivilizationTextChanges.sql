@@ -14,14 +14,6 @@ SET Text = 'The {TXT_KEY_UNIT_AMERICAN_MINUTEMAN} is very powerful as it require
   [NEWLINE][NEWLINE]Barrage Promotion Line is heavily recommeded thanks to the easy access to Range Promotion. Make Minutemen the core of your army at the cost of Melee and Siege Units.'
 WHERE Tag = 'TXT_KEY_UNIT_AMERICAN_MINUTEMAN_STRATEGY';
 
-UPDATE Language_en_US
-SET Text = 'The {TXT_KEY_UNIT_MONITOR} benefits from Combat Strength boosts and Dauntless Promotion, because the combined -8 damage reduction works the better the less damage enemies can deal to you. Therefore promote your {TXT_KEY_UNIT_MONITOR}s as much as you can and accompany them with Great Admirals.  The City Defense Bonus is small, and the main strength of this Ship lies in high base Combat Strength so its highest strength lies in early usage and drops after future ships become available.'
-WHERE Tag = 'TXT_KEY_UNIT_MONITOR_STRATEGY';
-
-UPDATE Language_en_US
-SET Text = 'The {TXT_KEY_BUILDING_HOMESTEAD} should be the first building built in a new city if there are at least 2 tiles it can claim immediately as they will become valuable and instant production return will be big enough. Ability to make Pioneers is powerful so consider unlocking the building as soon as possible and expand aggressively when there is still terrain to settle.'
-WHERE Tag = 'TXT_KEY_BUILDING_HOMESTEAD_STRATEGY';
-
 --------------------
 -- Arabia
 --------------------
