@@ -6700,190 +6700,100 @@ function RiverMap:GetUpstreamRiverNeighbors(junction)
 	return list;
 end
 
--- Remove rivers that are shorter than minEdges from source to ocean/lake
-function RiverMap:PruneShortRivers(minEdges, allJunctions)
-	if not minEdges or minEdges <= 1 then
-		return;
-	end
-
-	for n = 1, #allJunctions do
-		local junction = allJunctions[n];
-		if junction.isRiver then
-			if not self:IsTouchingLake(junction) then
-				local upstream = self:GetUpstreamRiverNeighbors(junction);
-				if #upstream == 0 then
-					local path = {junction};
-					local edges = 0;
-					local current = junction;
-					while true do
-						if current.flow == MG.NOFLOW then
-							break;
-						end
-						local nextJunction = self:GetJunctionNeighbor(current.flow, current);
-						if not nextJunction then
-							break;
-						end
-						edges = edges + 1;
-						table.insert(path, nextJunction);
-						if self:IsTouchingOcean(nextJunction) or self:IsTouchingLake(nextJunction) or not nextJunction.isRiver then
-							break;
-						end
-						current = nextJunction;
-					end
-
-					if edges < minEdges then
-						for i = 1, #path do
-							-- Stop pruning at confluences: if this junction has
-							-- upstream isRiver neighbors from outside this path,
-							-- it belongs to a longer river and must not be pruned.
-							if i > 1 then
-								local upstreamNeighbors = self:GetUpstreamRiverNeighbors(path[i]);
-								local hasOtherUpstream = false;
-								for _, up in ipairs(upstreamNeighbors) do
-									if up ~= path[i - 1] then
-										hasOtherUpstream = true;
-										break;
-									end
-								end
-								if hasOtherUpstream then
-									break;
-								end
-							end
-							path[i].isRiver = false;
-						end
-					end
-				end
-			end
-		end
-	end
-end
-
--- Recursively check if any upstream branch has at least this many edges
-function RiverMap:HasUpstreamLengthAtLeast(junction, remainingEdges, visited)
-	if remainingEdges <= 0 then
-		return true;
-	end
-	visited = visited or {};
-	local upstream = self:GetUpstreamRiverNeighbors(junction);
-	for i = 1, #upstream do
-		local up = upstream[i];
-		if not visited[up] then
-			visited[up] = true;
-			if self:HasUpstreamLengthAtLeast(up, remainingEdges - 1, visited) then
-				return true;
-			end
-		end
-	end
-	return false;
-end
-
--- Check if the downstream path from this junction has at least minEdges edges before reaching a sink
-function RiverMap:HasDownstreamLengthAtLeast(junction, minEdges)
+-- Walk downstream from a headwater junction, collecting the path.
+-- If detectConfluence is true, stops when a junction with 2+ upstream neighbors is found
+-- and returns it as the third value; maxEdges limits walk length (0 = unlimited).
+-- Returns: path (table), edge count, confluence junction (or nil).
+function RiverMap:WalkFromHeadwater(junction, maxEdges, detectConfluence)
+	local path = {junction};
 	local edges = 0;
 	local current = junction;
-	local guard = 0;
-	local maxGuard = self.elevationMap.width * self.elevationMap.height;
 	while true do
-		if edges >= minEdges then
-			return true;
-		end
-		if not current or not current.isRiver or current.flow == MG.NOFLOW then
-			break;
-		end
-		local nextJunction = self:GetJunctionNeighbor(current.flow, current);
-		if not nextJunction then
-			break;
-		end
+		if current.flow == MG.NOFLOW then break end
+		local next = self:GetJunctionNeighbor(current.flow, current);
+		if not next then break end
 		edges = edges + 1;
-		if edges >= minEdges then
-			return true;
-		end
-		if self:IsTouchingOcean(nextJunction) or self:IsTouchingLake(nextJunction) or not nextJunction.isRiver then
+		table.insert(path, next);
+		if not next.isRiver or self:IsTouchingOcean(next) or self:IsTouchingLake(next) then
 			break;
 		end
-		current = nextJunction;
-		guard = guard + 1;
-		if guard > maxGuard then
-			break;
+		if detectConfluence then
+			if #self:GetUpstreamRiverNeighbors(next) >= 2 then
+				return path, edges, next;
+			end
+			if maxEdges > 0 and edges > maxEdges then break end
 		end
+		current = next;
 	end
-	return false;
+	return path, edges, nil;
 end
 
--- Remove short tributaries that join a longer river at a confluence
-function RiverMap:PruneShortTributaries(maxEdges, allJunctions)
-	if not maxEdges or maxEdges < 1 then
-		return;
-	end
-
-	for n = 1, #allJunctions do
-		local junction = allJunctions[n];
-		if junction.isRiver then
-			if not self:IsTouchingLake(junction) then
-				local upstream = self:GetUpstreamRiverNeighbors(junction);
-				if #upstream == 0 then
-					local path = {junction};
-					local edges = 0;
-					local current = junction;
-					local confluence = nil;
-					local endedAtConfluence = false;
-					while true do
-						if current.flow == MG.NOFLOW then
-							break;
-						end
-						local nextJunction = self:GetJunctionNeighbor(current.flow, current);
-						if not nextJunction then
-							break;
-						end
-						edges = edges + 1;
-						table.insert(path, nextJunction);
-						if not nextJunction.isRiver then
-							break;
-						end
-						if self:IsTouchingOcean(nextJunction) or self:IsTouchingLake(nextJunction) then
-							break;
-						end
-						local upstreamNext = self:GetUpstreamRiverNeighbors(nextJunction);
-						if #upstreamNext >= 2 then
-							confluence = nextJunction;
-							endedAtConfluence = true;
-							break;
-						end
-						if edges > maxEdges then
-							break;
-						end
-						current = nextJunction;
-					end
-
-					if endedAtConfluence and edges <= maxEdges then
-						local target = edges + 1;
-						local longerRiver = false;
-						if self:HasDownstreamLengthAtLeast(confluence, target) then
-							longerRiver = true;
-						else
-							local tributaryEnd = path[#path - 1];
-							local upstreamAtConfluence = self:GetUpstreamRiverNeighbors(confluence);
-							for i = 1, #upstreamAtConfluence do
-								local up = upstreamAtConfluence[i];
-								if up ~= tributaryEnd then
-									if self:HasUpstreamLengthAtLeast(up, target - 1, {}) then
-										longerRiver = true;
-										break;
-									end
-								end
-							end
-						end
-
-						if longerRiver then
-							for i = 1, #path - 1 do
-								path[i].isRiver = false;
-							end
-						end
+-- Remove short standalone rivers and insignificant tributaries
+function RiverMap:PruneRivers(minRiverLength, maxTributaryEdges, allJunctions)
+	-- Pass 1: Remove standalone rivers shorter than minRiverLength
+	if minRiverLength and minRiverLength > 1 then
+		for n = 1, #allJunctions do
+			local junction = allJunctions[n];
+			if junction.isRiver and not self:IsTouchingLake(junction)
+			   and #self:GetUpstreamRiverNeighbors(junction) == 0 then
+				local path, edges = self:WalkFromHeadwater(junction, 0, false);
+				if edges < minRiverLength then
+					for i = 1, #path do
+						-- Stop at confluences: prior nodes are already cleared,
+						-- so any remaining upstream neighbor is a different branch.
+						if i > 1 and #self:GetUpstreamRiverNeighbors(path[i]) > 0 then break end
+						path[i].isRiver = false;
 					end
 				end
 			end
 		end
 	end
+	-- Pass 2: Remove tributaries of up to maxTributaryEdges that join a longer river
+	if not maxTributaryEdges or maxTributaryEdges < 1 then return end
+	for n = 1, #allJunctions do
+		local junction = allJunctions[n];
+		if junction.isRiver and not self:IsTouchingLake(junction)
+		   and #self:GetUpstreamRiverNeighbors(junction) == 0 then
+			local path, edges, confluence = self:WalkFromHeadwater(junction, maxTributaryEdges, true);
+			if confluence and edges <= maxTributaryEdges
+			   and self:IsConfluenceOnLongerRiver(confluence, path[#path - 1], edges + 1) then
+				for i = 1, #path - 1 do
+					path[i].isRiver = false;
+				end
+			end
+		end
+	end
+end
+
+-- Check if the river at a confluence (excluding one tributary branch) has at least minLength edges
+function RiverMap:IsConfluenceOnLongerRiver(confluence, excludeUpstream, minLength)
+	-- Check downstream path length
+	local edges, current = 0, confluence;
+	while current.isRiver and current.flow ~= MG.NOFLOW do
+		local next = self:GetJunctionNeighbor(current.flow, current);
+		if not next then break end
+		edges = edges + 1;
+		if edges >= minLength then return true end
+		if not next.isRiver or self:IsTouchingOcean(next) or self:IsTouchingLake(next) then break end
+		current = next;
+	end
+	-- Check other upstream branches via bounded DFS
+	local function hasLength(junc, remaining, visited)
+		if remaining <= 0 then return true end
+		for _, up in ipairs(self:GetUpstreamRiverNeighbors(junc)) do
+			if not visited[up] then
+				visited[up] = true;
+				if hasLength(up, remaining - 1, visited) then return true end
+			end
+		end
+		return false;
+	end
+	for _, up in ipairs(self:GetUpstreamRiverNeighbors(confluence)) do
+		if up ~= excludeUpstream and hasLength(up, minLength - 1, {}) then
+			return true;
+		end
+	end
+	return false;
 end
 
 function RiverMap:IsTouchingOcean(junction)
@@ -7211,8 +7121,7 @@ function RiverMap:SetRiverSizes()
 	end
 
 	-- Clean up: remove stubby rivers and insignificant tributaries
-	self:PruneShortRivers(MG.minRiverLength, allJunctions);
-	self:PruneShortTributaries(2, allJunctions);
+	self:PruneRivers(MG.minRiverLength, 2, allJunctions);
 	self:ReshapeThreeEdgeCRivers(allJunctions);
 end
 
