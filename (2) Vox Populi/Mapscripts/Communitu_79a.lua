@@ -67,7 +67,7 @@ function MapGlobals:New()
 	local mapW, _ = Map.GetGridSize();
 
 	-- Percent of land tiles on the map.
-	mglobal.landPercent = 0.40;
+	mglobal.landPercent = 0.35;
 
 	-- Top and bottom map latitudes.
 	mglobal.topLatitude = 90;
@@ -559,8 +559,10 @@ function MapGlobals:New()
 		end
 		------------------------------------------------------------------------------
 		-- Called by GenerateRegions after all DivideIntoRegions passes complete.
-		-- When MG.riftHalfOfLandmass is set (two-rift map), rebalances ASP.regionData
-		-- so each rift half holds exactly ceil(N/2) or floor(N/2) start regions.
+		-- When MG.riftHalfOfLandmass is set (two-rift map):
+		-- Phase 1: Rebalance regionData so each rift half holds ceil/floor(N/2) regions.
+		-- Phase 2: Spread civs across sub-landmasses within each half so no significant
+		--          landmass is left unpopulated.
 		function CustomOverride(ASP)
 			if not MG.riftHalfOfLandmass or not MG.lmOfArea then return; end
 			if not ASP.bArea then return; end -- only CONTINENTAL uses area IDs
@@ -604,8 +606,21 @@ function MapGlobals:New()
 				end
 			end
 
+			-- Count regions per landmass from current regionData.
+			local function buildLandmassRegionCounts()
+				local rpl = {};
+				for _, region in ipairs(ASP.regionData) do
+					local lm = MG.lmOfArea[region[5]];
+					if lm then rpl[lm] = (rpl[lm] or 0) + 1; end
+				end
+				return rpl;
+			end
+
+			-- =============================================================
+			-- Phase 1: Balance rift halves (ceil/floor N/2 per half).
+			-- =============================================================
 			local halfCount, countPerArea, halfOfArea = buildStats();
-			print(string.format("CustomOverride rift check: half A=%d, half B=%d (total civs=%d)",
+			print(string.format("CustomOverride Phase 1: half A=%d, half B=%d (total=%d)",
 				halfCount.A, halfCount.B, totalCivs));
 
 			for _ = 1, totalCivs do
@@ -632,12 +647,12 @@ function MapGlobals:New()
 				end
 
 				if not shrinkArea or not growArea then
-					print("CustomOverride: cannot rebalance further, no suitable areas.");
+					print("CustomOverride Phase 1: cannot rebalance further, no suitable areas.");
 					break;
 				end
 
 				print(string.format(
-					"CustomOverride: half %s area %d %d->%d; half %s area %d %d->%d",
+					"CustomOverride Phase 1: half %s area %d %d->%d; half %s area %d %d->%d",
 					big,   shrinkArea, shrinkCount, shrinkCount - 1,
 					small, growArea,   growCount,   growCount + 1));
 
@@ -647,6 +662,189 @@ function MapGlobals:New()
 				halfCount, countPerArea, halfOfArea = buildStats();
 			end
 
+			print(string.format("CustomOverride Phase 1 done: half A=%d B=%d",
+				halfCount.A, halfCount.B));
+
+			-- =============================================================
+			-- Phase 2: Proportional distribution within each rift half.
+			-- Ensure every landmass gets a number of regions proportional
+			-- to its tile count within that rift half.
+			-- Process: compute ideal allocation per landmass, then
+			-- iteratively transfer regions from over-allocated to
+			-- under-allocated landmasses within the same half.
+			-- Anti-isolation: every landmass gets 0 or >= 2 civs.
+			-- =============================================================
+			if MG.areaSize then
+				-- Invert MG.lmOfArea → areasOfLandmass.
+				local areasOfLandmass = {};
+				for areaID, lmID in pairs(MG.lmOfArea) do
+					if not areasOfLandmass[lmID] then areasOfLandmass[lmID] = {}; end
+					table.insert(areasOfLandmass[lmID], areaID);
+				end
+
+				-- Compute total land per rift half.
+				local halfLand = {A = 0, B = 0};
+				for lmID, half in pairs(MG.riftHalfOfLandmass) do
+					halfLand[half] = halfLand[half] + Map.GetNumTilesOfLandmass(lmID);
+				end
+
+				-- Collect landmasses per half with their sizes.
+				local lmsByHalf = {A = {}, B = {}};
+				for lmID, half in pairs(MG.riftHalfOfLandmass) do
+					local sz = Map.GetNumTilesOfLandmass(lmID);
+					if sz > 0 then
+						table.insert(lmsByHalf[half], {id = lmID, size = sz});
+					end
+				end
+				for _, half in ipairs({"A", "B"}) do
+					table.sort(lmsByHalf[half], function(a, b) return a.size > b.size end);
+				end
+
+				halfCount = buildStats();
+
+				for _, half in ipairs({"A", "B"}) do
+					local civsInHalf = halfCount[half] or 0;
+					local totalLand = halfLand[half] or 0;
+					if civsInHalf < 2 or totalLand < 1 then
+						-- Skip halves with too few civs to redistribute
+					else
+						local regionsPerLm = buildLandmassRegionCounts();
+
+						-- Compute ideal allocation for each landmass using
+						-- largest-remainder method (Hamilton) for fair rounding.
+						local lms = lmsByHalf[half];
+						local ideal = {};
+						local remainders = {};
+						local allocated = 0;
+
+						for _, lm in ipairs(lms) do
+							local exact = civsInHalf * lm.size / totalLand;
+							local floored = math.floor(exact);
+							-- Anti-isolation: if floored is 1, drop to 0
+							if floored == 1 then floored = 0; end
+							ideal[lm.id] = floored;
+							remainders[lm.id] = exact - floored;
+							allocated = allocated + floored;
+						end
+
+						-- Distribute remaining spots by largest remainder
+						local remaining = civsInHalf - allocated;
+						if remaining > 0 then
+							-- Sort by remainder descending
+							local sorted = {};
+							for _, lm in ipairs(lms) do
+								table.insert(sorted, {id = lm.id, rem = remainders[lm.id]});
+							end
+							table.sort(sorted, function(a, b) return a.rem > b.rem end);
+							for _, entry in ipairs(sorted) do
+								if remaining <= 0 then break; end
+								-- Adding 1: check anti-isolation (result must be 0 or >= 2)
+								local newVal = ideal[entry.id] + 1;
+								if newVal >= 2 then
+									ideal[entry.id] = newVal;
+									remaining = remaining - 1;
+								end
+							end
+							-- If still remaining (all would violate anti-isolation),
+							-- give to the largest landmass
+							if remaining > 0 and #lms > 0 then
+								ideal[lms[1].id] = ideal[lms[1].id] + remaining;
+							end
+						end
+
+						-- Print ideal vs actual allocation
+						for _, lm in ipairs(lms) do
+							local actual = regionsPerLm[lm.id] or 0;
+							print(string.format(
+								"CustomOverride Phase 2: half %s lm %d size=%d actual=%d ideal=%d",
+								half, lm.id, lm.size, actual, ideal[lm.id]));
+						end
+
+						-- Iteratively transfer from over-allocated to under-allocated.
+						for iteration = 1, civsInHalf do
+							regionsPerLm = buildLandmassRegionCounts();
+
+							-- Find the most over-allocated landmass (donor)
+							local donorLm, donorExcess = nil, 0;
+							for _, lm in ipairs(lms) do
+								local actual = regionsPerLm[lm.id] or 0;
+								local excess = actual - ideal[lm.id];
+								if excess > donorExcess and actual >= 3 then -- donor keeps >= 2
+									donorLm = lm.id;
+									donorExcess = excess;
+								end
+							end
+
+							-- Find the most under-allocated landmass (receiver)
+							local recvLm, recvDeficit = nil, 0;
+							for _, lm in ipairs(lms) do
+								local actual = regionsPerLm[lm.id] or 0;
+								local deficit = ideal[lm.id] - actual;
+								if deficit > recvDeficit then
+									recvLm = lm.id;
+									recvDeficit = deficit;
+								end
+							end
+
+							if not donorLm or not recvLm or donorExcess <= 0 or recvDeficit <= 0 then
+								break; -- balanced or no valid transfers
+							end
+
+							-- Transfer 1 region at a time for stability
+							-- Find donor's area with most regions
+							local donorAreaCounts = {};
+							for _, region in ipairs(ASP.regionData) do
+								local aid = region[5];
+								if MG.lmOfArea[aid] == donorLm then
+									donorAreaCounts[aid] = (donorAreaCounts[aid] or 0) + 1;
+								end
+							end
+							local donorArea, donorAreaCount = nil, 0;
+							for aid, cnt in pairs(donorAreaCounts) do
+								if cnt > donorAreaCount then
+									donorArea = aid;
+									donorAreaCount = cnt;
+								end
+							end
+
+							-- Find receiver's largest area
+							local recvArea, recvSize = nil, 0;
+							if areasOfLandmass[recvLm] then
+								for _, areaID in ipairs(areasOfLandmass[recvLm]) do
+									local sz = MG.areaSize[areaID] or 0;
+									if sz > recvSize then
+										recvArea = areaID;
+										recvSize = sz;
+									end
+								end
+							end
+
+							if donorArea and recvArea and donorAreaCount >= 2 then
+								-- Check that receiver end result respects anti-isolation
+								local recvCurrent = regionsPerLm[recvLm] or 0;
+								local recvAfter = recvCurrent + 1;
+								if recvAfter == 1 then
+									-- Would create isolation (1 civ alone), skip unless ideal says so
+									-- Actually ideal already enforces >= 2, so this shouldn't happen
+									-- but guard anyway
+									break;
+								end
+
+								print(string.format(
+									"CustomOverride Phase 2: transfer 1 from lm %d (area %d, %d->%d) to lm %d (area %d, %d->%d)",
+									donorLm, donorArea, donorAreaCount, donorAreaCount - 1,
+									recvLm, recvArea, recvCurrent, recvAfter));
+
+								redivideArea(donorArea, donorAreaCount - 1);
+								redivideArea(recvArea, recvAfter);
+							else
+								break;
+							end
+						end
+					end
+				end
+			end
+			halfCount = buildStats();
 			print(string.format("CustomOverride done: final rift half counts A=%d B=%d",
 				halfCount.A, halfCount.B));
 		end
@@ -1873,6 +2071,7 @@ function StartPlotSystem()
 		local path2 = MG.riftPaths[#MG.riftPaths];
 		local lmVotes = {}; -- [lmID] = {A=count, B=count}
 		MG.lmOfArea = {};   -- [areaID] = landmassID
+		MG.areaSize = {};   -- [areaID] = number of land tiles (for sub-landmass spread)
 		for y = 0, mapH - 1 do
 			local r1x = path1[y];
 			local r2x = path2[y];
@@ -1883,6 +2082,7 @@ function StartPlotSystem()
 						local lm = plot:GetLandmass();
 						local ar = plot:GetArea();
 						MG.lmOfArea[ar] = lm;
+						MG.areaSize[ar] = (MG.areaSize[ar] or 0) + 1;
 						if not lmVotes[lm] then lmVotes[lm] = {A = 0, B = 0}; end
 						local inA;
 						if r1x < r2x then
@@ -1951,7 +2151,9 @@ function GeneratePlotTypes()
 	CreateMagallanes(); -- Circumnavegable path (by tu_79)
 	FillInLakes();
 	SetOceanRiftElevations();
+	MirrorContinentShapes();
 	BalanceRiftHalves();
+	BalanceContinentConnectivity();
 	FillInLakes(); -- Re-run to catch new small depressions created by rift balancing
 	ConnectSeasToOceans(); -- Run after all elevation-modifying steps so newly created inland seas are caught
 	ConnectTerraContinents();
@@ -3742,8 +3944,8 @@ function CreateVerticalOceans()
 
 	-- Wide corridor for the first rift: let it follow the existing ocean freely.
 	local halfWidth = math.floor(mapW / 6);
-	-- Tight corridor for the second (equal-split) rift: the path must stay very
-	-- close to the 50% land column so the two halves end up the same size.
+	-- Corridor for the second rift: keep it reasonably close to the target land-split
+	-- column, but not so tight it can't avoid mountains.
 	local splitHalfWidth = math.max(3, math.floor(mapW / 14));
 	-- Narrower ocean strip for Pacific-style (wide ocean) rifts.
 	local pacificWidth = math.max(1, Round(MG.oceanRiftWidth - 1));
@@ -3795,20 +3997,22 @@ function CreateVerticalOceans()
 		end
 	end
 
-	-- Find the 50% land split point for the second rift.
-	-- Start counting from the ACTUAL mean X of the first rift's path (not the
-	-- requested centerX) so the reference is accurate even if the path wandered.
-	-- Use exactly 50% so the two landmasses are as equal as possible.
+	-- Find the land-split point for the second rift using offsetAtlanticPercent.
+	-- For Terra (oStarts=1) this is 0.35, placing the rift so 35% of land is on
+	-- one side and 65% on the other -- creating the intended Old/New World imbalance.
+	-- For Continents (oStarts=2) this is 0.48, which is nearly equal.
+	-- Randomly flip which side gets the larger share (same as the 5.2 behaviour).
+	local targetFraction = Map.Rand(2, "Atlantic Offset - Lua") == 0
+		and MG.offsetAtlanticPercent or 1 - MG.offsetAtlanticPercent;
 	local firstRiftX = firstRiftMeanX;
 	startX = firstRiftX;
 	local sumLand = 0;
-	local targetFraction = 0.50;
 	for x = 0, mapW - 1 do
 		local xOffset = (x + firstRiftX) % mapW;
 		sumLand = sumLand + landInColumn[xOffset];
 		if sumLand >= targetFraction * totalLand then
 			startX = xOffset;
-			print("startX atlantic (50% split):", startX);
+			print(string.format("startX atlantic (%.0f%% split):", targetFraction * 100), startX);
 			break;
 		end
 	end
@@ -4547,6 +4751,137 @@ function SetOceanRiftElevations()
 	end
 end
 
+-- After rifts are placed, blend each half's elevation profile with a mirror of
+-- the other half.  This transfers the continent shape (solid vs fragmented)
+-- from one half to the other, producing similar landmass connectivity.
+--
+-- For each row, tiles in each half are mapped by fractional offset to
+-- corresponding positions in the other half (reversed so tiles near the same
+-- rift get mirrored).  The elevation is then blended:
+--   new = original * (1 - blend) + mirrorValue * blend
+--
+-- A blend of 0.40 means each half keeps 60% of its original character but
+-- adopts 40% of the other half's shape.  This runs BEFORE BalanceRiftHalves
+-- so total land area is re-equalized afterwards.
+function MirrorContinentShapes()
+	if Map.GetCustomOption(5) == 1 then
+		print("MirrorContinentShapes: skipped for Terra mode");
+		return;
+	end
+	if not MG.riftPaths or #MG.riftPaths < 2 then
+		return;
+	end
+
+	local mapW, mapH = Map.GetGridSize();
+	local path1 = MG.riftPaths[#MG.riftPaths - 1];
+	local path2 = MG.riftPaths[#MG.riftPaths];
+	local blendFactor = 0.8;
+
+	print(string.format("MirrorContinentShapes: blendFactor=%.2f mapW=%d mapH=%d",
+		blendFactor, mapW, mapH));
+
+	-- Protect lake tiles from modification
+	local lakeIndices = {};
+	if MG.lakePlots then
+		for _, plot in pairs(MG.lakePlots) do
+			lakeIndices[plot:GetY() * mapW + plot:GetX()] = true;
+		end
+	end
+
+	-- Save original (unmodified) elevations so both halves read from the same data
+	local origElev = {};
+	for i = 0, elevationMap.width * elevationMap.height - 1 do
+		origElev[i] = elevationMap.data[i];
+	end
+
+	-- Collect columns for one half in spatial order (going east from startRift+1
+	-- to endRift-1, wrapping around the map edge).
+	local function collectOrderedCols(startRift, endRift, py)
+		local cols = {};
+		local x = (startRift + 1) % mapW;
+		while x ~= endRift do
+			local plotID = py * mapW + x;
+			local isRiftWater = MG.oceanRiftPlots[plotID]
+				and MG.oceanRiftPlots[plotID].isWater;
+			if not isRiftWater and not lakeIndices[plotID] then
+				table.insert(cols, x);
+			end
+			x = (x + 1) % mapW;
+		end
+		return cols;
+	end
+
+	-- Reverse a list (for mirror mapping: tiles near the same rift get paired)
+	local function reverseList(list)
+		local rev = {};
+		for i = #list, 1, -1 do
+			table.insert(rev, list[i]);
+		end
+		return rev;
+	end
+
+	-- Interpolate elevation from a column list at fractional position [0..1]
+	local function getElevAtFrac(cols, frac, py)
+		if #cols == 0 then return 0; end
+		if #cols == 1 then
+			return origElev[elevationMap:GetIndex(cols[1], py)];
+		end
+		local pos = frac * (#cols - 1) + 1; -- 1-based
+		local lo = math.max(1, math.min(#cols, math.floor(pos)));
+		local hi = math.max(1, math.min(#cols, math.ceil(pos)));
+		local t = pos - math.floor(pos);
+		local eLo = origElev[elevationMap:GetIndex(cols[lo], py)];
+		local eHi = origElev[elevationMap:GetIndex(cols[hi], py)];
+		return eLo * (1 - t) + eHi * t;
+	end
+
+	for y = 0, mapH - 1 do
+		local r1x = path1[y];
+		local r2x = path2[y];
+		if r1x and r2x then
+			-- Half A: columns going east from rift1 to rift2
+			-- Half B: columns going east from rift2 to rift1
+			local colsA = collectOrderedCols(r1x, r2x, y);
+			local colsB = collectOrderedCols(r2x, r1x, y);
+
+			if #colsA > 1 and #colsB > 1 then
+				-- Reverse the other half's column list for mirror mapping.
+				-- colsA goes [rift1-side → rift2-side].
+				-- colsB_mirror goes [rift1-side → rift2-side] (reversed from B's natural order).
+				-- This pairs tiles adjacent to the same rift on opposite sides.
+				local colsB_mirror = reverseList(colsB);
+				local colsA_mirror = reverseList(colsA);
+
+				-- Blend half A toward mirrored B
+				for i = 1, #colsA do
+					local frac = (i - 1) / (#colsA - 1);
+					local mirrorElev = getElevAtFrac(colsB_mirror, frac, y);
+
+					local xA = colsA[i];
+					local idxA = elevationMap:GetIndex(xA, y);
+					local elevA = origElev[idxA];
+
+					elevationMap.data[idxA] = elevA * (1 - blendFactor) + mirrorElev * blendFactor;
+				end
+
+				-- Blend half B toward mirrored A
+				for j = 1, #colsB do
+					local frac = (j - 1) / (#colsB - 1);
+					local mirrorElev = getElevAtFrac(colsA_mirror, frac, y);
+
+					local xB = colsB[j];
+					local idxB = elevationMap:GetIndex(xB, y);
+					local elevB = origElev[idxB];
+
+					elevationMap.data[idxB] = elevB * (1 - blendFactor) + mirrorElev * blendFactor;
+				end
+			end
+		end
+	end
+
+	print("MirrorContinentShapes: done");
+end
+
 -- After both rifts are placed and their elevations applied, iteratively nudge
 -- elevation to balance the two halves of the map within 5% land-tile difference.
 -- Uses the actual per-row rift path positions (stored in MG.riftPaths) so that
@@ -4554,6 +4889,10 @@ end
 -- Applies nudges in BOTH directions: raises the smaller half AND lowers the
 -- bigger half each iteration, which converges much faster than one-sided nudging.
 function BalanceRiftHalves()
+	if Map.GetCustomOption(5) == 1 then
+		print("BalanceRiftHalves: skipped for Terra mode");
+		return;
+	end
 	if not MG.riftPaths or #MG.riftPaths < 2 then
 		return;
 	end
@@ -4665,6 +5004,338 @@ function BalanceRiftHalves()
 			end
 		end
 	end
+end
+
+-- After both rifts are placed and land area balanced, ensure the two halves
+-- have similar continent connectivity (fragmentation).
+-- If one half has significantly more separate landmasses than the other,
+-- connect nearby fragments within the more-fragmented half by raising
+-- elevation along the shortest water paths between them.
+function BalanceContinentConnectivity()
+	if Map.GetCustomOption(5) == 1 then
+		print("BalanceContinentConnectivity: skipped for Terra mode");
+		return;
+	end
+	if not MG.riftPaths or #MG.riftPaths < 2 then
+		return;
+	end
+
+	local mapW, mapH = Map.GetGridSize();
+	local seaThresh = elevationMap.seaLevelThreshold;
+	local path1 = MG.riftPaths[#MG.riftPaths - 1];
+	local path2 = MG.riftPaths[#MG.riftPaths];
+
+	-- Maximum water tiles a land bridge can span (scales with map width)
+	local maxBridgeLength = math.max(12, math.floor(mapW / 4));
+	-- Minimum tiles to count as a significant landmass (not a tiny island)
+	local minAreaSize = math.max(15, math.floor(mapW * mapH * 0.005));
+
+	print(string.format("BalanceContinentConnectivity: mapW=%d mapH=%d maxBridge=%d minArea=%d",
+		mapW, mapH, maxBridgeLength, minAreaSize));
+
+	-- Classify each tile into half A or half B based on rift positions
+	local function getHalf(x, y)
+		local r1x = path1[y];
+		local r2x = path2[y];
+		if r1x == nil or r2x == nil then return nil; end
+		if x == r1x or x == r2x then return nil; end
+		local inA;
+		if r1x < r2x then
+			inA = (x > r1x and x < r2x);
+		else
+			inA = (x > r1x or x < r2x);
+		end
+		return inA and "A" or "B";
+	end
+
+	-- Determine if a tile is land (above sea level and not rift water)
+	local function isLandTile(x, y)
+		local plotID = y * mapW + x;
+		local isRiftWater = MG.oceanRiftPlots[plotID] and MG.oceanRiftPlots[plotID].isWater;
+		if isRiftWater then return false; end
+		local idx = elevationMap:GetIndex(x, y);
+		return elevationMap.data[idx] >= seaThresh;
+	end
+
+	-- Get valid hex neighbors for a tile
+	local function getNeighbors(x, y)
+		local neighbors = {};
+		for _, dir in ipairs(MG.edgeDirections) do
+			local nx, ny = elevationMap:GetNeighbor(x, y, dir);
+			if nx >= 0 and ny >= 0 and ny < mapH then
+				nx = nx % mapW; -- handle x-wrapping
+				table.insert(neighbors, {x = nx, y = ny});
+			end
+		end
+		return neighbors;
+	end
+
+	-- Flood fill to find connected land areas, tracking which half each belongs to
+	local visited = {};
+	local halfAreas = {A = {}, B = {}};
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local key = y * mapW + x;
+			if not visited[key] and isLandTile(x, y) then
+				local half = getHalf(x, y);
+				if half then
+					-- BFS flood fill within the same half
+					local area = {};
+					local queue = {};
+					local qHead = 1;
+					table.insert(queue, {x = x, y = y});
+					visited[key] = true;
+
+					while qHead <= #queue do
+						local current = queue[qHead];
+						qHead = qHead + 1;
+						table.insert(area, current);
+
+						local neighbors = getNeighbors(current.x, current.y);
+						for _, nb in ipairs(neighbors) do
+							local nkey = nb.y * mapW + nb.x;
+							if not visited[nkey] and isLandTile(nb.x, nb.y) then
+								local nHalf = getHalf(nb.x, nb.y);
+								if nHalf == half then
+									visited[nkey] = true;
+									table.insert(queue, nb);
+								end
+							end
+						end
+					end
+
+					if #area >= minAreaSize then
+						table.insert(halfAreas[half], area);
+					end
+				end
+			end
+		end
+	end
+
+	-- Sort by size (largest first)
+	table.sort(halfAreas.A, function(a, b) return #a > #b end);
+	table.sort(halfAreas.B, function(a, b) return #a > #b end);
+
+	-- Print diagnostics for each half
+	for _, half in ipairs({"A", "B"}) do
+		for i, area in ipairs(halfAreas[half]) do
+			print(string.format("  Half %s landmass #%d: %d tiles", half, i, #area));
+		end
+	end
+
+	-- Compute dominance ratio for each half: largest landmass / total significant land.
+	-- Use the OTHER half's dominance as the target for each half, capped at 90%.
+	-- This ensures both halves end up with similarly connected main continents.
+	local function computeDominance(areas)
+		if #areas == 0 then return 1.0, 0; end
+		local total = 0;
+		for _, area in ipairs(areas) do
+			total = total + #area;
+		end
+		return #areas[1] / total, total;
+	end
+
+	local domA, totalA = computeDominance(halfAreas.A);
+	local domB, totalB = computeDominance(halfAreas.B);
+	-- Each half's target = other half's dominance, capped at 90%
+	local targetA = math.min(0.90, domB);
+	local targetB = math.min(0.90, domA);
+
+	print(string.format("BalanceContinentConnectivity: domA=%.2f domB=%.2f targetA=%.2f targetB=%.2f",
+		domA, domB, targetA, targetB));
+
+	-- Helper: connect fragments within one half
+	local function connectFragmentsInHalf(halfName, areas, targetDominance)
+		if #areas < 2 then
+			print(string.format("  Half %s: only %d landmass(es), no connections needed", halfName, #areas));
+			return;
+		end
+
+		-- Compute total significant land in this half
+		local totalHalfLand = 0;
+		for _, area in ipairs(areas) do
+			totalHalfLand = totalHalfLand + #area;
+		end
+
+		-- Current dominance: largest area / total
+		local dominance = #areas[1] / totalHalfLand;
+		print(string.format("  Half %s: %d landmasses, %d total land, dominance=%.2f (target=%.2f)",
+			halfName, #areas, totalHalfLand, dominance, targetDominance));
+
+		if dominance >= targetDominance then
+			print(string.format("  Half %s: dominance already sufficient", halfName));
+			return;
+		end
+
+		-- Build lookup: plotID -> areaIndex
+		local areaTileMap = {};
+		for i, area in ipairs(areas) do
+			for _, tile in ipairs(area) do
+				areaTileMap[tile.y * mapW + tile.x] = i;
+			end
+		end
+
+		-- Track connected set (start with the largest area)
+		local connected = {};
+		connected[1] = true;
+		local connectedSize = #areas[1];
+
+		-- Greedy: repeatedly connect the closest unconnected fragment
+		local maxAttempts = #areas - 1;
+		for attempt = 1, maxAttempts do
+			-- Check if dominance is satisfied (connected set vs total)
+			if connectedSize / totalHalfLand >= targetDominance then
+				print(string.format("  Half %s: dominance reached %.2f after %d connections",
+					halfName, connectedSize / totalHalfLand, attempt - 1));
+				break;
+			end
+
+			local bestPath = nil;
+			local bestSourceArea = nil;
+			local bestDist = math.huge;
+
+			for areaIdx = 2, #areas do
+				if not connected[areaIdx] then
+					-- BFS from edges of this fragment through water to connected areas
+					local bfsVisited = {};
+					local bfsQueue = {};
+					local bfsHead = 1;
+					local bfsPrev = {};
+
+					-- Seed BFS with water neighbors of this fragment's edge tiles
+					for _, tile in ipairs(areas[areaIdx]) do
+						local neighbors = getNeighbors(tile.x, tile.y);
+						for _, nb in ipairs(neighbors) do
+							local nkey = nb.y * mapW + nb.x;
+							if not bfsVisited[nkey] then
+								local targetIdx = areaTileMap[nkey];
+								if targetIdx and connected[targetIdx] then
+									-- Directly adjacent
+									if 0 < bestDist then
+										bestPath = {};
+										bestDist = 0;
+										bestSourceArea = areaIdx;
+									end
+								elseif not isLandTile(nb.x, nb.y) then
+									local nHalf = getHalf(nb.x, nb.y);
+									local isRiftWater = MG.oceanRiftPlots[nkey]
+										and MG.oceanRiftPlots[nkey].isWater;
+									if nHalf == halfName and not isRiftWater then
+										bfsVisited[nkey] = true;
+										table.insert(bfsQueue, {x = nb.x, y = nb.y, dist = 1});
+										bfsPrev[nkey] = "START";
+									end
+								end
+							end
+						end
+					end
+
+					-- BFS through water
+					local foundForThis = false;
+					while bfsHead <= #bfsQueue and not foundForThis do
+						local current = bfsQueue[bfsHead];
+						bfsHead = bfsHead + 1;
+
+						if current.dist > maxBridgeLength then
+							break;
+						end
+
+						local neighbors = getNeighbors(current.x, current.y);
+						for _, nb in ipairs(neighbors) do
+							local nkey = nb.y * mapW + nb.x;
+							local targetIdx = areaTileMap[nkey];
+
+							if targetIdx and connected[targetIdx] then
+								if current.dist < bestDist then
+									local path = {};
+									local cx, cy = current.x, current.y;
+									while true do
+										table.insert(path, {x = cx, y = cy});
+										local prev = bfsPrev[cy * mapW + cx];
+										if prev == "START" or prev == nil then
+											break;
+										end
+										cx, cy = prev.x, prev.y;
+									end
+									bestPath = path;
+									bestDist = current.dist;
+									bestSourceArea = areaIdx;
+								end
+								foundForThis = true;
+								break;
+							end
+
+							if not bfsVisited[nkey] and not isLandTile(nb.x, nb.y) then
+								local nHalf = getHalf(nb.x, nb.y);
+								local isRiftWater = MG.oceanRiftPlots[nkey]
+									and MG.oceanRiftPlots[nkey].isWater;
+								if nHalf == halfName and not isRiftWater then
+									bfsVisited[nkey] = true;
+									bfsPrev[nkey] = {x = current.x, y = current.y};
+									table.insert(bfsQueue, {x = nb.x, y = nb.y, dist = current.dist + 1});
+								end
+							end
+						end
+					end
+				end
+			end
+
+			if bestPath and bestSourceArea then
+				print(string.format("    Connecting fragment #%d (%d tiles) via %d water tiles",
+					bestSourceArea, #areas[bestSourceArea], #bestPath));
+
+				-- Raise elevation along the path to create a land bridge
+				local bridgeTiles = {};
+				for _, tile in ipairs(bestPath) do
+					bridgeTiles[tile.y * mapW + tile.x] = true;
+				end
+
+				for _, tile in ipairs(bestPath) do
+					local idx = elevationMap:GetIndex(tile.x, tile.y);
+					if elevationMap.data[idx] < seaThresh then
+						elevationMap.data[idx] = seaThresh + 0.02;
+					end
+					-- Widen the bridge
+					local neighbors = getNeighbors(tile.x, tile.y);
+					for _, nb in ipairs(neighbors) do
+						local nkey = nb.y * mapW + nb.x;
+						local isRiftWater = MG.oceanRiftPlots[nkey]
+							and MG.oceanRiftPlots[nkey].isWater;
+						if not isRiftWater and not bridgeTiles[nkey] then
+							local nIdx = elevationMap:GetIndex(nb.x, nb.y);
+							local nElev = elevationMap.data[nIdx];
+							if nElev < seaThresh and nElev > seaThresh - 0.15 then
+								if 50 >= Map.Rand(100, "Bridge widening - Lua") then
+									elevationMap.data[nIdx] = seaThresh + 0.01;
+								end
+							end
+						end
+					end
+				end
+
+				-- Mark as connected and merge tiles
+				connected[bestSourceArea] = true;
+				connectedSize = connectedSize + #areas[bestSourceArea];
+				for _, tile in ipairs(areas[bestSourceArea]) do
+					areaTileMap[tile.y * mapW + tile.x] = 1;
+				end
+				for _, tile in ipairs(bestPath) do
+					areaTileMap[tile.y * mapW + tile.x] = 1;
+				end
+			else
+				print(string.format("    No reachable path within %d tiles for any remaining fragment",
+					maxBridgeLength));
+				break;
+			end
+		end
+	end
+
+	-- Process BOTH halves independently, each targeting the other's dominance
+	connectFragmentsInHalf("A", halfAreas.A, targetA);
+	connectFragmentsInHalf("B", halfAreas.B, targetB);
+
+	print("BalanceContinentConnectivity: done");
 end
 
 function SetOceanRiftPlots()
