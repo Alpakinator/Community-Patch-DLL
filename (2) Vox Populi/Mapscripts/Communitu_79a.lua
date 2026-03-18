@@ -83,13 +83,13 @@ function MapGlobals:New()
 	-- Higher values makes continental divisions and stringy features more likely,
 	-- and very high values result in a lot of stringy continents and islands.
 	mglobal.landMinScatter = 0.02; -- Recommended range: [0.02 to 0.1]
-	mglobal.landMaxScatter = 0.04; -- Recommended range: [0.03 to 0.3]
+	mglobal.landMaxScatter = 0.03; -- Recommended range: [0.03 to 0.3]
 
 	-- Higher values result in more islands and variance on landmasses and coastlines.
-	mglobal.coastScatter = 0.02; -- Recommended range: [0.01 to 0.3]
+	mglobal.coastScatter = 0.015; -- Recommended range: [0.01 to 0.3]
 
 	-- Lower values make large, long, mountain ranges. Higher values make sporadic mountainous features.
-	mglobal.mountainScatter = 200 * mapW; -- Recommended range: [130 to 1000]
+	mglobal.mountainScatter = 250 * mapW; -- Recommended range: [130 to 1000]
 
 	--------------
 	-- Terrain
