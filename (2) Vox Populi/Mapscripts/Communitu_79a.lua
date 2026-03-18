@@ -1492,6 +1492,20 @@ function GetMapScriptInfo()
 				DefaultValue = 2,
 				SortPriority = -88,
 			},
+			{
+				Name = "Artstyle",
+				Description = "Controls the visual texture artstyle of the map. Climate-based assigns art per terrain type and biome. Continents-based uses the vanilla Civ5 continent detection. The remaining options apply a single uniform artstyle to all land.",
+				Values = {
+					"Climate-based",
+					"Continents-based",
+					"European",
+					"African",
+					"Asian",
+					"American",
+				},
+				DefaultValue = 3,
+				SortPriority = -87,
+			},
 		},
 	};
 end
@@ -1530,6 +1544,35 @@ function GetMapInitData(worldSize)
 end
 
 function DetermineContinents()
+	local oArtStyle = Map.GetCustomOption(17);
+
+	-- CONTINENTAL ART SETS
+	-- 0) Ocean
+	-- 1) America
+	-- 2) Asia
+	-- 3) Africa
+	-- 4) Europe
+
+	-- Option 2: Continents-based - defer to the vanilla Civ5 continent stamper
+	if oArtStyle == 2 then
+		Map.DefaultContinentStamper();
+		return;
+	end
+
+	-- Options 3-6: single uniform art style applied to all land tiles
+	if oArtStyle >= 3 and oArtStyle <= 6 then
+		local singleArt = ({[3] = 4, [4] = 3, [5] = 2, [6] = 1})[oArtStyle]; -- 3=European(4), 4=African(3), 5=Asian(2), 6=American(1)
+		for i, plot in Plots() do
+			if plot:IsWater() then
+				plot:SetContinentArtType(0);
+			else
+				plot:SetContinentArtType(singleArt);
+			end
+		end
+		return;
+	end
+
+	-- Option 1 (default): Climate-based art style
 	print("Determining continents for art purposes (CommunitasMap)");
 	-- Each plot has a continent art type.
 	-- Command for setting the art type for a plot is: <plot object>:SetContinentArtType(<art_set_number>)
