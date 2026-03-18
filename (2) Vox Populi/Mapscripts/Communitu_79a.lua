@@ -101,6 +101,9 @@ function MapGlobals:New()
 	mglobal.hillsBlendPercent = 0.15; -- Chance for flat land to become hills per near mountain. Requires at least 2 near mountains.
 	mglobal.terrainBlendRange = 2; -- range to smooth terrain (desert surrounded by plains turns to plains, etc)
 	mglobal.terrainBlendRandom = 0.4; -- random modifier for terrain smoothing
+	mglobal.mountainPassMinSpacing = 4; -- minimum tile distance between mountain passes (preserves long ridges)
+	mglobal.mountainPassMaxDetour = 12; -- if land detour around a mountain exceeds this, create a pass (like original algorithm)
+	mglobal.mountainPassMaxCorridorLength = 8; -- maximum mountain tiles a multi-tile corridor can cross
 
 	--------------
 	-- Features
@@ -3170,22 +3173,7 @@ function BlendTerrain()
 			local randPercent = 1 + PWRand() * 2 * MG.terrainBlendRandom - MG.terrainBlendRandom;
 
 			if plot:IsMountain() then
-				-- Minimize necessary pathfinding
-				local numNearMountains = 0;
-				for nearPlot in Plot_GetPlotsInCircle(plot, 1, 1) do
-					if nearPlot:IsMountain() then
-						numNearMountains = numNearMountains + 1;
-					end
-				end
-				if debugTime then
-					timeStart = os.clock();
-				end
-				if 2 <= numNearMountains and numNearMountains <= 4 then
-					CreatePossibleMountainPass(plot);
-				end
-				if debugTime then
-					mountainCheckTime = mountainCheckTime + (os.clock() - timeStart);
-				end
+				-- Mountain pass candidates are collected and processed in batch below
 			else
 				if plotTerrainID == TerrainTypes.TERRAIN_GRASS then
 					if plotPercent.TERRAIN_DESERT + plotPercent.TERRAIN_SNOW >= 0.33 * randPercent then
@@ -3244,8 +3232,13 @@ function BlendTerrain()
 		end
 	end
 
+	-- Create mountain passes using batch two-pass algorithm
 	if debugTime then
-		print(string.format("%5s ms, BlendTerrain %s", math.floor(mountainCheckTime * 1000), "MountainCheckTime"));
+		timeStart = os.clock();
+	end
+	CreateMountainPasses();
+	if debugTime then
+		print(string.format("%5s ms, BlendTerrain %s", math.floor((os.clock() - timeStart) * 1000), "MountainPasses"));
 	end
 
 	-- Flat -> hills near mountain, and flat cold -> hills when surrounded by warm
@@ -3287,34 +3280,354 @@ function BlendTerrain()
 	end
 end
 
-function CreatePossibleMountainPass(plot)
-	local x, y = plot:GetX(), plot:GetY();
-	if not plot:IsMountain() then
-		return;
+-- Mountain pass algorithm combining the original detour-distance approach with
+-- batch selection and spacing control.
+--
+-- Phase 1 (per-tile detour check):
+--   For each mountain with 2-4 mountain neighbors, find pairs of non-mountain
+--   hex neighbors on opposite sides (>=120 degrees apart). Run a bounded BFS
+--   between each pair through non-mountain, non-water land. If the detour
+--   exceeds a threshold or is impossible, this mountain is blocking and
+--   becomes a pass candidate. Score = longest detour found.
+--
+-- Phase 2 (multi-tile corridor detection):
+--   For wider ranges where no single mountain has land on opposite sides,
+--   use multi-source BFS to find the thinnest cross-section through the range.
+--   Flood-fill land regions, BFS into mountains from all land edges, and
+--   detect meeting points where wavefronts from genuinely different land areas
+--   collide (verified by bounded land-BFS between source tiles).
+--
+-- Phase 3: Sort all candidates by blocking score (longest detour / most critical).
+-- Phase 4: Greedy selection respecting minimum spacing between passes.
+-- Phase 5: Convert selected mountains to hills.
+function CreateMountainPasses()
+	local mapW, mapH = Map.GetGridSize();
+	local minSpacing = MG.mountainPassMinSpacing or 5;
+	local maxDetour = MG.mountainPassMaxDetour or 15;
+	local maxCorridorLen = MG.mountainPassMaxCorridorLength or 8;
+
+	print(string.format("CreateMountainPasses: minSpacing=%d maxDetour=%d maxCorridorLen=%d", minSpacing, maxDetour, maxCorridorLen));
+
+	-- Bounded BFS from startPlot to targetPlot through non-mountain, non-water tiles.
+	-- avoidIdx is the plot index of the mountain being tested (excluded from traversal).
+	-- Returns the path distance, or 0 if unreachable within maxDist steps.
+	local function boundedLandBFS(startPlot, targetPlot, avoidIdx, maxDist)
+		local startIdx = startPlot:GetY() * mapW + startPlot:GetX();
+		local targetIdx = targetPlot:GetY() * mapW + targetPlot:GetX();
+
+		if startIdx == targetIdx then return 1; end
+
+		local visited = {[startIdx] = true, [avoidIdx] = true};
+		local queue = {startPlot};
+		local dist = {[startIdx] = 0};
+		local qHead = 1;
+
+		while qHead <= #queue do
+			local cur = queue[qHead]; qHead = qHead + 1;
+			local curIdx = cur:GetY() * mapW + cur:GetX();
+			local curDist = dist[curIdx];
+
+			if curDist >= maxDist then
+				-- Don't expand further; we only care about distances <= maxDist
+				break; -- BFS is ordered, so all remaining are >= curDist
+			end
+
+			for adj in Plot_GetPlotsInCircle(cur, 1, 1) do
+				local ai = adj:GetY() * mapW + adj:GetX();
+				if not visited[ai] then
+					if ai == targetIdx then
+						return curDist + 1;
+					end
+					if not adj:IsWater() and not adj:IsMountain() then
+						visited[ai] = true;
+						dist[ai] = curDist + 1;
+						table.insert(queue, adj);
+					end
+				end
+			end
+		end
+
+		return 0; -- unreachable within maxDist
 	end
 
-	local longestRoute = 0;
-	for dirA = 0, 3 do
-		local plotA = Map.PlotDirection(x, y, dirA);
-		if plotA and (plotA:GetPlotType() == PlotTypes.PLOT_LAND or plotA:GetPlotType() == PlotTypes.PLOT_HILLS) then
-			for dirB = dirA + 2, 5 do
-				local plotB = Map.PlotDirection(x, y, dirB);
-				if plotB and (plotB:GetPlotType() == PlotTypes.PLOT_LAND or plotB:GetPlotType() == PlotTypes.PLOT_HILLS) then
-					IsPlotConnected(nil, plotA, plotB, "Land", true);
-					if longestRoute < GetRouteLength() then
-						longestRoute = GetRouteLength();
+	-- =====================================================================
+	-- Phase 1: Per-tile detour check (from original algorithm)
+	-- =====================================================================
+	local candidates = {};
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local plot = Map.GetPlot(x, y);
+			if plot:IsMountain() then
+				-- Count mountain neighbors (original filter: 2-4)
+				local numMtNeighbors = 0;
+				for adj in Plot_GetPlotsInCircle(plot, 1, 1) do
+					if adj:IsMountain() then numMtNeighbors = numMtNeighbors + 1; end
+				end
+
+				if numMtNeighbors >= 2 and numMtNeighbors <= 4 then
+					local bestDetour = 0;
+					local idx = y * mapW + x;
+
+					-- Check pairs of non-mountain, non-water neighbors on opposite sides
+					-- dirA and dirB differ by at least 2 (>=120 degrees on hex grid)
+					for dirA = 0, 3 do
+						local plotA = Map.PlotDirection(x, y, dirA);
+						if plotA and not plotA:IsWater() and not plotA:IsMountain() then
+							for dirB = dirA + 2, 5 do
+								local plotB = Map.PlotDirection(x, y, dirB);
+								if plotB and not plotB:IsWater() and not plotB:IsMountain() then
+									local detour = boundedLandBFS(plotA, plotB, idx, maxDetour);
+									if detour == 0 or detour > maxDetour then
+										-- This mountain is blocking; record with score
+										local score = (detour == 0) and (maxDetour + 10) or detour;
+										if score > bestDetour then bestDetour = score; end
+									end
+								end
+							end
+						end
 					end
-					if GetRouteLength() == 0 or GetRouteLength() > 15 then
-						print(string.format("CreatePossibleMountainPass path distance = %2s - Change to Hills", GetRouteLength()));
-						plot:SetPlotType(PlotTypes.PLOT_HILLS, false, true);
-						table.insert(MG.mountainPasses, plot); -- still consider this a mountain tile for art purposes
-						return;
+
+					if bestDetour > 0 then
+						table.insert(candidates, {
+							path = {idx},
+							x = x,
+							y = y,
+							detour = bestDetour,
+							length = 1,
+						});
 					end
 				end
 			end
 		end
 	end
-	-- print(string.format("CreatePossibleMountainPass longestRoute = %2s", longestRoute));
+
+	print(string.format("CreateMountainPasses: Phase 1 found %d single-tile candidates", #candidates));
+
+	-- =====================================================================
+	-- Phase 2: Multi-tile corridor detection for wider ranges
+	-- For thick ranges where no single mountain has land on opposite sides,
+	-- find the thinnest cross-section using multi-source BFS.
+	-- =====================================================================
+
+	-- Flood-fill connected land regions (non-mountain, non-water)
+	local regionOf = {};   -- [plotIndex] = regionID
+	local regionSizes = {};
+	local numRegions = 0;
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local idx = y * mapW + x;
+			local plot = Map.GetPlot(x, y);
+			if not regionOf[idx] and not plot:IsWater() and not plot:IsMountain() then
+				numRegions = numRegions + 1;
+				local rid = numRegions;
+				regionSizes[rid] = 0;
+				local queue = {idx};
+				regionOf[idx] = rid;
+				local qHead = 1;
+				while qHead <= #queue do
+					local ci = queue[qHead]; qHead = qHead + 1;
+					regionSizes[rid] = regionSizes[rid] + 1;
+					local cp = Map.GetPlotByIndex(ci);
+					for adj in Plot_GetPlotsInCircle(cp, 1, 1) do
+						local ai = adj:GetY() * mapW + adj:GetX();
+						if not regionOf[ai] and not adj:IsWater() and not adj:IsMountain() then
+							regionOf[ai] = rid;
+							table.insert(queue, ai);
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Multi-source BFS from land edges into mountains
+	-- Each mountain is labeled with {region, dist, pred, sourceIdx}
+	-- sourceIdx = the land tile that originally seeded this wavefront
+	local mtLabel = {};
+	local bfsQueue = {};
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local idx = y * mapW + x;
+			local plot = Map.GetPlot(x, y);
+			if plot:IsMountain() and not mtLabel[idx] then
+				for adj in Plot_GetPlotsInCircle(plot, 1, 1) do
+					local ai = adj:GetY() * mapW + adj:GetX();
+					if regionOf[ai] then
+						mtLabel[idx] = {region = regionOf[ai], dist = 1, pred = ai, sourceIdx = ai};
+						table.insert(bfsQueue, idx);
+						break;
+					end
+				end
+			end
+		end
+	end
+
+	-- BFS expansion through mountains
+	local qHead = 1;
+	while qHead <= #bfsQueue do
+		local ci = bfsQueue[qHead]; qHead = qHead + 1;
+		local curLabel = mtLabel[ci];
+		if curLabel.dist < maxCorridorLen then
+			local cp = Map.GetPlotByIndex(ci);
+			for adj in Plot_GetPlotsInCircle(cp, 1, 1) do
+				local ai = adj:GetY() * mapW + adj:GetX();
+				if adj:IsMountain() and not mtLabel[ai] then
+					mtLabel[ai] = {region = curLabel.region, dist = curLabel.dist + 1, pred = ci, sourceIdx = curLabel.sourceIdx};
+					table.insert(bfsQueue, ai);
+				end
+			end
+		end
+	end
+
+	-- Detect meeting points and build multi-tile corridors.
+	-- Two wavefronts form a valid corridor if:
+	--   (a) they come from different land regions, OR
+	--   (b) they're from the same region but their source land tiles are far apart
+	--       (verified by bounded BFS on land between the source tiles)
+	local corridors = {};
+	local mapSize = mapW * mapH;
+	local seenEdges = {};
+	local minRegionSize = 3;
+
+	local function traceBack(startIdx)
+		local path = {};
+		local current = startIdx;
+		while mtLabel[current] and Map.GetPlotByIndex(current):IsMountain() do
+			table.insert(path, current);
+			current = mtLabel[current].pred;
+		end
+		return path;
+	end
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local idx = y * mapW + x;
+			if mtLabel[idx] then
+				local myLabel = mtLabel[idx];
+				local plot = Map.GetPlotByIndex(idx);
+
+				for adj in Plot_GetPlotsInCircle(plot, 1, 1) do
+					local ai = adj:GetY() * mapW + adj:GetX();
+
+					if mtLabel[ai] and myLabel.sourceIdx ~= mtLabel[ai].sourceIdx then
+						local otherLabel = mtLabel[ai];
+						local totalDist = myLabel.dist + otherLabel.dist;
+
+						if totalDist <= maxCorridorLen then
+							-- Dedup by meeting edge
+							local edgeKey = math.min(idx, ai) * mapSize + math.max(idx, ai);
+							if not seenEdges[edgeKey] then
+								seenEdges[edgeKey] = true;
+
+								local isValid = false;
+								if myLabel.region ~= otherLabel.region then
+									-- Different land regions: always valid (truly separated)
+									local rA = myLabel.region;
+									local rB = otherLabel.region;
+									if (regionSizes[rA] or 0) >= minRegionSize or (regionSizes[rB] or 0) >= minRegionSize then
+										isValid = true;
+									end
+								else
+									-- Same region: verify source tiles are far apart on land
+									local srcPlotA = Map.GetPlotByIndex(myLabel.sourceIdx);
+									local srcPlotB = Map.GetPlotByIndex(otherLabel.sourceIdx);
+									local landDist = boundedLandBFS(srcPlotA, srcPlotB, -1, maxDetour);
+									if landDist == 0 or landDist > maxDetour then
+										isValid = true;
+									end
+								end
+
+								if isValid then
+									-- Reconstruct the full corridor
+									local pathA = traceBack(idx);
+									local pathB = traceBack(ai);
+
+									local fullPath = {};
+									for i = #pathA, 1, -1 do
+										table.insert(fullPath, pathA[i]);
+									end
+									for i = 1, #pathB do
+										table.insert(fullPath, pathB[i]);
+									end
+
+									if #fullPath > 0 then
+										local midIdx = fullPath[math.ceil(#fullPath / 2)];
+										local midPlot = Map.GetPlotByIndex(midIdx);
+
+										table.insert(corridors, {
+											path = fullPath,
+											x = midPlot:GetX(),
+											y = midPlot:GetY(),
+											length = #fullPath,
+											detour = maxDetour + totalDist, -- score: prioritize shorter corridors
+										});
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	print(string.format("CreateMountainPasses: Phase 2 found %d multi-tile corridors", #corridors));
+
+	-- =====================================================================
+	-- Phase 3: Merge and sort all candidates
+	-- =====================================================================
+	for _, corridor in ipairs(corridors) do
+		table.insert(candidates, corridor);
+	end
+
+	-- Sort: highest detour score first (most blocking / most critical)
+	table.sort(candidates, function(a, b)
+		if a.detour ~= b.detour then return a.detour > b.detour; end
+		return a.length < b.length; -- prefer shorter corridors at equal score
+	end);
+
+	-- =====================================================================
+	-- Phase 4: Greedy selection respecting minimum spacing
+	-- =====================================================================
+	local selected = {};
+	for _, cand in ipairs(candidates) do
+		local tooClose = false;
+		for _, sel in ipairs(selected) do
+			if Map.PlotDistance(cand.x, cand.y, sel.x, sel.y) < minSpacing then
+				tooClose = true;
+				break;
+			end
+		end
+		if not tooClose then
+			table.insert(selected, cand);
+		end
+	end
+
+	print(string.format("CreateMountainPasses: %d passes selected (from %d candidates)", #selected, #candidates));
+
+	-- =====================================================================
+	-- Phase 5: Convert selected mountains to hills
+	-- =====================================================================
+	local converted = {};
+	for _, cand in ipairs(selected) do
+		local coords = {};
+		for _, idx in ipairs(cand.path) do
+			if not converted[idx] then
+				converted[idx] = true;
+				local plot = Map.GetPlotByIndex(idx);
+				if plot:IsMountain() then
+					plot:SetPlotType(PlotTypes.PLOT_HILLS, false, true);
+					table.insert(MG.mountainPasses, plot);
+					table.insert(coords, string.format("(%d,%d)", plot:GetX(), plot:GetY()));
+				end
+			end
+		end
+		print(string.format("CreateMountainPass len=%d detour=%d tiles: %s",
+			cand.length, cand.detour, table.concat(coords, " ")));
+	end
 end
 
 function CreateArcticOceans()
@@ -8099,7 +8412,7 @@ function PlotToPlotShortestRoute(pPlayer, pStartPlot, pTargetPlot, sRoute, highl
 	repeat
 		iRing = GenerateNextRing(pPlayer, sRoute, rings, iRing, fBlockaded);
 		bFound = ListContainsPlot(pStartPlot, rings[iRing]);
-	until bFound or not rings[iRing] or #rings[iRing] == 0;
+	until bFound or not rings[iRing] or next(rings[iRing]) == nil;
 
 	if bFound and highlight then
 		Events.SerialEventHexHighlight(PlotToHex(pStartPlot), true, highlight);
