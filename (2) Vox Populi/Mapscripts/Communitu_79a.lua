@@ -546,6 +546,100 @@ function MapGlobals:New()
 			ASP.PlacePossibleFish = PlacePossibleFish;
 			ASP.PlaceBonusResources = PlaceBonusResources;
 			ASP.PlaceResourcesAndCityStates = PlaceResourcesAndCityStates;
+			ASP.CustomOverride = CustomOverride;
+		end
+		------------------------------------------------------------------------------
+		-- Called by GenerateRegions after all DivideIntoRegions passes complete.
+		-- When MG.riftHalfOfLandmass is set (two-rift map), rebalances ASP.regionData
+		-- so each rift half holds exactly ceil(N/2) or floor(N/2) start regions.
+		function CustomOverride(ASP)
+			if not MG.riftHalfOfLandmass or not MG.lmOfArea then return; end
+			if not ASP.bArea then return; end -- only CONTINENTAL uses area IDs
+
+			local totalCivs = ASP.iNumCivs + (ASP.iNumFrontiers or 0);
+			if totalCivs < 2 then return; end
+
+			-- Snapshot helper: count regions per rift half and per area.
+			local function buildStats()
+				local halfCount = {A = 0, B = 0};
+				local countPerArea = {}; -- [areaID] = number of regions
+				local halfOfArea  = {}; -- [areaID] = "A" or "B"
+				for _, region in ipairs(ASP.regionData) do
+					local areaID = region[5];
+					local lm     = MG.lmOfArea[areaID];
+					local half   = lm and MG.riftHalfOfLandmass[lm];
+					if half then
+						halfCount[half]  = halfCount[half] + 1;
+						halfOfArea[areaID] = half;
+						countPerArea[areaID] = (countPerArea[areaID] or 0) + 1;
+					end
+				end
+				return halfCount, countPerArea, halfOfArea;
+			end
+
+			-- Remove all regions for areaID from regionData, then re-divide with numCivs.
+			local function redivideArea(areaID, numCivs)
+				local kept = {};
+				for _, region in ipairs(ASP.regionData) do
+					if region[5] ~= areaID then
+						table.insert(kept, region);
+					end
+				end
+				ASP.regionData = kept;
+				if numCivs > 0 then
+					local d = ObtainLandmassBoundaries(areaID);
+					local fert_table, fertCount, plotCount =
+						ASP:MeasureStartPlacementFertilityOfArea(areaID, d[1], d[3], d[2], d[4], d[7], d[8]);
+					ASP:DivideIntoRegions(numCivs, fert_table,
+						{d[1], d[2], d[5], d[6], areaID, fertCount, plotCount});
+				end
+			end
+
+			local halfCount, countPerArea, halfOfArea = buildStats();
+			print(string.format("CustomOverride rift check: half A=%d, half B=%d (total civs=%d)",
+				halfCount.A, halfCount.B, totalCivs));
+
+			for _ = 1, totalCivs do
+				local big   = halfCount.A > halfCount.B and "A" or "B";
+				local small = big == "A" and "B" or "A";
+				if halfCount[big] - halfCount[small] <= 1 then break; end
+
+				-- Area in the bigger half with the most regions to give one up (must have >= 2).
+				local shrinkArea, shrinkCount = nil, 0;
+				for areaID, cnt in pairs(countPerArea) do
+					if halfOfArea[areaID] == big and cnt > shrinkCount and cnt >= 2 then
+						shrinkArea  = areaID;
+						shrinkCount = cnt;
+					end
+				end
+
+				-- Area in the smaller half with the most regions to absorb one more.
+				local growArea, growCount = nil, -1;
+				for areaID, cnt in pairs(countPerArea) do
+					if halfOfArea[areaID] == small and cnt > growCount then
+						growArea  = areaID;
+						growCount = cnt;
+					end
+				end
+
+				if not shrinkArea or not growArea then
+					print("CustomOverride: cannot rebalance further, no suitable areas.");
+					break;
+				end
+
+				print(string.format(
+					"CustomOverride: half %s area %d %d->%d; half %s area %d %d->%d",
+					big,   shrinkArea, shrinkCount, shrinkCount - 1,
+					small, growArea,   growCount,   growCount + 1));
+
+				redivideArea(shrinkArea, shrinkCount - 1);
+				redivideArea(growArea,   growCount   + 1);
+
+				halfCount, countPerArea, halfOfArea = buildStats();
+			end
+
+			print(string.format("CustomOverride done: final rift half counts A=%d B=%d",
+				halfCount.A, halfCount.B));
 		end
 		------------------------------------------------------------------------------
 		function MeasureStartPlacementFertilityOfPlot(ASP, x, y)
@@ -1715,6 +1809,52 @@ function StartPlotSystem()
 		lux = luxuryDensity,
 		comm = true,
 	};
+
+	-- When two ocean rifts divide the map into two separate landmasses, classify each
+	-- Civ5 landmass into rift-half A or B by plurality vote across all its land plots.
+	-- Also build MG.lmOfArea (Civ5 area ID → landmass ID) in the same pass.
+	-- Both tables are stored on MG and used by CustomOverride (called by GenerateRegions)
+	-- to rebalance regionData so each rift half gets an equal number of start regions.
+	if MG.riftPaths and #MG.riftPaths >= 2 then
+		local mapW, mapH = Map.GetGridSize();
+		local path1 = MG.riftPaths[#MG.riftPaths - 1];
+		local path2 = MG.riftPaths[#MG.riftPaths];
+		local lmVotes = {}; -- [lmID] = {A=count, B=count}
+		MG.lmOfArea = {};   -- [areaID] = landmassID
+		for y = 0, mapH - 1 do
+			local r1x = path1[y];
+			local r2x = path2[y];
+			if r1x and r2x then
+				for x = 0, mapW - 1 do
+					local plot = Map.GetPlot(x, y);
+					if not plot:IsWater() then
+						local lm = plot:GetLandmass();
+						local ar = plot:GetArea();
+						MG.lmOfArea[ar] = lm;
+						if not lmVotes[lm] then lmVotes[lm] = {A = 0, B = 0}; end
+						local inA;
+						if r1x < r2x then
+							inA = (x > r1x and x < r2x);
+						else
+							inA = (x > r1x or x < r2x);
+						end
+						if inA then
+							lmVotes[lm].A = lmVotes[lm].A + 1;
+						else
+							lmVotes[lm].B = lmVotes[lm].B + 1;
+						end
+					end
+				end
+			end
+		end
+		MG.riftHalfOfLandmass = {};
+		for lm, votes in pairs(lmVotes) do
+			MG.riftHalfOfLandmass[lm] = (votes.A >= votes.B) and "A" or "B";
+			print(string.format("  Landmass %d -> rift half %s (A=%d B=%d)", lm, MG.riftHalfOfLandmass[lm], votes.A, votes.B));
+		end
+		print("Rift half data stored on MG; CustomOverride will rebalance regionData if needed.");
+	end
+
 	start_plot_database:GenerateRegions(args);
 
 	-- Do we need to force starts along the ocean?
@@ -1757,9 +1897,11 @@ function GeneratePlotTypes()
 	CreateArcticOceans(); -- Makes a line of water in the poles
 	CreateVerticalOceans();
 	CreateMagallanes(); -- Circumnavegable path (by tu_79)
-	ConnectSeasToOceans();
 	FillInLakes();
 	SetOceanRiftElevations();
+	BalanceRiftHalves();
+	FillInLakes(); -- Re-run to catch new small depressions created by rift balancing
+	ConnectSeasToOceans(); -- Run after all elevation-modifying steps so newly created inland seas are caught
 	ConnectTerraContinents();
 
 	-- Rainfall
@@ -3236,26 +3378,36 @@ function CreateVerticalOceans()
 	end
 	print("startX pacific:", startX);
 
+	-- Wide corridor for the first rift: let it follow the existing ocean freely.
+	local halfWidth = math.floor(mapW / 6);
+	-- Tight corridor for the second (equal-split) rift: the path must stay very
+	-- close to the 50% land column so the two halves end up the same size.
+	local splitHalfWidth = math.max(3, math.floor(mapW / 14));
+	-- Narrower ocean strip for Pacific-style (wide ocean) rifts.
+	local pacificWidth = math.max(1, Round(MG.oceanRiftWidth - 1));
+
+	local firstRiftMeanX;
+
 	if mapW < 60 then
-		print("CreateVerticalOceans: Creating Atlantic at x =", startX);
-		CreateAtlantic(startX);
+		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
+		CreateSmartRift(startX, halfWidth);
 		return;
 	elseif oOceanRifts == 2 or oOceanRifts == 3 then
 		-- PA or PP
-		print("CreateVerticalOceans: Creating Pacific at x =", startX);
-		CreatePacific(startX);
+		print("CreateVerticalOceans: Creating Pacific rift at x =", startX);
+		firstRiftMeanX = CreateSmartRift(startX, halfWidth, pacificWidth);
 	elseif oOceanRifts == 1 then
 		-- AA
-		print("CreateVerticalOceans: Creating Atlantic at x =", startX);
-		CreateAtlantic(startX);
+		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
+		firstRiftMeanX = CreateSmartRift(startX, halfWidth);
 	elseif oOceanRifts == 4 or oOceanRifts == 5 then
 		-- 1 or 2 random
 		if 50 >= Map.Rand(100, "Random ocean rift - Lua") then
-			print(string.format("CreateVerticalOceans: Creating Pacific at x = %s (Random)", startX));
-			CreatePacific(startX);
+			print(string.format("CreateVerticalOceans: Creating Pacific rift at x = %s (Random)", startX));
+			firstRiftMeanX = CreateSmartRift(startX, halfWidth, pacificWidth);
 		else
-			print(string.format("CreateVerticalOceans: Creating Atlantic at x = %s (Random)", startX));
-			CreateAtlantic(startX);
+			print(string.format("CreateVerticalOceans: Creating Atlantic rift at x = %s (Random)", startX));
+			firstRiftMeanX = CreateSmartRift(startX, halfWidth);
 		end
 	end
 
@@ -3264,39 +3416,69 @@ function CreateVerticalOceans()
 		return;
 	end
 
-	-- find median land (usually place for Atlantic)
-	startX = 0;
-	local sumLand = 0;
-	local offsetAtlanticPercent = Map.Rand(2, "Atlantic Offset - Lua") == 0 and MG.offsetAtlanticPercent or 1 - MG.offsetAtlanticPercent;
+	-- Recompute landInColumn and totalLand AFTER the first rift has been placed,
+	-- so the 50% split calculation uses accurate data.
+	totalLand = 0;
 	for x = 0, mapW - 1 do
-		local xOffset = (x + startX) % mapW;
+		landInColumn[x] = 0;
+	end
+	for x = 0, mapW - 1 do
+		for y = 0, mapH - 1 do
+			local plotID = y * mapW + x;
+			local isRiftWater = MG.oceanRiftPlots[plotID] and MG.oceanRiftPlots[plotID].isWater;
+			if not isRiftWater and not Plot_IsWater(Map.GetPlot(x, y), true) then
+				totalLand = totalLand + 1;
+				landInColumn[x] = landInColumn[x] + 1;
+			end
+		end
+	end
+
+	-- Find the 50% land split point for the second rift.
+	-- Start counting from the ACTUAL mean X of the first rift's path (not the
+	-- requested centerX) so the reference is accurate even if the path wandered.
+	-- Use exactly 50% so the two landmasses are as equal as possible.
+	local firstRiftX = firstRiftMeanX;
+	startX = firstRiftX;
+	local sumLand = 0;
+	local targetFraction = 0.50;
+	for x = 0, mapW - 1 do
+		local xOffset = (x + firstRiftX) % mapW;
 		sumLand = sumLand + landInColumn[xOffset];
-		if sumLand > offsetAtlanticPercent * totalLand then
+		if sumLand >= targetFraction * totalLand then
 			startX = xOffset;
-			print("startX atlantic:", startX);
+			print("startX atlantic (50% split):", startX);
 			break;
 		end
 	end
 
-	print(string.format("totalLand = %4f sumElevation = %4f", totalLand, sumLand));
+	print(string.format("totalLand(updated) = %4f sumLand = %4f", totalLand, sumLand));
 
+	-- Use splitHalfWidth (tight corridor) for the second rift so it stays close
+	-- to the computed 50 %% land column and produces two equal-area halves.
+	local secondRiftMeanX;
 	if oOceanRifts == 1 or oOceanRifts == 2 then
 		-- PA or AA
-		print("CreateVerticalOceans: Creating Atlantic at x =", startX);
-		CreateAtlantic(startX);
+		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
+		secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth);
 	elseif oOceanRifts == 3 then
 		-- PP
-		print("CreateVerticalOceans: Creating Pacific at x =", startX);
-		CreatePacific(startX);
+		print("CreateVerticalOceans: Creating Pacific rift at x =", startX);
+		secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth, pacificWidth);
 	elseif oOceanRifts == 4 then
 		-- 2 random
 		if 50 >= Map.Rand(100, "Random ocean rift - Lua") then
-			print(string.format("CreateVerticalOceans: Creating Pacific at x = %s (Random)", startX));
-			CreatePacific(startX);
+			print(string.format("CreateVerticalOceans: Creating Pacific rift at x = %s (Random)", startX));
+			secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth, pacificWidth);
 		else
-			print(string.format("CreateVerticalOceans: Creating Atlantic at x = %s (Random)", startX));
-			CreateAtlantic(startX);
+			print(string.format("CreateVerticalOceans: Creating Atlantic rift at x = %s (Random)", startX));
+			secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth);
 		end
+	end
+
+	-- Store rift positions for post-rift balancing
+	if firstRiftMeanX and secondRiftMeanX then
+		MG.firstRiftMeanX = firstRiftMeanX;
+		MG.secondRiftMeanX = secondRiftMeanX;
 	end
 end
 
@@ -3308,6 +3490,269 @@ end
 function CreateAtlantic(midline)
 	CreateOceanRift{x = midline, totalSize = MG.atlanticSize, bulge = MG.atlanticBulge, curve = MG.atlanticCurve, oceanSize = MG.oceanRiftWidth, cleanMid = true};
 	print("Create Atlantic at:", midline);
+end
+
+-- Find the minimum-land-conversion path from south (y=0) to north (y=mapH-1)
+-- near the target x column, using dynamic programming.
+-- Uses actual elevation values as costs so the path naturally follows valleys
+-- and avoids mountain ranges. Allows ±2 horizontal steps per row for organic
+-- curves. A soft corridor penalty discourages drifting beyond halfWidth columns.
+-- Returns a list of {x, y} nodes ordered south-to-north (one per row).
+function FindSmartRiftPath(centerX, halfWidth)
+	local mapW, mapH = Map.GetGridSize();
+	local INF = 1e9;
+	local corridorPenalty = 2; -- extra cost per column beyond halfWidth from centerX
+	local seaThresh = elevationMap.seaLevelThreshold;
+
+	-- Compute elevation-based tile cost: water=0, low land=small, mountains=high
+	local function tileCostAt(x, y)
+		local elev = elevationMap.data[elevationMap:GetIndex(x, y)];
+		if elev < seaThresh then
+			return 0; -- already water, free
+		end
+		-- Scale land cost by how far above sea level (0.5 base + up to ~2.5 for peaks)
+		return 0.5 + (elev - seaThresh) / math.max(0.01, 1 - seaThresh) * 2.5;
+	end
+
+	-- dp[x] = minimum accumulated cost to reach column x at the current row
+	local dp = {};
+	-- all_prev[y][x] = predecessor column at row y-1 leading to column x at row y
+	local all_prev = {};
+
+	-- Initialise bottom row (y = 0)
+	for x = 0, mapW - 1 do
+		local dist = math.min(math.abs(x - centerX), mapW - math.abs(x - centerX));
+		local oob = math.max(0, dist - halfWidth) * corridorPenalty;
+		dp[x] = tileCostAt(x, 0) + oob;
+	end
+
+	-- Propagate DP from row 1 to mapH-1
+	for y = 1, mapH - 1 do
+		local new_dp = {};
+		local prev_row = {};
+		for x = 0, mapW - 1 do
+			local tc = tileCostAt(x, y);
+			local dist = math.min(math.abs(x - centerX), mapW - math.abs(x - centerX));
+			local oob = math.max(0, dist - halfWidth) * corridorPenalty;
+			-- Consider stepping from columns x-2..x+2 in the previous row
+			local best = INF;
+			local best_px = x;
+			for dx = -2, 2 do
+				local px = (x + dx + mapW) % mapW;
+				local stepCost = math.abs(dx) * 0.15; -- small penalty for large lateral steps
+				if dp[px] + stepCost < best then
+					best = dp[px] + stepCost;
+					best_px = px;
+				end
+			end
+			new_dp[x] = best + tc + oob;
+			prev_row[x] = best_px;
+		end
+		dp = new_dp;
+		all_prev[y] = prev_row;
+	end
+
+	-- Pick the best ending column at the top row
+	local best_cost = INF;
+	local end_x = centerX;
+	for x = 0, mapW - 1 do
+		if dp[x] < best_cost then
+			best_cost = dp[x];
+			end_x = x;
+		end
+	end
+	print(string.format("FindSmartRiftPath: centerX=%s halfWidth=%s endX=%s cost=%s",
+		centerX, halfWidth, end_x, Round(best_cost, 2)));
+
+	-- Backtrack to reconstruct the path
+	local path = {};
+	local tx = end_x;
+	for y = mapH - 1, 0, -1 do
+		table.insert(path, {x = tx, y = y});
+		if y > 0 then
+			tx = all_prev[y][tx];
+		end
+	end
+	-- Reverse so the path is ordered south (y=0) to north (y=mapH-1)
+	local reversed = {};
+	for i = #path, 1, -1 do
+		table.insert(reversed, path[i]);
+	end
+	return reversed;
+end
+
+-- Smooth the raw rift path with a moving-average window so it produces
+-- gentle sweeping curves instead of jagged single-tile zigzags.
+-- windowSize should be odd (e.g. 5-9). Returns a new path list.
+function SmoothRiftPath(rawPath, mapW, windowSize)
+	windowSize = windowSize or 7;
+	local half = math.floor(windowSize / 2);
+	local n = #rawPath;
+	local smoothed = {};
+	for i = 1, n do
+		-- Circular-mean of nearby x values to handle map wrapping
+		local sinAcc, cosAcc = 0, 0;
+		local count = 0;
+		for j = math.max(1, i - half), math.min(n, i + half) do
+			local angle = (rawPath[j].x / mapW) * 2 * math.pi;
+			sinAcc = sinAcc + math.sin(angle);
+			cosAcc = cosAcc + math.cos(angle);
+			count = count + 1;
+		end
+		local meanAngle = math.atan2(sinAcc, cosAcc);
+		if meanAngle < 0 then meanAngle = meanAngle + 2 * math.pi; end
+		local sx = Round(meanAngle / (2 * math.pi) * mapW) % mapW;
+		table.insert(smoothed, {x = sx, y = rawPath[i].y});
+	end
+	return smoothed;
+end
+
+-- Create an ocean rift using minimum-land-cost pathfinding.
+-- The rift follows the cheapest path through existing terrain near centerX,
+-- removing as little land as possible while guaranteeing a continuous barrier
+-- of ocean from the south pole to the north pole.
+-- Features:
+--   * Organic, non-straight coastlines via noise-based width variation
+--   * Coast/shallow-water transition tiles at the edges
+--   * A smooth elevation-lowering gradient beyond the rift so nearby mountains
+--     are reduced to hills and then flat land before reaching the coast
+-- Returns the mean X column of the actual placed path (used to anchor the second rift).
+function CreateSmartRift(centerX, halfWidth, riftWidth)
+	local mapW, mapH = Map.GetGridSize();
+	riftWidth = riftWidth or MG.oceanRiftWidth;
+	halfWidth = halfWidth or math.floor(mapW / 6);
+
+	print(string.format("CreateSmartRift: centerX=%s halfWidth=%s riftWidth=%s",
+		centerX, halfWidth, riftWidth));
+
+	local rawPath = FindSmartRiftPath(centerX, halfWidth);
+
+	-- Smooth the raw DP path so the rift has gentle, sweeping curves
+	local smoothWindow = math.max(5, math.floor(mapH / 8));
+	if smoothWindow % 2 == 0 then smoothWindow = smoothWindow + 1; end
+	local path = SmoothRiftPath(rawPath, mapW, smoothWindow);
+
+	-- Compute the mean X of the actual path so the caller can use it as an accurate
+	-- reference when computing where to place a second rift.
+	-- We use circular-mean arithmetic to handle map-wrap correctly.
+	local sinSum, cosSum = 0, 0;
+	for _, node in ipairs(path) do
+		local angle = (node.x / mapW) * 2 * math.pi;
+		sinSum = sinSum + math.sin(angle);
+		cosSum = cosSum + math.cos(angle);
+	end
+	local meanAngle = math.atan2(sinSum, cosSum);
+	if meanAngle < 0 then meanAngle = meanAngle + 2 * math.pi; end
+	local actualMeanX = Round(meanAngle / (2 * math.pi) * mapW) % mapW;
+	print(string.format("CreateSmartRift: actualMeanX=%s", actualMeanX));
+
+	-- Store per-row rift center positions so BalanceRiftHalves can classify
+	-- tiles accurately even when the path wanders far from the mean.
+	MG.riftPaths = MG.riftPaths or {};
+	local pathByRow = {};
+	for _, node in ipairs(path) do
+		pathByRow[node.y] = node.x;
+	end
+	table.insert(MG.riftPaths, pathByRow);
+
+	-- Track the guaranteed deep-ocean corridor (center ±1 tile per row).
+	-- SetOceanRiftPlots uses this to skip coast conversion and enforce TERRAIN_OCEAN,
+	-- preventing coast-tile connections across the rift at narrow points.
+	MG.riftCorePlotIDs = MG.riftCorePlotIDs or {};
+	for _, node in ipairs(path) do
+		for dx = -1, 1 do
+			local px = (node.x + dx + mapW) % mapW;
+			MG.riftCorePlotIDs[node.y * mapW + px] = true;
+		end
+	end
+
+	-- Noise seeds for organic edge variation (deterministic per rift)
+	local ns1 = PWRand() * 100;
+	local ns2 = PWRand() * 100;
+	local ns3 = PWRand() * 100;
+
+	-- Gradient radius: how many tiles beyond the coast transition to lower elevation
+	local gradientRadius = math.max(4, math.floor(mapW / 12));
+	local coastTransition = 2; -- tiles of coast/shallow mix at each rift edge
+
+	for _, node in ipairs(path) do
+		-- Organic width variation per row using superimposed sinusoids
+		local noise = math.sin(node.y * 0.30 + ns1) * 1.2
+					+ math.sin(node.y * 0.13 + ns2) * 2.0
+					+ math.sin(node.y * 0.55 + ns3) * 0.7;
+		local effectiveWidth = math.max(1, riftWidth + Round(noise));
+
+		-- 1) Core deep-ocean tiles
+		for w = -effectiveWidth, effectiveWidth do
+			local px = (node.x + w + mapW) % mapW;
+			local plotID = node.y * mapW + px;
+			MG.oceanRiftPlots[plotID] = {
+				isWater = true,
+				terrainID = TerrainTypes.TERRAIN_OCEAN,
+			};
+		end
+
+		-- 2) Coast / shallow-water transition at each edge
+		for _, side in ipairs({-1, 1}) do
+			for d = 1, coastTransition do
+				local w = side * (effectiveWidth + d);
+				local px = (node.x + w + mapW) % mapW;
+				local plotID = node.y * mapW + px;
+				if not MG.oceanRiftPlots[plotID] then
+					if d == 1 then
+						-- Immediately outside: mostly ocean, sometimes coast
+						if 75 >= Map.Rand(100, "Rift coast transition - Lua") then
+							MG.oceanRiftPlots[plotID] = {
+								isWater = true,
+								terrainID = TerrainTypes.TERRAIN_OCEAN,
+							};
+						else
+							MG.oceanRiftPlots[plotID] = {
+								isWater = true,
+								terrainID = TerrainTypes.TERRAIN_COAST,
+							};
+						end
+					else
+						-- Second ring: half coast, half left alone
+						if 50 >= Map.Rand(100, "Rift coast edge - Lua") then
+							MG.oceanRiftPlots[plotID] = {
+								isWater = true,
+								terrainID = TerrainTypes.TERRAIN_COAST,
+							};
+						end
+					end
+				end
+			end
+		end
+
+		-- 3) Elevation-lowering gradient beyond the coast transition
+		--    Mountains near the rift get progressively lowered to hills, then flat
+		--    land, preventing mountain-lined coasts.
+		for _, side in ipairs({-1, 1}) do
+			for d = 1, gradientRadius do
+				local w = side * (effectiveWidth + coastTransition + d);
+				local px = (node.x + w + mapW) % mapW;
+				local plotID = node.y * mapW + px;
+				-- Only create gradient entries for tiles that are NOT already water
+				if not MG.oceanRiftPlots[plotID] or (not MG.oceanRiftPlots[plotID].isWater) then
+					-- factor ramps from ~0 at rift edge to 1.0 at full gradient distance
+					local factor = (d / gradientRadius) ^ 0.6;
+					local existing = 1;
+					if MG.oceanRiftPlots[plotID] and MG.oceanRiftPlots[plotID].elevationFactor then
+						existing = MG.oceanRiftPlots[plotID].elevationFactor;
+					end
+					-- Keep the strongest reduction (minimum factor) if overlapping
+					if factor < existing then
+						MG.oceanRiftPlots[plotID] = MG.oceanRiftPlots[plotID] or {};
+						MG.oceanRiftPlots[plotID].isWater = MG.oceanRiftPlots[plotID].isWater or false;
+						MG.oceanRiftPlots[plotID].elevationFactor = factor;
+					end
+				end
+			end
+		end
+	end
+
+	return actualMeanX;
 end
 
 function CreateOceanRift(args)
@@ -3720,10 +4165,142 @@ function GetMagallanesPlots(startY)
 end
 
 function SetOceanRiftElevations()
+	local seaThresh = elevationMap.seaLevelThreshold;
 	for plotID, data in pairs(MG.oceanRiftPlots) do
+		local plot = Map.GetPlotByIndex(plotID);
+		local idx = elevationMap:GetIndex(plot:GetX(), plot:GetY());
 		if data.isWater then
-			local plot = Map.GetPlotByIndex(plotID);
-			elevationMap.data[elevationMap:GetIndex(plot:GetX(), plot:GetY())] = 0;
+			-- Core rift water tiles: set to zero
+			elevationMap.data[idx] = 0;
+		elseif data.elevationFactor then
+			-- Gradient tiles: smoothly reduce elevation towards sea level.
+			-- factor=0 at rift edge (elevation → seaLevelThreshold),
+			-- factor=1 at gradient boundary (elevation unchanged).
+			local curElev = elevationMap.data[idx];
+			if curElev > seaThresh then
+				local newElev = seaThresh + (curElev - seaThresh) * data.elevationFactor;
+				elevationMap.data[idx] = newElev;
+			end
+		end
+	end
+end
+
+-- After both rifts are placed and their elevations applied, iteratively nudge
+-- elevation to balance the two halves of the map within 5% land-tile difference.
+-- Uses the actual per-row rift path positions (stored in MG.riftPaths) so that
+-- tiles are classified accurately even when rift paths wander significantly.
+-- Applies nudges in BOTH directions: raises the smaller half AND lowers the
+-- bigger half each iteration, which converges much faster than one-sided nudging.
+function BalanceRiftHalves()
+	if not MG.riftPaths or #MG.riftPaths < 2 then
+		return;
+	end
+
+	local mapW, mapH = Map.GetGridSize();
+	local seaThresh = elevationMap.seaLevelThreshold;
+	local path1 = MG.riftPaths[#MG.riftPaths - 1]; -- first rift
+	local path2 = MG.riftPaths[#MG.riftPaths];     -- second rift
+
+	print(string.format("BalanceRiftHalves: using per-row paths, mapW=%d mapH=%d", mapW, mapH));
+
+	-- For a given tile (x, y), determine which half it belongs to by checking
+	-- its position relative to both rift paths AT THAT ROW.  On a wrapping map
+	-- the two rift x-positions at row y divide the columns into two arcs:
+	-- Half A = the arc going east from rift1(y) to rift2(y).
+	-- Half B = the remaining arc.
+	-- Returns "A", "B", or nil (tile is ON a rift center column).
+	local function getHalf(x, y)
+		local r1x = path1[y];
+		local r2x = path2[y];
+		if r1x == nil or r2x == nil then return nil; end
+		if x == r1x or x == r2x then return nil; end
+		local inA;
+		if r1x < r2x then
+			inA = (x > r1x and x < r2x);
+		else
+			inA = (x > r1x or x < r2x);
+		end
+		return inA and "A" or "B";
+	end
+
+	-- Build a set of lake tile indices so we never nudge their elevation.
+	-- Lake tiles sit at exactly seaLevelThreshold; nudging them down would
+	-- push them below sea level, breaking the river system which relies on
+	-- IsBelowSeaLevel to detect ocean.
+	local lakeIndices = {};
+	for _, plot in pairs(MG.lakePlots) do
+		local lakeIdx = plot:GetY() * mapW + plot:GetX();
+		lakeIndices[lakeIdx] = true;
+	end
+
+	local maxIter = 100;
+	local maxNudge = 0.010;  -- largest possible nudge per iteration
+	local minNudge = 0.001;  -- smallest nudge (prevents stalling)
+	local targetRatio = 0.98; -- stop when smaller/bigger >= this (2% tolerance)
+
+	for iter = 1, maxIter do
+		-- Count land tiles in each half (skip rift-water tiles)
+		local landA, landB = 0, 0;
+		for y = 0, mapH - 1 do
+			for x = 0, mapW - 1 do
+				local plotID = y * mapW + x;
+				local isRiftWater = MG.oceanRiftPlots[plotID]
+					and MG.oceanRiftPlots[plotID].isWater;
+				if not isRiftWater then
+					local idx = elevationMap:GetIndex(x, y);
+					if elevationMap.data[idx] >= seaThresh then
+						local half = getHalf(x, y);
+						if half == "A" then
+							landA = landA + 1;
+						elseif half == "B" then
+							landB = landB + 1;
+						end
+					end
+				end
+			end
+		end
+
+		if landA + landB == 0 then break; end
+
+		local bigger  = math.max(landA, landB);
+		local smaller = math.min(landA, landB);
+		local ratio   = smaller / bigger;
+
+		print(string.format("  iter %d: landA=%d landB=%d ratio=%.4f",
+			iter, landA, landB, ratio));
+
+		if ratio >= targetRatio then
+			print(string.format("BalanceRiftHalves: balanced within %d%%", Round((1 - targetRatio) * 100)));
+			break;
+		end
+
+		-- Scale the nudge proportionally to the imbalance so it naturally
+		-- dampens as we approach balance, preventing overshoot/oscillation.
+		-- imbalance goes from ~0 (perfectly balanced) to ~1 (all land on one side).
+		local imbalance = 1 - ratio; -- e.g. 0.15 when ratio is 0.85
+		local nudgeAmount = math.max(minNudge, math.min(maxNudge, imbalance * 0.06));
+
+		-- Nudge both halves: raise the smaller half, lower the bigger half.
+		-- This makes coastline tiles on both sides cross the sea-level
+		-- threshold, converging roughly twice as fast as single-sided nudging.
+		local smallerHalf = (landA < landB) and "A" or "B";
+		for y = 0, mapH - 1 do
+			for x = 0, mapW - 1 do
+				local half = getHalf(x, y);
+				if half then
+					local plotID = y * mapW + x;
+					local isRiftWater = MG.oceanRiftPlots[plotID]
+						and MG.oceanRiftPlots[plotID].isWater;
+					if not isRiftWater and not lakeIndices[plotID] then
+						local idx = elevationMap:GetIndex(x, y);
+						if half == smallerHalf then
+							elevationMap.data[idx] = elevationMap.data[idx] + nudgeAmount;
+						else
+							elevationMap.data[idx] = elevationMap.data[idx] - nudgeAmount;
+						end
+					end
+				end
+			end
 		end
 	end
 end
@@ -3754,13 +4331,37 @@ function SetOceanRiftPlots()
 				plot:SetTerrainType(TerrainTypes.TERRAIN_OCEAN, false, true);
 			end
 		elseif plot:GetTerrainType() == TerrainTypes.TERRAIN_OCEAN then
-			for nearPlot in Plot_GetPlotsInCircle(plot, 1, 1) do
-				if not Plot_IsWater(nearPlot) then
-					plot:SetTerrainType(TerrainTypes.TERRAIN_COAST, false, true);
-					break;
+			-- Skip coast conversion for core rift corridor tiles so they always
+			-- remain TERRAIN_OCEAN and cannot form a coast-tile bridge.
+			if not (MG.riftCorePlotIDs and MG.riftCorePlotIDs[plotID]) then
+				for nearPlot in Plot_GetPlotsInCircle(plot, 1, 1) do
+					if not Plot_IsWater(nearPlot) then
+						plot:SetTerrainType(TerrainTypes.TERRAIN_COAST, false, true);
+						break;
+					end
 				end
 			end
 		end
+	end
+
+	-- Third pass: enforce a continuous TERRAIN_OCEAN corridor along every rift path.
+	-- Any land tile that encroaches into the core corridor is converted to ocean here,
+	-- guaranteeing that early-game (coastal-only) ships cannot cross the rift.
+	if MG.riftCorePlotIDs then
+		for plotID in pairs(MG.riftCorePlotIDs) do
+			local plot = Map.GetPlotByIndex(plotID);
+			if not plot:IsWater() then
+				-- Land intruded into the corridor; forcibly widen the rift.
+				plot:SetPlotType(PlotTypes.PLOT_OCEAN, false, true);
+				plot:SetTerrainType(TerrainTypes.TERRAIN_OCEAN, false, true);
+			elseif plot:GetTerrainType() ~= TerrainTypes.TERRAIN_OCEAN then
+				-- Water but coast; override to deep ocean.
+				plot:SetTerrainType(TerrainTypes.TERRAIN_OCEAN, false, true);
+			end
+		end
+		local coreCount = 0;
+		for _ in pairs(MG.riftCorePlotIDs) do coreCount = coreCount + 1; end
+		print(string.format("SetOceanRiftPlots: enforced ocean corridor on %d core tiles", coreCount));
 	end
 end
 
