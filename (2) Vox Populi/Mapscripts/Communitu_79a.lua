@@ -2547,7 +2547,7 @@ function FillInLakes()
 	areaMap:DefineAreas(WaterMatch);
 	for i = 1, #areaMap.areaList do
 		local area = areaMap.areaList[i];
-		if area.trueMatch and area.size <= MG.lakeSize then
+		if area.trueMatch and area.size < MG.lakeSize then
 			for n = 0, areaMap.length do
 				if areaMap.data[n] == area.id then
 					local _, y = areaMap:GetXYFromIndex(n);
