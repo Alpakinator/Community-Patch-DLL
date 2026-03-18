@@ -98,7 +98,7 @@ function MapGlobals:New()
 	mglobal.belowMountainPercent = 0.95; -- Percent of non-mountain land
 	-- flatPercent to belowMountainPercent : hills
 	mglobal.flatPercent = 0.65; -- Percent of flat land
-	mglobal.hillsBlendPercent = 0.15; -- Chance for flat land to become hills per near mountain. Requires at least 2 near mountains.
+	mglobal.hillsBlendPercent = 0.3; -- Chance for flat land to become hills per near mountain. Requires at least 2 near mountains.
 	mglobal.terrainBlendRange = 2; -- range to smooth terrain (desert surrounded by plains turns to plains, etc)
 	mglobal.terrainBlendRandom = 0.4; -- random modifier for terrain smoothing
 	mglobal.mountainPassMinSpacing = 4; -- minimum tile distance between mountain passes (preserves long ridges)
@@ -158,6 +158,12 @@ function MapGlobals:New()
 	mglobal.riverPercent = 0.18; -- Percent of river junctions that are large enough to become rivers.
 	mglobal.riverRainCheatFactor = 3.00; -- Values greater than one favor watershed size. Values less than one favor actual rain amount.
 	mglobal.minRiverLength = 3; -- Minimum number of river edges from origin to ocean.
+
+	-- River Erosion
+	-- Rivers erode adjacent tiles to flat land based on water flow percentile.
+	mglobal.riverErosionHighFlowPercentile = 0.75; -- Edges at or above this percentile erode BOTH adjacent tiles to flat.
+	mglobal.riverErosionLowFlowPercentile = 0.25;  -- Edges between low and high percentile erode only the convex (outer bend) side.
+
 	mglobal.minWaterTemp = 0.10; -- Sets water temperature compression that creates the land/sea seasonal temperature differences that cause monsoon winds.
 	mglobal.maxWaterTemp = 0.50;
 	mglobal.geostrophicFactor = 5.0; -- Strength of latitude climate versus monsoon climate.
@@ -5126,6 +5132,221 @@ function AddRivers()
 			end
 		end
 	end
+
+	ApplyRiverErosion();
+end
+
+-----------------------------------------------------
+-- River Erosion
+-----------------------------------------------------
+
+-- Get the flow size for a river edge at hex (x,y).
+-- edgeType is one of "W", "NW", "NE" matching the WOfRiver/NWOfRiver/NEOfRiver convention.
+-- Returns the accumulated junction size for that edge, or 0 if not a river edge.
+function GetRiverEdgeSize(x, y, edgeType)
+	local i = elevationMap:GetIndex(x, y);
+
+	if edgeType == "W" then
+		-- WOfRiver: NE neighbor's south junction (VERTFLOW south) or SE neighbor's north junction (VERTFLOW north)
+		local size = 0;
+		local xx, yy = elevationMap:GetNeighbor(x, y, MG.NE);
+		local ii = elevationMap:GetIndex(xx, yy);
+		if ii ~= -1 and riverMap.riverData[ii].southJunction.flow == MG.VERTFLOW and riverMap.riverData[ii].southJunction.isRiver then
+			size = riverMap.riverData[ii].southJunction.size;
+		end
+		xx, yy = elevationMap:GetNeighbor(x, y, MG.SE);
+		ii = elevationMap:GetIndex(xx, yy);
+		if ii ~= -1 and riverMap.riverData[ii].northJunction.flow == MG.VERTFLOW and riverMap.riverData[ii].northJunction.isRiver then
+			size = riverMap.riverData[ii].northJunction.size;
+		end
+		return size;
+
+	elseif edgeType == "NW" then
+		-- NWOfRiver: SE neighbor's north junction (WESTFLOW) or this hex's south junction (EASTFLOW)
+		local size = 0;
+		local xx, yy = elevationMap:GetNeighbor(x, y, MG.SE);
+		local ii = elevationMap:GetIndex(xx, yy);
+		if ii ~= -1 and riverMap.riverData[ii].northJunction.flow == MG.WESTFLOW and riverMap.riverData[ii].northJunction.isRiver then
+			size = riverMap.riverData[ii].northJunction.size;
+		end
+		if riverMap.riverData[i].southJunction.flow == MG.EASTFLOW and riverMap.riverData[i].southJunction.isRiver then
+			size = riverMap.riverData[i].southJunction.size;
+		end
+		return size;
+
+	elseif edgeType == "NE" then
+		-- NEOfRiver: SW neighbor's north junction (EASTFLOW) or this hex's south junction (WESTFLOW)
+		local size = 0;
+		local xx, yy = elevationMap:GetNeighbor(x, y, MG.SW);
+		local ii = elevationMap:GetIndex(xx, yy);
+		if ii ~= -1 and riverMap.riverData[ii].northJunction.flow == MG.EASTFLOW and riverMap.riverData[ii].northJunction.isRiver then
+			size = riverMap.riverData[ii].northJunction.size;
+		end
+		if riverMap.riverData[i].southJunction.flow == MG.WESTFLOW and riverMap.riverData[i].southJunction.isRiver then
+			size = riverMap.riverData[i].southJunction.size;
+		end
+		return size;
+	end
+
+	return 0;
+end
+
+-- Count the number of river edges touching a plot (0-6).
+function CountPlotRiverEdges(plot)
+	if not plot then return 0 end
+	local count = 0;
+	local x, y = plot:GetX(), plot:GetY();
+
+	-- Three edges stored on this plot
+	if plot:IsWOfRiver() then count = count + 1 end   -- E edge
+	if plot:IsNWOfRiver() then count = count + 1 end  -- SE edge
+	if plot:IsNEOfRiver() then count = count + 1 end  -- SW edge
+
+	-- Three edges stored on neighbors that border this plot
+	-- W edge = WOfRiver on the W neighbor
+	local wx, wy = elevationMap:GetNeighbor(x, y, MG.W);
+	local wi = elevationMap:GetIndex(wx, wy);
+	if wi ~= -1 then
+		local wPlot = Map.GetPlot(wx, wy);
+		if wPlot and wPlot:IsWOfRiver() then count = count + 1 end
+	end
+
+	-- NW edge = NWOfRiver on the NW neighbor
+	local nwx, nwy = elevationMap:GetNeighbor(x, y, MG.NW);
+	local nwi = elevationMap:GetIndex(nwx, nwy);
+	if nwi ~= -1 then
+		local nwPlot = Map.GetPlot(nwx, nwy);
+		if nwPlot and nwPlot:IsNWOfRiver() then count = count + 1 end
+	end
+
+	-- NE edge = NEOfRiver on the NE neighbor
+	local nex, ney = elevationMap:GetNeighbor(x, y, MG.NE);
+	local nei = elevationMap:GetIndex(nex, ney);
+	if nei ~= -1 then
+		local nePlot = Map.GetPlot(nex, ney);
+		if nePlot and nePlot:IsNEOfRiver() then count = count + 1 end
+	end
+
+	return count;
+end
+
+-- Determine which of two plots adjacent to a river edge is on the convex (outer) side.
+-- The convex side has fewer river edges touching it (less enclosed by the river curve).
+-- Returns the convex plot. If both have equal counts, picks one randomly.
+function GetConvexSidePlot(plot1, plot2)
+	local count1 = CountPlotRiverEdges(plot1);
+	local count2 = CountPlotRiverEdges(plot2);
+
+	if count1 < count2 then
+		return plot1;
+	elseif count2 < count1 then
+		return plot2;
+	else
+		-- Straight section: pick one randomly
+		if PWRandint(0, 1) == 0 then
+			return plot1;
+		else
+			return plot2;
+		end
+	end
+end
+
+-- Erode a plot to flat land. Returns true if the plot was actually changed.
+function ErodePlotToFlat(plot)
+	if not plot then return false end
+	local plotType = plot:GetPlotType();
+	if plotType == PlotTypes.PLOT_HILLS or plotType == PlotTypes.PLOT_MOUNTAIN then
+		plot:SetPlotType(PlotTypes.PLOT_LAND, false, true);
+		return true;
+	end
+	return false;
+end
+
+-- Apply river erosion: flatten tiles adjacent to river edges based on flow percentile.
+-- High-flow edges erode both sides. Medium-flow edges erode only the convex (outer bend) side.
+function ApplyRiverErosion()
+	print("Applying river erosion...");
+	local mapW, mapH = Map.GetGridSize();
+
+	-- Step 1: Collect all river edges with their flow sizes and adjacent tile coordinates.
+	local riverEdges = {};
+
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			local plot = Map.GetPlot(x, y);
+			local WOfRiver, NWOfRiver, NEOfRiver = riverMap:GetFlowDirections(x, y);
+
+			if WOfRiver ~= MG.flowNONE then
+				local edgeSize = GetRiverEdgeSize(x, y, "W");
+				local xx, yy = elevationMap:GetNeighbor(x, y, MG.E);
+				local nPlot = Map.GetPlot(xx, yy);
+				if edgeSize > 0 and nPlot then
+					table.insert(riverEdges, {size = edgeSize, plot1 = plot, plot2 = nPlot});
+				end
+			end
+
+			if NWOfRiver ~= MG.flowNONE then
+				local edgeSize = GetRiverEdgeSize(x, y, "NW");
+				local xx, yy = elevationMap:GetNeighbor(x, y, MG.SE);
+				local nPlot = Map.GetPlot(xx, yy);
+				if edgeSize > 0 and nPlot then
+					table.insert(riverEdges, {size = edgeSize, plot1 = plot, plot2 = nPlot});
+				end
+			end
+
+			if NEOfRiver ~= MG.flowNONE then
+				local edgeSize = GetRiverEdgeSize(x, y, "NE");
+				local xx, yy = elevationMap:GetNeighbor(x, y, MG.SW);
+				local nPlot = Map.GetPlot(xx, yy);
+				if edgeSize > 0 and nPlot then
+					table.insert(riverEdges, {size = edgeSize, plot1 = plot, plot2 = nPlot});
+				end
+			end
+		end
+	end
+
+	if #riverEdges == 0 then
+		print("No river edges found for erosion.");
+		return;
+	end
+
+	-- Step 2: Sort by flow size to find percentile thresholds.
+	local sortedSizes = {};
+	for _, edge in ipairs(riverEdges) do
+		table.insert(sortedSizes, edge.size);
+	end
+	table.sort(sortedSizes);
+
+	local highFlowIndex = math.max(1, math.min(math.floor(#sortedSizes * MG.riverErosionHighFlowPercentile), #sortedSizes));
+	local lowFlowIndex = math.max(1, math.min(math.floor(#sortedSizes * MG.riverErosionLowFlowPercentile), #sortedSizes));
+
+	local highFlowThreshold = sortedSizes[highFlowIndex];
+	local lowFlowThreshold = sortedSizes[lowFlowIndex];
+
+	print(string.format("River erosion: %d edges, high-flow threshold = %.4f (top %d%%), low-flow threshold = %.4f",
+		#riverEdges, highFlowThreshold, math.floor((1 - MG.riverErosionHighFlowPercentile) * 100), lowFlowThreshold));
+
+	-- Step 3: Apply erosion.
+	local bothSidesCount = 0;
+	local convexSideCount = 0;
+
+	for _, edge in ipairs(riverEdges) do
+		if edge.size >= highFlowThreshold then
+			-- Top percentile: erode BOTH adjacent tiles to flat.
+			if ErodePlotToFlat(edge.plot1) then bothSidesCount = bothSidesCount + 1 end
+			if ErodePlotToFlat(edge.plot2) then bothSidesCount = bothSidesCount + 1 end
+		elseif edge.size >= lowFlowThreshold then
+			-- Middle percentile: erode only the convex (outer bend) side.
+			local convexPlot = GetConvexSidePlot(edge.plot1, edge.plot2);
+			if convexPlot and ErodePlotToFlat(convexPlot) then
+				convexSideCount = convexSideCount + 1;
+			end
+		end
+		-- Below low-flow threshold: no erosion.
+	end
+
+	print(string.format("River erosion complete: %d tiles flattened on both sides, %d tiles flattened on convex side",
+		bothSidesCount, convexSideCount));
 end
 
 -----------------------------------------------------
