@@ -170,7 +170,7 @@ function MapGlobals:New()
 	mglobal.geostrophicLateralWindStrength = 0.3;
 	mglobal.lakeSize = GameDefines.MIN_WATER_SIZE_FOR_OCEAN; -- read-only; cannot change lake sizes with a map script
 	mglobal.oceanRiftWidth = 2 + math.floor(mapW / 60); -- minimum number of ocean tiles in a rift
-	mglobal.polarNoDigPercent = 0.10; -- percent of map height where channels cannot be dug at poles
+	mglobal.polarNoDigPercent = 0.01; -- percent of map height where channels cannot be dug at poles
 	mglobal.polarIceBandPercent = 0.04; -- percent of map height that always gets polar ice features
 
 	-- percent of map width
@@ -410,11 +410,11 @@ function MapGlobals:New()
 	This is currently used to prevent large continents in the uninhabitable polar regions.
 	East/west attenuation is set to zero, but modded maps may have need for them.
 	--]]
-	mglobal.northAttenuationFactor = 0.35; -- percent of elevation at the north edge (0 to 1)
+	mglobal.northAttenuationFactor = 0.30; -- percent of elevation at the north edge (0 to 1)
 	mglobal.northAttenuationRange = 0.125; -- percent of the map height.
-	mglobal.southAttenuationFactor = 0.35;
+	mglobal.southAttenuationFactor = 0.30;
 	mglobal.southAttenuationRange = 0.125;
-	mglobal.attenuationExponent = 0.40;
+	mglobal.attenuationExponent = 0.30;
 
 	-- East west attenuation may be desired for flat maps.
 	mglobal.eastAttenuationFactor = 0.0;
@@ -2241,6 +2241,10 @@ function ConnectSeasToOceans()
 end
 
 function ConnectPolarSeasToOceans()
+	-- Pass 1: Freeze all polar seas that are entirely within ice latitude.
+	-- This must happen BEFORE canal-digging so that canals see the frozen tiles
+	-- as ice obstacles and route through (or around) them, rather than silently
+	-- relying on their open water as free transit that later gets frozen.
 	local areaMap = PWAreaMap:New(elevationMap.width, elevationMap.height, elevationMap.wrapX, elevationMap.wrapY);
 	areaMap:DefineAreas(OceanButNotIceMatch);
 	local oceanArea, oceanSize = GetLargestArea(areaMap);
@@ -2250,24 +2254,62 @@ function ConnectPolarSeasToOceans()
 		return;
 	end
 
+	for areaID = 1, #areaMap.areaList do
+		local seaArea = areaMap.areaList[areaID];
+		if seaArea.trueMatch and seaArea.size < oceanSize then
+			local allWithinIceLatitude = true;
+			for pid = 0, areaMap.length - 1 do
+				if areaMap.data[pid] == seaArea.id then
+					local lat = math.abs(temperatureMap:GetLatitudeForY(
+						Map.GetPlot(elevationMap:GetXYFromIndex(pid)):GetY()));
+					if lat < MG.iceLatitude then
+						allWithinIceLatitude = false;
+						break;
+					end
+				end
+			end
+
+			if allWithinIceLatitude then
+				print("ConnectPolarSeasToOceans: seaArea.size =", seaArea.size,
+					"- entirely within ice latitude, freezing open water tiles, no canal.");
+				for pid = 0, areaMap.length - 1 do
+					if areaMap.data[pid] == seaArea.id then
+						Map.GetPlot(elevationMap:GetXYFromIndex(pid)):SetFeatureType(FeatureTypes.FEATURE_ICE);
+					end
+				end
+			end
+		end
+	end
+
+	-- Pass 2: Rebuild the area map now that polar seas have been frozen.
+	-- Canal pathfinding will correctly treat the newly-frozen tiles as ice
+	-- obstacles instead of free-transit open water.
+	areaMap = PWAreaMap:New(elevationMap.width, elevationMap.height, elevationMap.wrapX, elevationMap.wrapY);
+	areaMap:DefineAreas(OceanButNotIceMatch);
+	oceanArea, oceanSize = GetLargestArea(areaMap);
+
+	if not oceanArea then
+		print("ConnectPolarSeasToOceans: No ocean after freezing!");
+		return;
+	end
+
 	-- Sort the ocean list from largest to smallest
 	table.sort(areaMap.areaList, function (a, b) return a.size > b.size end);
 
+	-- Match ice, land, and lakes so the full path is returned (not just ice tiles).
 	local plotFunc = function(plot)
-		if Map.GetCustomOption(5) == 1 then
-			-- Terra-style formation, don't remove land
-			return plot:GetFeatureType() == FeatureTypes.FEATURE_ICE;
-		end
 		return not Plot_IsWater(plot, false) or plot:GetFeatureType() == FeatureTypes.FEATURE_ICE or Plot_IsLake(plot);
 	end
 
-	-- print("ConnectPolarSeasToOceans: oceanSize =", oceanSize);
 	local newWater = {};
 	for areaID = 1, #areaMap.areaList do
 		local seaArea = areaMap.areaList[areaID];
 		if seaArea.trueMatch and seaArea.size < oceanSize then
-			local pathPlots, distance, airDistance = GetPathBetweenAreas(areaMap, seaArea, oceanArea, true, plotFunc);
-			print("ConnectPolarSeasToOceans: Connect seaArea.size =", seaArea.size, " distance =", distance, " airDistance =", airDistance);
+
+			local pathPlots, distance, airDistance = GetPathBetweenAreas(areaMap, seaArea, oceanArea, true, plotFunc, true);
+
+			print("ConnectPolarSeasToOceans: Connect seaArea.size =", seaArea.size, " distance =", distance,
+				" airDistance =", airDistance);
 			for _, plot in pairs(pathPlots) do
 				print("ConnectPolarSeasToOceans: x =", plot:GetX(), "y =", plot:GetY(), "elevation =", GetElevationByPlotID(Plot_GetID(plot)));
 				local plotID = Plot_GetID(plot);
@@ -2380,7 +2422,7 @@ function ConnectTerraContinents()
 	end
 end
 
-function GetPathBetweenAreas(areaMap, areaA, areaB, findLowest, plotMatchFunc)
+function GetPathBetweenAreas(areaMap, areaA, areaB, findLowest, plotMatchFunc, skipPolarRestriction)
 	-- Using Dijkstra's algorithm
 	local mapW, mapH = Map.GetGridSize();
 	local polarNoDigRows = math.max(1, math.floor(mapH * MG.polarNoDigPercent));
@@ -2392,7 +2434,7 @@ function GetPathBetweenAreas(areaMap, areaA, areaB, findLowest, plotMatchFunc)
 		plots[plotID].plot = Map.GetPlot(elevationMap:GetXYFromIndex(plotID));
 		plots[plotID].areaID = areaMap.data[plotID];
 		local y = plots[plotID].plot:GetY();
-		if y < polarNoDigRows or y > mapH - 1 - polarNoDigRows then
+		if not skipPolarRestriction and (y < polarNoDigRows or y > mapH - 1 - polarNoDigRows) then
 			-- No digging here!
 			plots[plotID].elevation = 10000;
 		elseif plots[plotID].areaID == areaA.id or plots[plotID].areaID == areaB.id then
@@ -2406,7 +2448,16 @@ function GetPathBetweenAreas(areaMap, areaA, areaB, findLowest, plotMatchFunc)
 			if findLowest then
 				-- Connect oceans
 				if plots[plotID].plot:GetFeatureType() == FeatureTypes.FEATURE_ICE then
-					plots[plotID].elevation = 0.5;
+					-- Scale ice cost by proximity to the pole: 5 at pole, 0.5 at equator.
+					-- Polarity^3 makes the penalty drop sharply away from the pole,
+					-- so near-continent ice is cheap while deep polar ice is expensive.
+					local distFromPole = math.min(y, mapH - 1 - y); -- 0 at pole, mapH/2 at equator
+					local polarity = 1 - distFromPole / (mapH / 2); -- 1 at pole, 0 at equator
+					plots[plotID].elevation = 0.5 + polarity^4 * 9.5;
+				elseif not Plot_IsWater(plots[plotID].plot, false) then
+					-- Land costs 30 (worst ice is 10), so paths strongly prefer
+					-- ice over land but will cut through land if necessary.
+					plots[plotID].elevation = math.max(plots[plotID].elevation, 30);
 				end
 			else
 				-- Connect continents
