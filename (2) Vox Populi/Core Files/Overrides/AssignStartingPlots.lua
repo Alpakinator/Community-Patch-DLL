@@ -266,6 +266,8 @@ function AssignStartingPlots.Create()
 		MeasureStartPlacementFertilityInRectangle = AssignStartingPlots.MeasureStartPlacementFertilityInRectangle,
 		MeasureStartPlacementFertilityOfLandmass = AssignStartingPlots.MeasureStartPlacementFertilityOfLandmass,
 		RemoveDeadRows = AssignStartingPlots.RemoveDeadRows,
+		IsLandTallerThanWide = AssignStartingPlots.IsLandTallerThanWide,
+		ComputeLandCentroid = AssignStartingPlots.ComputeLandCentroid,
 		DivideIntoRegions = AssignStartingPlots.DivideIntoRegions,
 		ChopIntoThreeRegions = AssignStartingPlots.ChopIntoThreeRegions,
 		ChopIntoTwoRegions = AssignStartingPlots.ChopIntoTwoRegions,
@@ -281,6 +283,7 @@ function AssignStartingPlots.Create()
 		FindStart = AssignStartingPlots.FindStart,
 		FindCoastalStart = AssignStartingPlots.FindCoastalStart,
 		FindStartWithoutRegardToAreaID = AssignStartingPlots.FindStartWithoutRegardToAreaID,
+		RefineStartSpacing = AssignStartingPlots.RefineStartSpacing,
 
 		-- Balance and Assign member methods
 		AttemptToPlaceBonusResourceAtPlot = AssignStartingPlots.AttemptToPlaceBonusResourceAtPlot,
@@ -1460,6 +1463,64 @@ function AssignStartingPlots:RemoveDeadRows(fertility_table, iWestX, iSouthY, iW
 	end
 end
 ------------------------------------------------------------------------------
+function AssignStartingPlots:IsLandTallerThanWide(fertility_table, iWidth, iHeight)
+	-- Compute the actual land extent along each axis by finding the min/max
+	-- non-zero rows and columns in the fertility table. This avoids the
+	-- problem where an irregularly-shaped landmass has a misleading bounding
+	-- rectangle (e.g. a wide crescent whose bounding box is taller than wide).
+	local minLandRow, maxLandRow = iHeight, 0;
+	local minLandCol, maxLandCol = iWidth, 0;
+	for y = 0, iHeight - 1 do
+		for x = 0, iWidth - 1 do
+			if fertility_table[y * iWidth + x + 1] ~= 0 then
+				if y < minLandRow then minLandRow = y; end
+				if y > maxLandRow then maxLandRow = y; end
+				if x < minLandCol then minLandCol = x; end
+				if x > maxLandCol then maxLandCol = x; end
+			end
+		end
+	end
+	local landHeight = maxLandRow - minLandRow + 1;
+	local landWidth = maxLandCol - minLandCol + 1;
+	-- Fall back to rectangle dimensions if no fertile tiles found.
+	if landHeight <= 0 or landWidth <= 0 then
+		return (iHeight > iWidth);
+	end
+	return (landHeight > landWidth);
+end
+------------------------------------------------------------------------------
+function AssignStartingPlots:ComputeLandCentroid(iWestX, iSouthY, iWidth, iHeight)
+	-- Computes the fertility-weighted centroid of actual land tiles in a region.
+	-- Returns the centroid in "test" coordinates (unwrapped, relative to iWestX/iSouthY).
+	-- Used by FindStart and FindCoastalStart to bias toward the land's actual center
+	-- rather than the geometric center of the bounding rectangle.
+	local iW, iH = Map.GetGridSize();
+	local sumX, sumY, sumWeight = 0, 0, 0;
+	for region_y = 0, iHeight - 1 do
+		for region_x = 0, iWidth - 1 do
+			local x = (region_x + iWestX) % iW;
+			local y = (region_y + iSouthY) % iH;
+			local plot = Map.GetPlot(x, y);
+			local plotType = plot:GetPlotType();
+			if plotType == PlotTypes.PLOT_HILLS or plotType == PlotTypes.PLOT_LAND then
+				local fert = self:MeasureStartPlacementFertilityOfPlot(x, y, false);
+				if fert > 0 then
+					local test_x = region_x + iWestX;
+					local test_y = region_y + iSouthY;
+					sumX = sumX + test_x * fert;
+					sumY = sumY + test_y * fert;
+					sumWeight = sumWeight + fert;
+				end
+			end
+		end
+	end
+	if sumWeight <= 0 then
+		-- No fertile land found; fall back to rectangle center.
+		return iWestX + iWidth / 2, iSouthY + iHeight / 2;
+	end
+	return sumX / sumWeight, sumY / sumWeight;
+end
+------------------------------------------------------------------------------
 function AssignStartingPlots:DivideIntoRegions(iNumDivisions, fertility_table, rectangle_data_table)
 	if iNumDivisions == 1 then
 		local fAverageFertility = rectangle_data_table[6] / rectangle_data_table[7];
@@ -1468,7 +1529,11 @@ function AssignStartingPlots:DivideIntoRegions(iNumDivisions, fertility_table, r
 	elseif iNumDivisions > 1 then
 		local iWidth = rectangle_data_table[3];
 		local iHeight = rectangle_data_table[4];
-		local bTaller = (iHeight > iWidth);
+
+		-- Use actual land extent rather than bounding rectangle to decide split axis.
+		-- On irregular shapes (L, crescent, thin peninsula) the bounding box may be
+		-- misleadingly tall/wide while the actual land goes the other way.
+		local bTaller = self:IsLandTallerThanWide(fertility_table, iWidth, iHeight);
 
 		if iNumDivisions % 3 == 0 then
 			local iSubdivisions = iNumDivisions / 3;
@@ -1539,13 +1604,9 @@ function AssignStartingPlots:ChopIntoThreeRegions(fertility_table, rectangle_dat
 	-- PrintContentsOfTable(second_section_data_table);
 	-- print("End of this instance, ChopIntoThree tables.");
 
-	-- See if this piece is taller or wider. (Ed's original implementation skipped this step).
-	local bTallerForRemainder = false;
-	local width = second_section_data_table[3];
-	local height = second_section_data_table[4];
-	if height > width then
-		bTallerForRemainder = true;
-	end
+	-- See if this piece is taller or wider based on actual land extent.
+	local bTallerForRemainder = self:IsLandTallerThanWide(
+		second_section_fertility_table, second_section_data_table[3], second_section_data_table[4]);
 
 	-- Chop the bigger piece in half.
 	local interim_results = self:ChopIntoTwoRegions(second_section_fertility_table, second_section_data_table, bTallerForRemainder, 48.5); -- Undershoot just a little.
@@ -1760,8 +1821,6 @@ function AssignStartingPlots:GenerateRegions(args)
 	self.method = args.method or self.method; -- Continental method is default.
 	self.resource_setting = args.resources or 2; -- UNUSED, use the below resource settings instead
 	args.resources = args.resources or 2;
-	args.retryCount1 = args.retryCount1 or 0;
-	args.retryCount2 = args.retryCount2 or 0;
 
 	-- Custom map resource settings (Communitu_79a support)
 	if args.resources == 6 then
@@ -1899,272 +1958,317 @@ function AssignStartingPlots:GenerateRegions(args)
 			end
 		end
 
-		-- Sort areas, achieving a list of areas with best areas first.
-		-- Add fertility check at 25% of fertility of the largest landmass to prevent tiny islands from being considered, which will result in isolated starts.
-		-- We do these by making a new table storing area fertilities that reach the threshold.
-		local interim_table = {};
-		local biggestLandmass = Map.FindBiggestLandmassID(false);
-		local min_landmass_fertility = landmass_fert[biggestLandmass] * (0.25 - 0.025 * args.retryCount1);
-		local iNumLandmass = 0;
+		-- Build area-to-landmass mapping from self.landmass_areas (populated during __Init).
 		local area_landmass = {};
-		print("-"); print("Minimum landmass fertility required =", min_landmass_fertility); print("-");
-		for iLandmass, data_entry in pairs(landmass_fert) do
-			if data_entry >= min_landmass_fertility then
-				iNumLandmass = iNumLandmass + 1;
-				for _, iArea in ipairs(self.landmass_areas[iLandmass]) do
-					if area_fert[iArea] > 0 then
-						print("Area#", iArea, "in Landmass#", iLandmass, "is a candidate for start placement, Fertility =", area_fert[iArea]);
-						table.insert(interim_table, area_fert[iArea]);
-						area_landmass[iArea] = iLandmass;
-					else
-						iNumAreas = iNumAreas - 1;
-					end
-				end
-			else
-				-- These landmasses won't be considered
-				iNumAreas = iNumAreas - table.maxn(self.landmass_areas[iLandmass]);
+		for iLandmass, areas in pairs(self.landmass_areas) do
+			for _, iArea in ipairs(areas) do
+				area_landmass[iArea] = iLandmass;
 			end
 		end
 
-		-- If only one relevant landmass, we lower the fertility requirement for landmasses down to 12.5%,
-		-- then switch tracks to use biggest landmass division as the last resort.
-		if iNumLandmass <= 1 then
-			if args.retryCount1 < 5 then
-				print("Only one landmass fertile enough for start placement. Retry with lower fertility requirement.");
-				args.retryCount1 = args.retryCount1 + 1;
-			else
-				print("Only one landmass fertile enough for start placement. Switching to use Biggest Landmass division.");
-				args.method = RegionDivision.BIGGEST_LANDMASS;
-				self.bArea = false;
+		-- Collect candidate areas: all areas with fertility > 0.
+		local candidate_areas = {}; -- list of {areaID, fertility, landmassID}
+		local totalFertility = 0;
+		for _, iArea in ipairs(area_IDs) do
+			local fert = area_fert[iArea] or 0;
+			local lm = area_landmass[iArea];
+			if fert > 0 and lm then
+				table.insert(candidate_areas, {areaID = iArea, fertility = fert, landmassID = lm});
+				totalFertility = totalFertility + fert;
+				print("Area#", iArea, "in Landmass#", lm, "is a candidate, Fertility =", fert);
 			end
+		end
+
+		-- Sort candidates by fertility descending for deterministic tie-breaking.
+		table.sort(candidate_areas, function(a, b) return a.fertility > b.fertility end);
+
+		local totalRegions = self.iNumCivs + self.iNumFrontiers;
+		print("-");
+		print("Total candidate areas:", #candidate_areas, " Total fertility:", totalFertility, " Total regions:", totalRegions);
+
+		-- Fallback: if no candidate areas or zero fertility, switch to rectangular division.
+		if #candidate_areas == 0 or totalFertility <= 0 then
+			print("No fertile candidate areas found. Switching to Rectangular division.");
+			self.method = RegionDivision.RECTANGULAR;
+			self.bArea = false;
 			self:GenerateRegions(args);
 			return;
-		else
-			---[[
-			for i, fert in ipairs(interim_table) do
-				print("Interim Table ID " .. i .. " has fertility of " .. fert);
+		end
+
+		-- =====================================================================
+		-- Two-level Hamilton's largest-remainder proportional allocation.
+		-- Level 1: Allocate regions to landmasses proportional to total fertility.
+		--          Anti-isolation (no landmass gets exactly 1 region) is clean
+		--          at this level because the allocation and isolation units match.
+		-- Level 2: Distribute each landmass's seats to its areas, filtering out
+		--          areas too small for a viable start.
+		-- =====================================================================
+
+		-- Aggregate fertility per landmass and build landmass data.
+		local landmassData = {}; -- [lmID] = {lmID, fertility, areas (sorted by fert desc)}
+		for _, entry in ipairs(candidate_areas) do
+			local lm = entry.landmassID;
+			if not landmassData[lm] then
+				landmassData[lm] = {lmID = lm, fertility = 0, areas = {}};
 			end
-			print("* * * * * * * * * *");
-			--]]
+			landmassData[lm].fertility = landmassData[lm].fertility + entry.fertility;
+			table.insert(landmassData[lm].areas, entry);
+		end
 
-			-- Sort the fertility values stored in the interim table. Sort order in Lua is lowest to highest.
-			table.sort(interim_table);
+		-- Build a sorted list of landmasses by fertility descending.
+		local landmassList = {};
+		local totalLandmassFert = 0;
+		for _, lmData in pairs(landmassData) do
+			table.insert(landmassList, lmData);
+			totalLandmassFert = totalLandmassFert + lmData.fertility;
+			-- Sort areas within each landmass by fertility descending.
+			table.sort(lmData.areas, function(a, b) return a.fertility > b.fertility end);
+		end
+		table.sort(landmassList, function(a, b) return a.fertility > b.fertility end);
 
-			---[[
-			for i, fert in ipairs(interim_table) do
-				print("Interim Table ID " .. i .. " has fertility of " .. fert);
-			end
-			print("* * * * * * * * * *");
-			--]]
+		print("-");
+		print("Landmass summary:");
+		for _, lmData in ipairs(landmassList) do
+			print(string.format("  Landmass# %d: fertility=%.1f, areas=%d",
+				lmData.lmID, lmData.fertility, #lmData.areas));
+		end
 
-			-- If less players than areas, we will ignore the extra areas.
-			local iNumRelevantAreas = math.min(iNumAreas, self.iNumCivs + self.iNumFrontiers);
-			print("Number of relevant areas =", iNumRelevantAreas);
+		-- =================================================================
+		-- Level 1: Hamilton allocation of regions to landmasses.
+		-- =================================================================
+		local regionsPerLandmass = {}; -- [lmID] = count
+		local lmRemainders = {};       -- [lmID] = fractional remainder
+		local lmAllocated = 0;
 
-			-- Now re-match the AreaIDs with their corresponding fertility values by comparing the original fertility table with the sorted interim table.
-			-- During this comparison, best_areas will be constructed from sorted AreaIDs, richest stored first.
-			local best_areas = {};
-			-- Currently, the best yields are at the end of the interim table. We need to step backward from there.
-			local end_of_interim_table = table.maxn(interim_table);
-			-- We may not need all entries in the table. Process only iNumRelevantAreas worth of table entries.
-			local fertility_value_list = {};
-			local fertility_value_tie = false;
-			local relevantFertility = 0;
-			for tableConstructionLoop = end_of_interim_table, end_of_interim_table - iNumRelevantAreas + 1, -1 do
-				relevantFertility = relevantFertility + interim_table[tableConstructionLoop];
-				if TestMembership(fertility_value_list, interim_table[tableConstructionLoop]) then
-					fertility_value_tie = true;
-					print("*** WARNING: Fertility Value Tie exists! ***");
-				else
-					table.insert(fertility_value_list, interim_table[tableConstructionLoop]);
-				end
-			end
-			print("Relevant land fertility =", relevantFertility);
-
-			if not fertility_value_tie then -- No ties, so no need of special handling for ties.
-				for loop = end_of_interim_table, end_of_interim_table - iNumRelevantAreas + 1, -1 do
-					for _, areaID in pairs(area_IDs) do
-						if interim_table[loop] == area_fert[areaID] and area_landmass[areaID] then
-							table.insert(best_areas, areaID);
-							break;
-						end
-					end
-				end
-			else -- Ties exist! Special handling required to protect against a shortfall in the number of defined regions.
-				local iNumUniqueFertValues = table.maxn(fertility_value_list);
-				for fertLoop = 1, iNumUniqueFertValues do
-					for areaID, fert in pairs(area_fert) do
-						if fert == fertility_value_list[fertLoop] and area_landmass[areaID] then
-							table.insert(best_areas, areaID);
-							-- Add ties only if there is room!
-							if table.maxn(best_areas) >= iNumRelevantAreas then
-								break;
-							end
-						end
-					end
-				end
-			end
-			PrintContentsOfTable(fertility_value_list);
-			PrintContentsOfTable(best_areas);
-
-			local inhabitedAreaIDs = {};
-			local numberOfCivsPerArea = {}; -- Indexed in synch with best_areas. Use same index to match values from each table.
-			local fertilityPerCiv = relevantFertility * (0.7 - 0.05 * args.retryCount2) / (self.iNumCivs + self.iNumFrontiers); -- Allow some unused fertility here
-			local numberOfCivsPerLandmass = {};
-			print("Expected fertility per civ =", fertilityPerCiv);
-			for loop, areaID in ipairs(best_areas) do
-				numberOfCivsPerArea[loop] = math.floor(area_fert[areaID] / fertilityPerCiv);
-				print("Area", areaID, "can have", numberOfCivsPerArea[loop], "regions");
-				if numberOfCivsPerLandmass[area_landmass[areaID]] then
-					numberOfCivsPerLandmass[area_landmass[areaID]] = numberOfCivsPerLandmass[area_landmass[areaID]] + numberOfCivsPerArea[loop];
-				else
-					numberOfCivsPerLandmass[area_landmass[areaID]] = numberOfCivsPerArea[loop];
-				end
-				if numberOfCivsPerArea[loop] == 0 then
-					break;
-				end
-			end
-
-			local iTotalFertileAreas = 0;
-			local iTotalFertileLandmassAreas = 0; -- Don't count landmasses too infertile for more than one civ to spawn (prevent isolation)
-			for _, numberOfCivs in pairs(numberOfCivsPerLandmass) do
-				iTotalFertileAreas = iTotalFertileAreas + numberOfCivs;
-				if numberOfCivs >= 2 then
-					iTotalFertileLandmassAreas = iTotalFertileLandmassAreas + numberOfCivs;
-				end
-			end
-
-			-- If not enough fertile areas, the continents are too small for this division method.
-			-- We retry with a lower expected fertility per civ, then switch tracks to use rectangular method as the last resort.
-			if iTotalFertileAreas < self.iNumCivs + self.iNumFrontiers then
-				if args.retryCount2 < 4 then
-					print("Landmasses aren't fertile enough for start placement. Retry with lower expected fertility per civ.");
-					args.retryCount2 = args.retryCount2 + 1;
-				else
-					print("Landmasses aren't fertile enough for start placement. Switching to use Rectangular division.");
-					args.method = RegionDivision.RECTANGULAR;
-					self.bArea = false;
-				end
-				self:GenerateRegions(args);
-				return;
+		-- Step 1a: Pre-filter — exclude landmasses too small for 2 civs.
+		-- Anti-isolation requires 0 or ≥2 civs per landmass. A landmass
+		-- whose proportional share is < 1.0 doesn't even deserve 1 seat,
+		-- so giving it the minimum viable 2 would be severe overrepresentation
+		-- (>2x) and starve the larger landmasses that need those seats.
+		-- Exclude such landmasses and run Hamilton among the rest.
+		local qualifyingLandmasses = {};
+		local qualifyingFert = 0;
+		for _, lmData in ipairs(landmassList) do
+			local exact = totalRegions * lmData.fertility / totalLandmassFert;
+			if exact >= 1.0 then
+				table.insert(qualifyingLandmasses, lmData);
+				qualifyingFert = qualifyingFert + lmData.fertility;
 			else
-				-- If enough fertile areas in fertile landmasses, disallow landmasses with only one civ
-				if iTotalFertileLandmassAreas >= self.iNumCivs + self.iNumFrontiers then
-					for landmassID, numberOfCivs in pairs(numberOfCivsPerLandmass) do
-						if numberOfCivs <= 1 then
-							numberOfCivsPerLandmass[landmassID] = 0;
-						end
-					end
-				end
-
-				-- Assign areas to receive start plots. Record number of civs assigned to each area.
-				-- Note that area_fert table is being altered here, and should not be relied on after this loop.
-				local landmassID = -1;
-				local inhabitedLandmassIDs = {};
-				local actualNumberOfCivsPerArea = {};
-				for civToAssign = 1, self.iNumCivs + self.iNumFrontiers do
-					local bestRemainingArea = -1;
-					local bestRemainingFertility = 0;
-
-					-- Loop through areas, find the one with the best remaining fertility (civs added to an area reduces its fertility rating for subsequent civs).
-					-- print("- - Searching areas in order to place Civ #", civToAssign); print("-");
-					for _, areaID in ipairs(best_areas) do
-						if area_fert[areaID] > bestRemainingFertility then
-							-- If last assigned area is on a new landmass, always assign another civ to it
-							-- It has been made sure that each landmass can support at least two civs
-							if landmassID == -1 or area_landmass[areaID] == landmassID then
-								-- Last civ cannot be placed on a new landmass
-								if civToAssign ~= self.iNumCivs + self.iNumFrontiers or TestMembership(inhabitedLandmassIDs, area_landmass[areaID]) then
-									bestRemainingArea = areaID;
-									bestRemainingFertility = area_fert[areaID];
-									-- print("- Found new candidate area with Area ID#:", bestRemainingArea, " with fertility of ", bestRemainingFertility);
-								end
-							end
-						end
-					end
-					if bestRemainingArea == -1 then
-						print("Failed to find an area somehow, assign to first area as a failsafe");
-						bestRemainingArea = best_areas[1];
-					end
-
-					-- Record results for this pass
-					if not TestMembership(inhabitedAreaIDs, bestRemainingArea) then
-						table.insert(inhabitedAreaIDs, bestRemainingArea);
-						actualNumberOfCivsPerArea[bestRemainingArea] = 0;
-					end
-					actualNumberOfCivsPerArea[bestRemainingArea] = actualNumberOfCivsPerArea[bestRemainingArea] + 1;
-
-					if not TestMembership(inhabitedLandmassIDs, area_landmass[bestRemainingArea]) then
-						table.insert(inhabitedLandmassIDs, area_landmass[bestRemainingArea]);
-						landmassID = area_landmass[bestRemainingArea];
-					else
-						landmassID = -1;
-					end
-					print("Civ #", civToAssign, "has been assigned to Area#", bestRemainingArea, "on Landmass#", area_landmass[bestRemainingArea]); print("-");
-
-					-- Deduct fertility taken by civ from area fertility
-					area_fert[bestRemainingArea] = area_fert[bestRemainingArea] - fertilityPerCiv;
-				end
-				-- print("-"); print("--- End of Initial Readout ---"); print("-");
-
-				print("*** Number of Civs per Area - Table Readout ***");
-				PrintContentsOfTable(actualNumberOfCivsPerArea);
-				print("--- End of Civs per Area readout ***"); print("-"); print("-");
-
-				-- Loop through the list of inhabited areas, dividing each area into regions.
-				-- Note that it is OK to divide an area with one civ on it:
-				-- this will assign the whole of the area to a single region, and is the easiest method of recording such a region.
-				for _, currentAreaID in ipairs(inhabitedAreaIDs) do
-					-- Obtain the boundaries of and data for this area.
-					local area_data = ObtainLandmassBoundaries(currentAreaID);
-					local iWestX = area_data[1];
-					local iSouthY = area_data[2];
-					local iEastX = area_data[3];
-					local iNorthY = area_data[4];
-					local iWidth = area_data[5];
-					local iHeight = area_data[6];
-					local wrapsX = area_data[7];
-					local wrapsY = area_data[8];
-
-					-- Obtain "Start Placement Fertility" of the current area.
-					-- Necessary to do this again because the fert_table can't be built prior to finding boundaries,
-					-- and we had to ID the proper areas via fertility to be able to figure out their boundaries.
-					local fert_table, fertCount, plotCount = self:MeasureStartPlacementFertilityOfArea(currentAreaID, iWestX, iEastX, iSouthY, iNorthY, wrapsX, wrapsY);
-
-					-- Now divide this area into regions, one per civ.
-					-- The regional divider requires three arguments:
-					-- 1. Number of civs assigned to this area.
-					-- 2. Fertility table. (This was obtained from the last call.)
-					-- 3. Rectangle table. This table includes seven data fields: westX, southY, width, height, areaID, fertilityCount, plotCount
-					-- Note that the global bArea flag is true here, which means areaID is used.
-					local rect_table = {iWestX, iSouthY, iWidth, iHeight, currentAreaID, fertCount, plotCount};
-
-					-- Divide this area into number of regions equal to civs assigned here.
-					local iNumCivsOnThisArea = actualNumberOfCivsPerArea[currentAreaID];
-					if iNumCivsOnThisArea > 0 and iNumCivsOnThisArea <= MAX_MAJOR_CIVS then -- valid number of civs.
-						--[[ Debug printout for regional division inputs.
-						print("-");
-						print("- Civs on this area: ", iNumCivsOnThisArea);
-						print("- Area ID#: ", currentAreaID);
-						print("- Fertility: ", fertCount);
-						print("- Plot Count: ", plotCount);
-						print("-");
-						--]]
-						self:DivideIntoRegions(iNumCivsOnThisArea, fert_table, rect_table);
-					else
-						print("Invalid number of civs assigned to an area: ", iNumCivsOnThisArea);
-					end
-				end
-				-- The regions have been defined.
+				regionsPerLandmass[lmData.lmID] = 0;
+				print(string.format("  Landmass# %d: exact=%.2f < 1.0, excluded (too small for 2-civ placement)",
+					lmData.lmID, exact));
 			end
 		end
+		-- If no landmass qualifies (extreme fragmentation), include all as fallback.
+		if #qualifyingLandmasses == 0 then
+			print("No landmass has proportional share >= 1.0; including all as fallback.");
+			qualifyingLandmasses = {};
+			for _, lmData in ipairs(landmassList) do
+				table.insert(qualifyingLandmasses, lmData);
+			end
+			qualifyingFert = totalLandmassFert;
+		end
+
+		-- Step 1b: Hamilton floor allocation among qualifying landmasses.
+		-- Proportions are re-normalized to qualifying-only fertility total.
+		for _, lmData in ipairs(qualifyingLandmasses) do
+			local exact = totalRegions * lmData.fertility / qualifyingFert;
+			local floored = math.floor(exact);
+			regionsPerLandmass[lmData.lmID] = floored;
+			lmRemainders[lmData.lmID] = exact - floored;
+			lmAllocated = lmAllocated + floored;
+		end
+
+		-- Step 1c: Anti-isolation — if a qualifying landmass got exactly 1
+		-- from the floor, drop to 0. Reset remainder to the full re-normalized
+		-- exact share so it sorts correctly for jump-to-2 in Step 1d.
+		for _, lmData in ipairs(qualifyingLandmasses) do
+			if regionsPerLandmass[lmData.lmID] == 1 then
+				local exact = totalRegions * lmData.fertility / qualifyingFert;
+				print(string.format("Anti-isolation: dropped Landmass# %d from 1 to 0 (resetting remainder to %.2f)", lmData.lmID, exact));
+				lmAllocated = lmAllocated - 1;
+				regionsPerLandmass[lmData.lmID] = 0;
+				lmRemainders[lmData.lmID] = exact;
+			end
+		end
+
+		-- Step 1d: Distribute remaining seats by largest remainder
+		-- among qualifying landmasses only.
+		local lmSortedForRemainder = {};
+		for _, lmData in ipairs(qualifyingLandmasses) do
+			table.insert(lmSortedForRemainder, {lmID = lmData.lmID,
+				remainder = lmRemainders[lmData.lmID], fertility = lmData.fertility});
+		end
+		table.sort(lmSortedForRemainder, function(a, b)
+			if a.remainder ~= b.remainder then return a.remainder > b.remainder; end
+			return a.fertility > b.fertility;
+		end);
+
+		local lmRemaining = totalRegions - lmAllocated;
+		-- Two passes: first pass skips allocations that would create isolation (0→1),
+		-- second pass allows them as fallback.
+		for pass = 1, 2 do
+			if lmRemaining <= 0 then break; end
+			for _, entry in ipairs(lmSortedForRemainder) do
+				if lmRemaining <= 0 then break; end
+				local current = regionsPerLandmass[entry.lmID];
+				if current == 0 and pass == 1 then
+					-- Adding 1 would create isolation. On pass 1, try to give 2 instead
+					-- if there are enough remaining seats.
+					if lmRemaining >= 2 then
+						regionsPerLandmass[entry.lmID] = 2;
+						lmRemaining = lmRemaining - 2;
+						print(string.format("Anti-isolation: Landmass# %d gets 2 seats (jump from 0, bypassing 1)", entry.lmID));
+					end
+					-- If not enough seats for 2, skip on this pass; fallback pass 2 will handle it.
+				else
+					regionsPerLandmass[entry.lmID] = current + 1;
+					lmRemaining = lmRemaining - 1;
+				end
+			end
+		end
+
+		-- Step 1e: Failsafe — assign any still-remaining to the largest qualifying landmass.
+		if lmRemaining > 0 then
+			local largest = qualifyingLandmasses[1];
+			regionsPerLandmass[largest.lmID] = regionsPerLandmass[largest.lmID] + lmRemaining;
+			print("Failsafe: assigned", lmRemaining, "extra regions to Landmass#", largest.lmID);
+		end
+
+		print("-");
+		print("*** Level 1 — Regions per Landmass ***");
+		for _, lmData in ipairs(landmassList) do
+			local count = regionsPerLandmass[lmData.lmID];
+			if count > 0 then
+				print(string.format("  Landmass# %d: fertility=%.1f, regions=%d, avg_fert=%.1f",
+					lmData.lmID, lmData.fertility, count, lmData.fertility / count));
+			end
+		end
+
+		-- =================================================================
+		-- Level 2: Distribute each landmass's seats to its areas.
+		-- Filter out areas too small for a viable start, then Hamilton
+		-- among the viable areas within each landmass.
+		-- =================================================================
+		-- Minimum fertility for an area to be considered viable for a start.
+		-- A civ needs at least ~18 tiles of workable land (3-ring city).
+		-- Use the average fertility per region as a baseline: areas below 10%
+		-- of that average are too small for a meaningful start.
+		local avgFertPerRegion = totalFertility / math.max(1, totalRegions);
+		local MIN_AREA_FERT = math.max(3, math.floor(avgFertPerRegion * 0.10));
+
+		local regionsPerArea = {}; -- [areaID] = count (final result)
+		for _, entry in ipairs(candidate_areas) do
+			regionsPerArea[entry.areaID] = 0;
+		end
+
+		for _, lmData in ipairs(landmassList) do
+			local lmSeats = regionsPerLandmass[lmData.lmID];
+			if lmSeats <= 0 then
+				-- This landmass gets no civs. Nothing to distribute.
+			elseif #lmData.areas == 1 then
+				-- Only one area — it gets all the seats.
+				regionsPerArea[lmData.areas[1].areaID] = lmSeats;
+			else
+				-- Filter viable areas: must have enough fertility for at least one start.
+				local viableAreas = {};
+				local viableFert = 0;
+				for _, aEntry in ipairs(lmData.areas) do
+					if aEntry.fertility >= MIN_AREA_FERT then
+						table.insert(viableAreas, aEntry);
+						viableFert = viableFert + aEntry.fertility;
+					end
+				end
+				-- If no area passes the threshold, use all areas as fallback.
+				if #viableAreas == 0 then
+					viableAreas = lmData.areas;
+					viableFert = lmData.fertility;
+				end
+
+				if #viableAreas == 1 then
+					regionsPerArea[viableAreas[1].areaID] = lmSeats;
+				else
+					-- Hamilton within this landmass's viable areas.
+					local areaRemainders = {};
+					local areaAllocated = 0;
+					for _, aEntry in ipairs(viableAreas) do
+						local exact = lmSeats * aEntry.fertility / viableFert;
+						local floored = math.floor(exact);
+						regionsPerArea[aEntry.areaID] = floored;
+						areaRemainders[aEntry.areaID] = exact - floored;
+						areaAllocated = areaAllocated + floored;
+					end
+
+					-- Distribute remaining seats by largest remainder (fertility as tiebreaker).
+					local areaSorted = {};
+					for _, aEntry in ipairs(viableAreas) do
+						table.insert(areaSorted, {areaID = aEntry.areaID,
+							remainder = areaRemainders[aEntry.areaID], fertility = aEntry.fertility});
+					end
+					table.sort(areaSorted, function(a, b)
+						if a.remainder ~= b.remainder then return a.remainder > b.remainder; end
+						return a.fertility > b.fertility;
+					end);
+
+					local areaRemaining = lmSeats - areaAllocated;
+					for _, aEntry in ipairs(areaSorted) do
+						if areaRemaining <= 0 then break; end
+						regionsPerArea[aEntry.areaID] = regionsPerArea[aEntry.areaID] + 1;
+						areaRemaining = areaRemaining - 1;
+					end
+				end
+			end
+		end
+
+		-- Print final allocation results.
+		print("-");
+		print("*** Level 2 — Regions per Area (Final Allocation) ***");
+		for _, entry in ipairs(candidate_areas) do
+			local count = regionsPerArea[entry.areaID];
+			if count > 0 then
+				print(string.format("  Area# %d (Landmass# %d): fertility=%.1f, regions=%d, avg_fert_per_region=%.1f",
+					entry.areaID, entry.landmassID, entry.fertility, count, entry.fertility / count));
+			end
+		end
+		print("--- End of Proportional Allocation ---"); print("-");
+
+		-- =====================================================================
+		-- Divide each inhabited area into its assigned number of regions.
+		-- =====================================================================
+		for _, entry in ipairs(candidate_areas) do
+			local iNumCivsOnThisArea = regionsPerArea[entry.areaID];
+			if iNumCivsOnThisArea > 0 and iNumCivsOnThisArea <= MAX_MAJOR_CIVS then
+				-- Obtain the boundaries of and data for this area.
+				local area_data = ObtainLandmassBoundaries(entry.areaID);
+				local iWestX = area_data[1];
+				local iSouthY = area_data[2];
+				local iEastX = area_data[3];
+				local iNorthY = area_data[4];
+				local iWidth = area_data[5];
+				local iHeight = area_data[6];
+				local wrapsX = area_data[7];
+				local wrapsY = area_data[8];
+
+				-- Obtain "Start Placement Fertility" of the current area.
+				local fert_table, fertCount, plotCount = self:MeasureStartPlacementFertilityOfArea(
+					entry.areaID, iWestX, iEastX, iSouthY, iNorthY, wrapsX, wrapsY);
+
+				local rect_table = {iWestX, iSouthY, iWidth, iHeight, entry.areaID, fertCount, plotCount};
+
+				print(string.format("Dividing Area# %d into %d regions (fertility=%d, plots=%d)",
+					entry.areaID, iNumCivsOnThisArea, fertCount, plotCount));
+
+				self:DivideIntoRegions(iNumCivsOnThisArea, fert_table, rect_table);
+			end
+		end
+		-- The regions have been defined.
 	end
 
 	-- Entry point for easier overrides.
 	self:CustomOverride();
 
 	---[[ Printout is for debugging only. Deactivate otherwise.
-	print("Region generation completed. retryCount1 = ", args.retryCount1, ", retryCount2 = ", args.retryCount2);
+	print("Region generation completed.");
 	local tempRegionData = self.regionData;
 	for i, data in ipairs(tempRegionData) do
 		print("-");
@@ -2594,7 +2698,7 @@ function AssignStartingPlots:PlaceImpactAndRipples(x, y)
 	-- The Impact and Ripple is a second layer of protection, for those rare cases when regional shapes are severely distorted,
 	-- with little to no land in the region center, and the start having to be placed near the edge, and for cases of extremely thin regional dimension.
 
-	-- To establish a bias of 9, we Impact the overlay and Ripple outward 8 times.
+	-- Ripple radius adapts to map size and civ count (computed in ChooseLocations).
 	-- Value of 0 in a plot means no influence from existing Impacts in that plot.
 	-- Value of 99 means an Impact occurred in that plot and it IS a start point.
 	-- Values > 0 and < 99 are "ripples", meaning that plot is near a start point.
@@ -2602,7 +2706,18 @@ function AssignStartingPlots:PlaceImpactAndRipples(x, y)
 	local wrapX = Map:IsWrapX();
 	local wrapY = Map:IsWrapY();
 	local impact_value = 99;
-	local ripple_values = {97, 95, 92, 89, 69, 57, 24, 15};
+
+	-- Build ripple_values dynamically based on adaptive radius.
+	-- Inner rings get very high values (near-prohibitive), outer rings taper off.
+	local numRipples = self.adaptiveRippleRadius or 8;
+	local ripple_values = {};
+	for i = 1, numRipples do
+		-- Quadratic falloff from 97 at ring 1 down to ~10 at the outermost ring.
+		local t = (i - 1) / math.max(1, numRipples - 1); -- 0.0 at ring 1, 1.0 at last ring
+		local value = math.floor(97 - 87 * (t * t)); -- 97 -> 10
+		ripple_values[i] = math.max(10, value);
+	end
+
 	local odd = self.firstRingYIsOdd;
 	local even = self.firstRingYIsEven;
 	local nextX, nextY, plot_adjustments;
@@ -3141,35 +3256,33 @@ function AssignStartingPlots:FindStart(region_number)
 	-- Set up contingency.
 	local fallback_plots = {};
 
-	-- Establish scope of center bias.
+	-- Compute the fertility-weighted centroid of actual land in this region.
+	-- Center/middle bias zones are then anchored to this centroid instead of the
+	-- geometric center of the bounding rectangle, so starts gravitate toward
+	-- where the land actually is on irregularly-shaped continents.
+	local centroidX, centroidY = self:ComputeLandCentroid(iWestX, iSouthY, iWidth, iHeight);
+
+	-- Establish scope of center bias, anchored to land centroid.
 	local fCenterWidth = (self.centerBias / 100) * iWidth;
-	local iNonCenterWidth = math.floor((iWidth - fCenterWidth) / 2);
-	local iCenterWidth = iWidth - (iNonCenterWidth * 2);
-	local iCenterWestX = (iWestX + iNonCenterWidth) % iW; -- Modulo math to synch coordinate to actual map in case of world wrap.
-	local iCenterTestWestX = (iWestX + iNonCenterWidth); -- "Test" values ignore world wrap for easier membership testing.
-	local iCenterTestEastX = (iCenterWestX + iCenterWidth - 1);
+	local iCenterWidth = math.max(1, math.floor(fCenterWidth + 0.5));
+	local iCenterTestWestX = math.floor(centroidX - iCenterWidth / 2 + 0.5);
+	local iCenterTestEastX = iCenterTestWestX + iCenterWidth - 1;
 
 	local fCenterHeight = (self.centerBias / 100) * iHeight;
-	local iNonCenterHeight = math.floor((iHeight - fCenterHeight) / 2);
-	local iCenterHeight = iHeight - (iNonCenterHeight * 2);
-	-- local iCenterSouthY = (iSouthY + iNonCenterHeight) % iH;
-	local iCenterTestSouthY = (iSouthY + iNonCenterHeight);
-	local iCenterTestNorthY = (iCenterTestSouthY + iCenterHeight - 1);
+	local iCenterHeight = math.max(1, math.floor(fCenterHeight + 0.5));
+	local iCenterTestSouthY = math.floor(centroidY - iCenterHeight / 2 + 0.5);
+	local iCenterTestNorthY = iCenterTestSouthY + iCenterHeight - 1;
 
 	-- Establish scope of "middle donut", outside the center but inside the outer.
 	local fMiddleWidth = (self.middleBias / 100) * iWidth;
-	local iOuterWidth = math.floor((iWidth - fMiddleWidth) / 2);
-	local iMiddleWidth = iWidth - (iOuterWidth * 2);
-	-- local iMiddleWestX = (iWestX + iOuterWidth) % iW;
-	local iMiddleTestWestX = (iWestX + iOuterWidth);
-	local iMiddleTestEastX = (iMiddleTestWestX + iMiddleWidth - 1);
+	local iMiddleWidth = math.max(1, math.floor(fMiddleWidth + 0.5));
+	local iMiddleTestWestX = math.floor(centroidX - iMiddleWidth / 2 + 0.5);
+	local iMiddleTestEastX = iMiddleTestWestX + iMiddleWidth - 1;
 
 	local fMiddleHeight = (self.middleBias / 100) * iHeight;
-	local iOuterHeight = math.floor((iHeight - fMiddleHeight) / 2);
-	local iMiddleHeight = iHeight - (iOuterHeight * 2);
-	-- local iMiddleSouthY = (iSouthY + iOuterHeight) % iH;
-	local iMiddleTestSouthY = (iSouthY + iOuterHeight);
-	local iMiddleTestNorthY = (iMiddleTestSouthY + iMiddleHeight - 1);
+	local iMiddleHeight = math.max(1, math.floor(fMiddleHeight + 0.5));
+	local iMiddleTestSouthY = math.floor(centroidY - iMiddleHeight / 2 + 0.5);
+	local iMiddleTestNorthY = iMiddleTestSouthY + iMiddleHeight - 1;
 
 	-- Assemble candidates lists.
 	local two_plots_from_ocean = {};
@@ -3339,14 +3452,9 @@ function AssignStartingPlots:FindStart(region_number)
 		if found_eligible then -- Iterate through eligible plots and choose the one closest to the center of the region.
 			local closestPlot;
 			local closestDistance = math.max(iW, iH);
-			local bullseyeX = iWestX + (iWidth / 2);
-			if bullseyeX < iWestX then -- wrapped around: un-wrap it for test purposes.
-				bullseyeX = bullseyeX + iW;
-			end
-			local bullseyeY = iSouthY + (iHeight / 2);
-			if bullseyeY < iSouthY then -- wrapped around: un-wrap it for test purposes.
-				bullseyeY = bullseyeY + iH;
-			end
+			-- Use land centroid as bullseye instead of rectangle center.
+			local bullseyeX = centroidX;
+			local bullseyeY = centroidY;
 			if bullseyeY / 2 ~= math.floor(bullseyeY / 2) then -- Y coord is odd, add .5 to X coord for hex-shift.
 				bullseyeX = bullseyeX + 0.5;
 			end
@@ -3466,37 +3574,30 @@ function AssignStartingPlots:FindCoastalStart(region_number)
 		return bSuccessFlag, bForcedPlacementFlag;
 	end
 
-	-- Establish scope of center bias.
+	-- Compute the fertility-weighted centroid of actual land in this region.
+	local centroidX, centroidY = self:ComputeLandCentroid(iWestX, iSouthY, iWidth, iHeight);
+
+	-- Establish scope of center bias, anchored to land centroid.
 	local fCenterWidth = (self.centerBias / 100) * iWidth;
-	local iNonCenterWidth = math.floor((iWidth - fCenterWidth) / 2);
-	local iCenterWidth = iWidth - (iNonCenterWidth * 2);
-	local iCenterWestX = (iWestX + iNonCenterWidth) % iW; -- Modulo math to synch coordinate to actual map in case of world wrap.
-	local iCenterTestWestX = (iWestX + iNonCenterWidth); -- "Test" values ignore world wrap for easier membership testing.
-	local iCenterTestEastX = (iCenterWestX + iCenterWidth - 1);
+	local iCenterWidth = math.max(1, math.floor(fCenterWidth + 0.5));
+	local iCenterTestWestX = math.floor(centroidX - iCenterWidth / 2 + 0.5);
+	local iCenterTestEastX = iCenterTestWestX + iCenterWidth - 1;
 
 	local fCenterHeight = (self.centerBias / 100) * iHeight;
-	local iNonCenterHeight = math.floor((iHeight - fCenterHeight) / 2);
-	local iCenterHeight = iHeight - (iNonCenterHeight * 2);
-	-- local iCenterSouthY = (iSouthY + iNonCenterHeight) % iH;
-	local iCenterTestSouthY = (iSouthY + iNonCenterHeight);
-	local iCenterTestNorthY = (iCenterTestSouthY + iCenterHeight - 1);
+	local iCenterHeight = math.max(1, math.floor(fCenterHeight + 0.5));
+	local iCenterTestSouthY = math.floor(centroidY - iCenterHeight / 2 + 0.5);
+	local iCenterTestNorthY = iCenterTestSouthY + iCenterHeight - 1;
 
 	-- Establish scope of "middle donut", outside the center but inside the outer.
 	local fMiddleWidth = (self.middleBias / 100) * iWidth;
-	local iOuterWidth = math.floor((iWidth - fMiddleWidth) / 2);
-	local iMiddleWidth = iWidth - (iOuterWidth * 2);
-	-- local iMiddleDiameterX = (iMiddleWidth - iCenterWidth) / 2;
-	-- local iMiddleWestX = (iWestX + iOuterWidth) % iW;
-	local iMiddleTestWestX = (iWestX + iOuterWidth);
-	local iMiddleTestEastX = (iMiddleTestWestX + iMiddleWidth - 1);
+	local iMiddleWidth = math.max(1, math.floor(fMiddleWidth + 0.5));
+	local iMiddleTestWestX = math.floor(centroidX - iMiddleWidth / 2 + 0.5);
+	local iMiddleTestEastX = iMiddleTestWestX + iMiddleWidth - 1;
 
 	local fMiddleHeight = (self.middleBias / 100) * iHeight;
-	local iOuterHeight = math.floor((iHeight - fMiddleHeight) / 2);
-	local iMiddleHeight = iHeight - (iOuterHeight * 2);
-	-- local iMiddleDiameterY = (iMiddleHeight - iCenterHeight) / 2;
-	-- local iMiddleSouthY = (iSouthY + iOuterHeight) % iH;
-	local iMiddleTestSouthY = (iSouthY + iOuterHeight);
-	local iMiddleTestNorthY = (iMiddleTestSouthY + iMiddleHeight - 1);
+	local iMiddleHeight = math.max(1, math.floor(fMiddleHeight + 0.5));
+	local iMiddleTestSouthY = math.floor(centroidY - iMiddleHeight / 2 + 0.5);
+	local iMiddleTestNorthY = iMiddleTestSouthY + iMiddleHeight - 1;
 
 	-- Assemble candidates lists.
 	local center_coastal_plots = {};
@@ -3521,7 +3622,7 @@ function AssignStartingPlots:FindCoastalStart(region_number)
 				if plotType ~= PlotTypes.PLOT_MOUNTAIN then -- Not a mountain plot.
 					local area_of_plot = plot:GetArea();
 					local landmass_of_plot = plot:GetLandmass();
-					if iAreaID == -1 or (self.bArea and area_of_plot == iAreaID) or (not self.bArea and landmass_of_plot == iAreaID) then
+				if iAreaID == -1 or (self.bArea and area_of_plot == iAreaID) or (not self.bArea and landmass_of_plot == iAreaID) then
 						-- This plot is a member, so it goes on at least one candidate list.
 						-- Test whether plot is in center bias, middle donut, or outer donut.
 						local test_x = region_x + iWestX; -- "Test" coords, ignoring any world wrap and
@@ -3656,14 +3757,9 @@ function AssignStartingPlots:FindCoastalStart(region_number)
 		if found_eligible then -- Iterate through eligible plots and choose the one closest to the center of the region.
 			local closestPlot;
 			local closestDistance = math.max(iW, iH);
-			local bullseyeX = iWestX + (iWidth / 2);
-			if bullseyeX < iWestX then -- wrapped around: un-wrap it for test purposes.
-				bullseyeX = bullseyeX + iW;
-			end
-			local bullseyeY = iSouthY + (iHeight / 2);
-			if bullseyeY < iSouthY then -- wrapped around: un-wrap it for test purposes.
-				bullseyeY = bullseyeY + iH;
-			end
+			-- Use land centroid as bullseye instead of rectangle center.
+			local bullseyeX = centroidX;
+			local bullseyeY = centroidY;
 			if bullseyeY / 2 ~= math.floor(bullseyeY / 2) then -- Y coord is odd, add .5 to X coord for hex-shift.
 				bullseyeX = bullseyeX + 0.5;
 			end
@@ -3974,6 +4070,27 @@ function AssignStartingPlots:ChooseLocations(args)
 	-- Determine region type.
 	self:DetermineRegionTypes();
 
+	-- Compute an adaptive ripple radius for PlaceImpactAndRipples.
+	-- Count all land tiles on the map and derive ideal spacing from that.
+	local iW, iH = Map.GetGridSize();
+	local totalLandTiles = 0;
+	for plotIndex = 0, iW * iH - 1 do
+		local plot = Map.GetPlotByIndex(plotIndex);
+		local plotType = plot:GetPlotType();
+		if plotType == PlotTypes.PLOT_HILLS or plotType == PlotTypes.PLOT_LAND then
+			totalLandTiles = totalLandTiles + 1;
+		end
+	end
+	-- Ideal spacing: how far apart starts would be if evenly distributed across all land.
+	-- sqrt(landTiles / numCivs) gives the side length of each civ's "share" of land;
+	-- multiply by 1.2 to encourage generous spacing (e.g. ~14 on Standard 8-civ).
+	-- Minimum of 9 ensures ripple radius is at least 8 (matching the flat 8-ring minimum from the vanilla system).
+	local idealSpacing = math.max(9, math.floor(math.sqrt(totalLandTiles / math.max(1, self.iNumCivs)) * 1.2));
+	-- Ripple radius is idealSpacing - 1 (the impact tile itself is ring 0).
+	self.adaptiveRippleRadius = idealSpacing - 1;
+	print(string.format("Adaptive spacing: %d land tiles, %d civs, ideal spacing: %d, ripple radius: %d",
+		totalLandTiles, self.iNumCivs, idealSpacing, self.adaptiveRippleRadius));
+
 	-- Set up list of regions (to be processed in this order).
 	-- First, make a list of all average fertility values...
 	local regionAssignList = {};
@@ -4040,6 +4157,211 @@ function AssignStartingPlots:ChooseLocations(args)
 	PrintContentsOfTable(self.distanceData);
 	print("-");
 	--]]
+
+	-- Post-placement: try to improve spacing of starts that are too close together.
+	self:RefineStartSpacing();
+end
+------------------------------------------------------------------------------
+function AssignStartingPlots:RefineStartSpacing()
+	-- After ChooseLocations places all starts using the standard rectangular-region
+	-- algorithm, this function checks whether any starts are too close together
+	-- GLOBALLY (across all areas/landmasses). If so, it relocates the weaker-scored
+	-- start to the best available tile within the same area/landmass that improves
+	-- spacing while maintaining acceptable quality.
+	--
+	-- This fixes a long-standing issue where DivideIntoRegions creates rectangular
+	-- sub-regions whose actual land portions overlap or cluster, producing starts
+	-- that are too close together with large parts of the landmass unoccupied.
+	-- It also catches cases where starts in adjacent but separate areas on the same
+	-- landmass end up very close (e.g. areas separated by mountains/isthmuses).
+	print("Map Generation - Refining Start Spacing");
+
+	local iW, iH = Map.GetGridSize();
+	local iNumStarts = table.maxn(self.startingPlots);
+	if iNumStarts < 2 then
+		return;
+	end
+
+	-- Use the global ideal spacing already computed in ChooseLocations.
+	-- adaptiveRippleRadius = idealSpacing - 1, so idealSpacing = adaptiveRippleRadius + 1.
+	local idealMinDist = (self.adaptiveRippleRadius or 8) + 1;
+	print(string.format("RefineStartSpacing: %d starts, global ideal min dist: %d", iNumStarts, idealMinDist));
+
+	-- Build a list of valid region numbers.
+	local validRegions = {};
+	for region_number = 1, iNumStarts do
+		if self.startingPlots[region_number] and self.regionData[region_number] then
+			table.insert(validRegions, region_number);
+		end
+	end
+	local numValid = #validRegions;
+	if numValid < 2 then
+		return;
+	end
+
+	-- Pre-collect candidate land tiles per area/landmass for relocation searches.
+	-- Keyed by area/landmass ID so we only scan the map once.
+	local landTilesByArea = {};
+	for y = 0, iH - 1 do
+		for x = 0, iW - 1 do
+			local plot = Map.GetPlot(x, y);
+			local plotType = plot:GetPlotType();
+			if plotType == PlotTypes.PLOT_HILLS or plotType == PlotTypes.PLOT_LAND then
+				local id;
+				if self.bArea then
+					id = plot:GetArea();
+				else
+					id = plot:GetLandmass();
+				end
+				local plotIndex = y * iW + x + 1;
+				if not self.plotDataIsNextToCoast[plotIndex] then
+					if not landTilesByArea[id] then
+						landTilesByArea[id] = {};
+					end
+					table.insert(landTilesByArea[id], {x, y, plotIndex});
+				end
+			end
+		end
+	end
+
+	-- Iterate: find the globally closest pair, relocate the weaker one, repeat.
+	-- At most numValid iterations (each start relocated at most once).
+	for iteration = 1, numValid do
+		-- Find the closest pair across ALL starts.
+		local minDist = math.huge;
+		local closestA, closestB;
+
+		for i = 1, numValid do
+			for j = i + 1, numValid do
+				local rA = validRegions[i];
+				local rB = validRegions[j];
+				local xA = self.startingPlots[rA][1];
+				local yA = self.startingPlots[rA][2];
+				local xB = self.startingPlots[rB][1];
+				local yB = self.startingPlots[rB][2];
+				local dist = Map.PlotDistance(xA, yA, xB, yB);
+				if dist < minDist then
+					minDist = dist;
+					closestA = rA;
+					closestB = rB;
+				end
+			end
+		end
+
+		if minDist >= idealMinDist then
+			print(string.format("  Iteration %d: spacing OK (min dist: %d >= %d)",
+				iteration, minDist, idealMinDist));
+			break;
+		end
+
+		-- Choose the lower-scored start to relocate (keep the better one in place).
+		local scoreA = self.startingPlots[closestA][3];
+		local scoreB = self.startingPlots[closestB][3];
+		local regionToMove;
+		if scoreA <= scoreB then
+			regionToMove = closestA;
+		else
+			regionToMove = closestB;
+		end
+
+		local oldX = self.startingPlots[regionToMove][1];
+		local oldY = self.startingPlots[regionToMove][2];
+		local oldScore = self.startingPlots[regionToMove][3];
+		local region_type = self.regionTypes[regionToMove];
+		local moveAreaID = self.regionData[regionToMove][5];
+
+		print(string.format("  Iteration %d: regions %d & %d dist %d < %d. Relocating region %d (score %d at %d,%d, area %d)",
+			iteration, closestA, closestB, minDist, idealMinDist, regionToMove, oldScore, oldX, oldY, moveAreaID));
+
+		-- Collect ALL other starts in the game so that relocation candidates
+		-- don't inadvertently crowd any civ (including cross-area).
+		local allOtherStarts = {};
+		for _, regNum in ipairs(validRegions) do
+			if regNum ~= regionToMove and self.startingPlots[regNum] then
+				table.insert(allOtherStarts, {self.startingPlots[regNum][1], self.startingPlots[regNum][2]});
+			end
+		end
+
+		-- Quality floor: don't move to a tile much worse than the current one.
+		-- Accept anything with at least 30% of the current score, minimum 1.
+		local qualityFloor = math.max(1, math.floor(oldScore * 0.3));
+
+		-- Get candidate tiles for the area/landmass this start belongs to.
+		local landTiles = landTilesByArea[moveAreaID] or {};
+
+		-- Search all candidate tiles for the best alternative position.
+		-- Scoring: spacing dominates (integer hex distance * 1000) up to idealMinDist,
+		-- then quality (raw EvaluateCandidatePlot score) breaks ties.
+		-- This ensures we get the farthest-possible placement that still has good quality.
+		local bestTile = nil;
+		local bestCombined = -math.huge;
+		local bestRawScore = 0;
+		local bestNewMinDist = 0;
+
+		for _, tileData in ipairs(landTiles) do
+			local tx, ty, tPlotIndex = tileData[1], tileData[2], tileData[3];
+
+			-- Skip tiles that are existing start positions.
+			if not self.playerCollisionData[tPlotIndex] then
+				-- Calculate minimum distance to ALL other starts (including cross-area).
+				local tileMinDist = math.huge;
+				for _, otherStart in ipairs(allOtherStarts) do
+					local d = Map.PlotDistance(tx, ty, otherStart[1], otherStart[2]);
+					if d < tileMinDist then
+						tileMinDist = d;
+					end
+				end
+
+				-- Only consider tiles that actually improve on the current minimum distance.
+				if tileMinDist > minDist then
+					-- Get raw quality score, temporarily ignoring the old distance ripple data
+					-- (since we're computing our own distance metric).
+					local savedBias = self.distanceData[tPlotIndex];
+					self.distanceData[tPlotIndex] = 0;
+					local rawScore, _ = self:EvaluateCandidatePlot(tPlotIndex, region_type);
+					self.distanceData[tPlotIndex] = savedBias;
+
+					if rawScore >= qualityFloor then
+						-- Spacing-first scoring: distance bins dominate, quality is tiebreaker.
+						-- Cap the effective distance at idealMinDist so that once spacing
+						-- is satisfactory, quality drives the choice.
+						local effectiveDist = math.min(tileMinDist, idealMinDist);
+						local combined = effectiveDist * 1000 + rawScore;
+
+						if combined > bestCombined then
+							bestCombined = combined;
+							bestRawScore = rawScore;
+							bestTile = {tx, ty, tPlotIndex};
+							bestNewMinDist = tileMinDist;
+						end
+					end
+				end
+			end
+		end
+
+		if bestTile then
+			local newX, newY, newPlotIndex = bestTile[1], bestTile[2], bestTile[3];
+
+			print(string.format("  -> Relocated to (%d,%d) score %d, new min dist: %d (was %d)",
+				newX, newY, bestRawScore, bestNewMinDist, minDist));
+
+			-- Update collision data: clear old, set new.
+			local oldPlotIndex = oldY * iW + oldX + 1;
+			self.playerCollisionData[oldPlotIndex] = false;
+			self.playerCollisionData[newPlotIndex] = true;
+
+			-- Update start position.
+			self.startingPlots[regionToMove] = {newX, newY, bestRawScore};
+
+			-- Place impact and ripple at the new location so resource placement
+			-- respects the new start. (Old impact remains, which harmlessly
+			-- reduces resources near the vacated spot.)
+			self:PlaceImpactAndRipples(newX, newY);
+		else
+			print("  -> No better position found, keeping original.");
+			break; -- No improvement possible, stop iterating.
+		end
+	end
 end
 ------------------------------------------------------------------------------
 -- Start of functions tied to BalanceAndAssign()
