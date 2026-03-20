@@ -173,21 +173,6 @@ function MapGlobals:New()
 	mglobal.polarNoDigPercent = 0.01; -- percent of map height where channels cannot be dug at poles
 	mglobal.polarIceBandPercent = 0.04; -- percent of map height that always gets polar ice features
 
-	-- percent of map width
-	mglobal.atlanticSize = 0.09; -- size near poles
-	mglobal.atlanticBulge = -0.07; -- size increase at equator
-	mglobal.pacificSize = 0.02; -- size near poles
-	mglobal.pacificBulge = 0.10; -- size increase at equator
-
-	-- percent of straightness
-	mglobal.atlanticCurve = 0.30; -- deviance from the starting point
-	mglobal.pacificCurve = 0.40;
-
-	mglobal.atlanticSize = math.max(2, math.min(mapW / 2, Round(mglobal.atlanticSize * mapW)));
-	mglobal.pacificSize = math.max(3, math.min(mapW / 2, Round(mglobal.pacificSize * mapW)));
-	mglobal.atlanticBulge = Round(mglobal.atlanticBulge * mapW);
-	mglobal.pacificBulge = Round(mglobal.pacificBulge * mapW);
-
 	--------------
 	-- Resources
 	--------------
@@ -1560,18 +1545,15 @@ function GetMapScriptInfo()
 				SortPriority = -99, -- use negative values so they don't interfere with those of the standard map options
 			},
 			{
-				Name = "TXT_KEY_MAP_OCEAN_SHAPES",
-				Description = "TXT_KEY_MAP_OCEAN_SHAPES_DESCRIPTION",
+				Name = "TXT_KEY_MAP_OCEAN_RIFTS",
+				Description = "TXT_KEY_MAP_OCEAN_RIFTS_DESCRIPTION",
 				Values = {
-					"TXT_KEY_MAP_2_ATLANTIC",
-					"TXT_KEY_MAP_PACIFIC_AND_ATLANTIC",
-					"TXT_KEY_MAP_2_PACIFIC",
-					"TXT_KEY_MAP_2_RANDOM",
-					"TXT_KEY_MAP_1_RANDOM",
-					"TXT_KEY_MAP_NONE",
+					"2 Oceans",
+					"1 Ocean",
+					"No Oceans",
 					"TXT_KEY_MAP_RANDOM",
 				},
-				DefaultValue = 2,
+				DefaultValue = 1,
 				SortPriority = -98,
 			},
 			{
@@ -3940,10 +3922,11 @@ end
 
 function CreateVerticalOceans()
 	local oOceanRifts = Map.GetCustomOption(6);
-	if oOceanRifts == 7 then
-		oOceanRifts = 1 + Map.Rand(6, "Random Ocean Rifts");
+	-- 1=2 Oceans, 2=1 Ocean, 3=No Ocean, 4=Random
+	if oOceanRifts == 4 then
+		oOceanRifts = (Map.Rand(2, "Random Ocean Rift Count") == 0) and 1 or 2;
 	end
-	if oOceanRifts == 6 then
+	if oOceanRifts == 3 then
 		-- No vertical rifts
 		return;
 	end
@@ -3981,7 +3964,7 @@ function CreateVerticalOceans()
 		end
 	end
 
-	-- find biggest ocean (usually Pacific)
+	-- Find the lowest-elevation column (deepest existing ocean) for the first rift.
 	local lowestElevation = 0;
 	local startX = 0;
 	for x = 0, mapW - 1 do
@@ -3991,48 +3974,31 @@ function CreateVerticalOceans()
 			startX = x;
 		end
 	end
-	print("startX pacific:", startX);
+	print("CreateVerticalOceans: first rift startX =", startX);
 
 	-- Wide corridor for the first rift: let it follow the existing ocean freely.
 	local halfWidth = math.floor(mapW / 6);
-	-- Corridor for the second rift: keep it reasonably close to the target land-split
-	-- column, but not so tight it can't avoid mountains.
+	-- Tight corridor for the second rift: the path must stay very close to the
+	-- target land-fraction column.
 	local splitHalfWidth = math.max(3, math.floor(mapW / 14));
-	-- Narrower ocean strip for Pacific-style (wide ocean) rifts.
-	local pacificWidth = math.max(1, Round(MG.oceanRiftWidth - 1));
 
 	local firstRiftMeanX;
 
 	if mapW < 60 then
-		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
-		CreateSmartRift(startX, halfWidth);
-		return;
-	elseif oOceanRifts == 2 or oOceanRifts == 3 then
-		-- PA or PP
-		print("CreateVerticalOceans: Creating Pacific rift at x =", startX);
-		firstRiftMeanX = CreateSmartRift(startX, halfWidth, pacificWidth);
-	elseif oOceanRifts == 1 then
-		-- AA
-		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
 		firstRiftMeanX = CreateSmartRift(startX, halfWidth);
-	elseif oOceanRifts == 4 or oOceanRifts == 5 then
-		-- 1 or 2 random
-		if 50 >= Map.Rand(100, "Random ocean rift - Lua") then
-			print(string.format("CreateVerticalOceans: Creating Pacific rift at x = %s (Random)", startX));
-			firstRiftMeanX = CreateSmartRift(startX, halfWidth, pacificWidth);
-		else
-			print(string.format("CreateVerticalOceans: Creating Atlantic rift at x = %s (Random)", startX));
-			firstRiftMeanX = CreateSmartRift(startX, halfWidth);
-		end
+		if oOceanRifts == 2 then return; end
+	else
+		print("CreateVerticalOceans: Creating first rift at x =", startX);
+		firstRiftMeanX = CreateSmartRift(startX, halfWidth);
 	end
 
-	if oOceanRifts == 5 then
-		-- Only one rift, end here
+	if oOceanRifts == 2 then
+		-- Only one rift requested
 		return;
 	end
 
 	-- Recompute landInColumn and totalLand AFTER the first rift has been placed,
-	-- so the 50% split calculation uses accurate data.
+	-- so the split calculation uses accurate data.
 	totalLand = 0;
 	for x = 0, mapW - 1 do
 		landInColumn[x] = 0;
@@ -4048,65 +4014,33 @@ function CreateVerticalOceans()
 		end
 	end
 
-	-- Find the land-split point for the second rift using offsetAtlanticPercent.
-	-- For Terra (oStarts=1) this is 0.35, placing the rift so 35% of land is on
-	-- one side and 65% on the other -- creating the intended Old/New World imbalance.
-	-- For Continents (oStarts=2) this is 0.48, which is nearly equal.
-	-- Randomly flip which side gets the larger share (same as the 5.2 behaviour).
-	local targetFraction = Map.Rand(2, "Atlantic Offset - Lua") == 0
-		and MG.offsetAtlanticPercent or 1 - MG.offsetAtlanticPercent;
+	-- Find the target land-fraction split point for the second rift.
+	-- offsetAtlanticPercent is 0.35 for Terra (65/35 split) and 0.48 for
+	-- Continents (nearly equal); randomly flip to either side.
 	local firstRiftX = firstRiftMeanX;
 	startX = firstRiftX;
 	local sumLand = 0;
+	local targetFraction = Map.Rand(2, "Ocean Rift Offset") == 0
+		and MG.offsetAtlanticPercent or 1 - MG.offsetAtlanticPercent;
 	for x = 0, mapW - 1 do
 		local xOffset = (x + firstRiftX) % mapW;
 		sumLand = sumLand + landInColumn[xOffset];
 		if sumLand >= targetFraction * totalLand then
 			startX = xOffset;
-			print(string.format("startX atlantic (%.0f%% split):", targetFraction * 100), startX);
 			break;
 		end
 	end
+	print(string.format("CreateVerticalOceans: second rift startX = %s (targetFraction = %.2f)", startX, targetFraction));
+	print(string.format("totalLand(updated) = %d sumLand = %d", totalLand, sumLand));
 
-	print(string.format("totalLand(updated) = %4f sumLand = %4f", totalLand, sumLand));
-
-	-- Use splitHalfWidth (tight corridor) for the second rift so it stays close
-	-- to the computed 50 %% land column and produces two equal-area halves.
-	local secondRiftMeanX;
-	if oOceanRifts == 1 or oOceanRifts == 2 then
-		-- PA or AA
-		print("CreateVerticalOceans: Creating Atlantic rift at x =", startX);
-		secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth);
-	elseif oOceanRifts == 3 then
-		-- PP
-		print("CreateVerticalOceans: Creating Pacific rift at x =", startX);
-		secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth, pacificWidth);
-	elseif oOceanRifts == 4 then
-		-- 2 random
-		if 50 >= Map.Rand(100, "Random ocean rift - Lua") then
-			print(string.format("CreateVerticalOceans: Creating Pacific rift at x = %s (Random)", startX));
-			secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth, pacificWidth);
-		else
-			print(string.format("CreateVerticalOceans: Creating Atlantic rift at x = %s (Random)", startX));
-			secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth);
-		end
-	end
+	-- Use splitHalfWidth (tight corridor) for the second rift.
+	local secondRiftMeanX = CreateSmartRift(startX, splitHalfWidth);
 
 	-- Store rift positions for post-rift balancing
 	if firstRiftMeanX and secondRiftMeanX then
 		MG.firstRiftMeanX = firstRiftMeanX;
 		MG.secondRiftMeanX = secondRiftMeanX;
 	end
-end
-
-function CreatePacific(midline)
-	CreateOceanRift{x = midline, totalSize = MG.pacificSize, bulge = MG.pacificBulge, curve = MG.pacificCurve, oceanSize = math.max(1, Round(MG.oceanRiftWidth - 1))};
-	print("Create Pacific at:", midline);
-end
-
-function CreateAtlantic(midline)
-	CreateOceanRift{x = midline, totalSize = MG.atlanticSize, bulge = MG.atlanticBulge, curve = MG.atlanticCurve, oceanSize = MG.oceanRiftWidth, cleanMid = true};
-	print("Create Atlantic at:", midline);
 end
 
 -- Find the minimum-land-conversion path from south (y=0) to north (y=mapH-1)
