@@ -2185,8 +2185,27 @@ function GeneratePlotTypes()
 end
 
 function ConnectSeasToOceans()
+	-- Build a fast lookup for lake tile indices so we can detect combined
+	-- water bodies that include both below-sea-level tiles and lake tiles
+	-- sitting at exactly seaLevelThreshold (which WaterMatch cannot see).
+	-- Without this, lakes enlarged by BalanceRiftHalves/MirrorContinentShapes
+	-- into inland seas (>= lakeSize tiles) remain invisible and unconnected.
+	local mapW = elevationMap.width;
+	local lakeSet = {};
+	for _, plot in pairs(MG.lakePlots) do
+		local idx = plot:GetY() * mapW + plot:GetX();
+		lakeSet[idx] = true;
+	end
+
+	local function waterOrLakeMatch(x, y)
+		if elevationMap:IsBelowSeaLevel(x, y) then
+			return true;
+		end
+		return lakeSet[y * mapW + x] == true;
+	end
+
 	local areaMap = PWAreaMap:New(elevationMap.width, elevationMap.height, elevationMap.wrapX, elevationMap.wrapY);
-	areaMap:DefineAreas(WaterMatch);
+	areaMap:DefineAreas(waterOrLakeMatch);
 	local oceanArea, oceanSize = GetLargestArea(areaMap);
 
 	if not oceanArea then
@@ -2214,11 +2233,30 @@ function ConnectSeasToOceans()
 					print("ConnectSeasToOceans: x = ", plot:GetX(), " y = ", plot:GetY(), "elevation = ", GetElevationByPlotID(Plot_GetID(plot)));
 					table.insert(MG.seaPlots, plot);
 				end
+				-- Also lower any lake tiles within this inland sea below sea
+				-- level so they become proper ocean tiles in the final map.
+				for n = 0, areaMap.length - 1 do
+					if areaMap.data[n] == seaArea.id and lakeSet[n] then
+						newWater[n] = elevationMap.seaLevelThreshold - 0.01;
+					end
+				end
 			end
 		end
 	end
 	for plotID, elevation in pairs(newWater) do
 		elevationMap.data[plotID] = elevation;
+	end
+
+	-- Remove connected lake tiles from MG.lakePlots since they are now ocean
+	if next(newWater) then
+		local remainingLakes = {};
+		for _, plot in pairs(MG.lakePlots) do
+			local idx = plot:GetY() * mapW + plot:GetX();
+			if not newWater[idx] then
+				table.insert(remainingLakes, plot);
+			end
+		end
+		MG.lakePlots = remainingLakes;
 	end
 end
 
