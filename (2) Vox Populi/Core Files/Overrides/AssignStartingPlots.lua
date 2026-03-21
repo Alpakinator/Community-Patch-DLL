@@ -1927,6 +1927,7 @@ function AssignStartingPlots:GenerateRegions(args)
 		local iNumAreas = 0;
 		local landmass_IDs = {};
 		local landmass_fert = {};
+		local landmass_continent = {}; -- [landmassID] = continentID (coast-connected grouping)
 		local area_IDs = {};
 		local area_fert = {};
 		-- Cycle through all plots in the world, checking their Start Placement Fertility, LandmassID, and AreaID.
@@ -1936,6 +1937,10 @@ function AssignStartingPlots:GenerateRegions(args)
 				if not plot:IsWater() then -- Land plot, process it.
 					local iLandmass = plot:GetLandmass();
 					local iArea = plot:GetArea();
+					-- Track which continent (coast-connected group) each landmass belongs to.
+					if not landmass_continent[iLandmass] then
+						landmass_continent[iLandmass] = plot:GetContinent();
+					end
 					local plotFertility = self:MeasureStartPlacementFertilityOfPlot(x, y, true); -- Check for coastal land is enabled.
 					iGlobalFertilityOfLands = iGlobalFertilityOfLands + plotFertility;
 
@@ -1996,13 +2001,23 @@ function AssignStartingPlots:GenerateRegions(args)
 		end
 
 		-- =====================================================================
-		-- Two-level Hamilton's largest-remainder proportional allocation.
-		-- Level 1: Allocate regions to landmasses proportional to total fertility.
-		--          Anti-isolation (no landmass gets exactly 1 region) is clean
-		--          at this level because the allocation and isolation units match.
+		-- Three-level Hamilton's largest-remainder proportional allocation.
+		-- Level 0: Allocate regions to CONTINENTS (coast-connected landmass
+		--          groups, using plot:GetContinent()). Anti-isolation applies
+		--          here: no continent gets exactly 1 region, unless there are
+		--          only 2 total regions (allowing a 1-1 split).
+		-- Level 1: Distribute each continent's seats to its landmasses.
+		--          No anti-isolation at this level — a single-civ landmass is
+		--          fine as long as its continent has ≥2 civs total.
 		-- Level 2: Distribute each landmass's seats to its areas, filtering out
 		--          areas too small for a viable start.
 		-- =====================================================================
+		-- A "continent" here is NOT DetermineContinent's art-style continent.
+		-- It is the set of plots reachable without crossing deep water —
+		-- land tiles plus coastal (shallow) sea tiles form one continent.
+		-- Two landmasses separated only by coast share the same continent ID.
+		-- This lets small coastal islands receive a civ without isolation,
+		-- because they're part of the same continent as the main landmass.
 
 		-- Aggregate fertility per landmass and build landmass data.
 		local landmassData = {}; -- [lmID] = {lmID, fertility, areas (sorted by fert desc)}
@@ -2029,110 +2044,212 @@ function AssignStartingPlots:GenerateRegions(args)
 		print("-");
 		print("Landmass summary:");
 		for _, lmData in ipairs(landmassList) do
-			print(string.format("  Landmass# %d: fertility=%.1f, areas=%d",
-				lmData.lmID, lmData.fertility, #lmData.areas));
+			print(string.format("  Landmass# %d (Continent# %d): fertility=%.1f, areas=%d",
+				lmData.lmID, landmass_continent[lmData.lmID] or -1, lmData.fertility, #lmData.areas));
 		end
 
-		-- =================================================================
-		-- Level 1: Hamilton allocation of regions to landmasses.
-		-- =================================================================
-		local regionsPerLandmass = {}; -- [lmID] = count
-		local lmRemainders = {};       -- [lmID] = fractional remainder
-		local lmAllocated = 0;
+		-- =============================================================
+		-- Level 0: Hamilton allocation of regions to CONTINENTS.
+		-- A continent is a coast-connected group of landmasses (using
+		-- plot:GetContinent()). Anti-isolation: no continent gets
+		-- exactly 1 region, unless totalRegions <= 2.
+		-- =============================================================
 
-		-- Step 1a: Pre-filter — exclude landmasses too small for 2 civs.
-		-- Anti-isolation requires 0 or ≥2 civs per landmass. A landmass
-		-- whose proportional share is < 1.0 doesn't even deserve 1 seat,
-		-- so giving it the minimum viable 2 would be severe overrepresentation
-		-- (>2x) and starve the larger landmasses that need those seats.
-		-- Exclude such landmasses and run Hamilton among the rest.
-		local qualifyingLandmasses = {};
-		local qualifyingFert = 0;
+		-- Group landmasses into continents.
+		local continentData = {}; -- [contID] = {contID, fertility, landmasses}
 		for _, lmData in ipairs(landmassList) do
-			local exact = totalRegions * lmData.fertility / totalLandmassFert;
-			if exact >= 1.0 then
-				table.insert(qualifyingLandmasses, lmData);
-				qualifyingFert = qualifyingFert + lmData.fertility;
+			local contID = landmass_continent[lmData.lmID];
+			if contID then
+				if not continentData[contID] then
+					continentData[contID] = {contID = contID, fertility = 0, landmasses = {}};
+				end
+				continentData[contID].fertility = continentData[contID].fertility + lmData.fertility;
+				table.insert(continentData[contID].landmasses, lmData);
+			end
+		end
+
+		-- Build sorted list of continents by fertility descending.
+		local continentList = {};
+		local totalContinentFert = 0;
+		for _, contData in pairs(continentData) do
+			table.insert(continentList, contData);
+			totalContinentFert = totalContinentFert + contData.fertility;
+			-- Sort landmasses within each continent by fertility descending.
+			table.sort(contData.landmasses, function(a, b) return a.fertility > b.fertility end);
+		end
+		table.sort(continentList, function(a, b) return a.fertility > b.fertility end);
+
+		print("-");
+		print("Continent summary (coast-connected groups):");
+		for _, contData in ipairs(continentList) do
+			print(string.format("  Continent# %d: fertility=%.1f, landmasses=%d",
+				contData.contID, contData.fertility, #contData.landmasses));
+		end
+
+		-- Anti-isolation at continent level applies unless there are only 2 regions
+		-- (in which case a 1-1 split across two continents is acceptable).
+		local bAllowSingleContinent = (totalRegions <= 2);
+
+		local regionsPerContinent = {}; -- [contID] = count
+		local contAllocated = 0;
+
+		-- Step 0a: Pre-filter — exclude continents too small for 2 civs
+		-- (unless allowing singles for 2-civ games).
+		local qualifyingContinents = {};
+		local qualifyingContFert = 0;
+		for _, contData in ipairs(continentList) do
+			local exact = totalRegions * contData.fertility / totalContinentFert;
+			if bAllowSingleContinent or exact >= 1.0 then
+				table.insert(qualifyingContinents, contData);
+				qualifyingContFert = qualifyingContFert + contData.fertility;
 			else
-				regionsPerLandmass[lmData.lmID] = 0;
-				print(string.format("  Landmass# %d: exact=%.2f < 1.0, excluded (too small for 2-civ placement)",
-					lmData.lmID, exact));
+				regionsPerContinent[contData.contID] = 0;
+				print(string.format("  Continent# %d: exact=%.2f < 1.0, excluded", contData.contID, exact));
 			end
 		end
-		-- If no landmass qualifies (extreme fragmentation), include all as fallback.
-		if #qualifyingLandmasses == 0 then
-			print("No landmass has proportional share >= 1.0; including all as fallback.");
-			qualifyingLandmasses = {};
-			for _, lmData in ipairs(landmassList) do
-				table.insert(qualifyingLandmasses, lmData);
+		-- Fallback: if no continent qualifies, include all.
+		if #qualifyingContinents == 0 then
+			print("No continent qualifies; including all as fallback.");
+			qualifyingContinents = {};
+			for _, contData in ipairs(continentList) do
+				table.insert(qualifyingContinents, contData);
 			end
-			qualifyingFert = totalLandmassFert;
+			qualifyingContFert = totalContinentFert;
 		end
 
-		-- Step 1b: Hamilton floor allocation among qualifying landmasses.
-		-- Proportions are re-normalized to qualifying-only fertility total.
-		for _, lmData in ipairs(qualifyingLandmasses) do
-			local exact = totalRegions * lmData.fertility / qualifyingFert;
+		-- Step 0b: Hamilton floor allocation among qualifying continents.
+		local contRemainders = {};
+		for _, contData in ipairs(qualifyingContinents) do
+			local exact = totalRegions * contData.fertility / qualifyingContFert;
 			local floored = math.floor(exact);
-			regionsPerLandmass[lmData.lmID] = floored;
-			lmRemainders[lmData.lmID] = exact - floored;
-			lmAllocated = lmAllocated + floored;
+			regionsPerContinent[contData.contID] = floored;
+			contRemainders[contData.contID] = exact - floored;
+			contAllocated = contAllocated + floored;
 		end
 
-		-- Step 1c: Anti-isolation — if a qualifying landmass got exactly 1
-		-- from the floor, drop to 0. Reset remainder to the full re-normalized
-		-- exact share so it sorts correctly for jump-to-2 in Step 1d.
-		for _, lmData in ipairs(qualifyingLandmasses) do
-			if regionsPerLandmass[lmData.lmID] == 1 then
-				local exact = totalRegions * lmData.fertility / qualifyingFert;
-				print(string.format("Anti-isolation: dropped Landmass# %d from 1 to 0 (resetting remainder to %.2f)", lmData.lmID, exact));
-				lmAllocated = lmAllocated - 1;
-				regionsPerLandmass[lmData.lmID] = 0;
-				lmRemainders[lmData.lmID] = exact;
-			end
-		end
-
-		-- Step 1d: Distribute remaining seats by largest remainder
-		-- among qualifying landmasses only.
-		local lmSortedForRemainder = {};
-		for _, lmData in ipairs(qualifyingLandmasses) do
-			table.insert(lmSortedForRemainder, {lmID = lmData.lmID,
-				remainder = lmRemainders[lmData.lmID], fertility = lmData.fertility});
-		end
-		table.sort(lmSortedForRemainder, function(a, b)
-			if a.remainder ~= b.remainder then return a.remainder > b.remainder; end
-			return a.fertility > b.fertility;
-		end);
-
-		local lmRemaining = totalRegions - lmAllocated;
-		-- Two passes: first pass skips allocations that would create isolation (0→1),
-		-- second pass allows them as fallback.
-		for pass = 1, 2 do
-			if lmRemaining <= 0 then break; end
-			for _, entry in ipairs(lmSortedForRemainder) do
-				if lmRemaining <= 0 then break; end
-				local current = regionsPerLandmass[entry.lmID];
-				if current == 0 and pass == 1 then
-					-- Adding 1 would create isolation. On pass 1, try to give 2 instead
-					-- if there are enough remaining seats.
-					if lmRemaining >= 2 then
-						regionsPerLandmass[entry.lmID] = 2;
-						lmRemaining = lmRemaining - 2;
-						print(string.format("Anti-isolation: Landmass# %d gets 2 seats (jump from 0, bypassing 1)", entry.lmID));
-					end
-					-- If not enough seats for 2, skip on this pass; fallback pass 2 will handle it.
-				else
-					regionsPerLandmass[entry.lmID] = current + 1;
-					lmRemaining = lmRemaining - 1;
+		-- Step 0c: Anti-isolation — if a qualifying continent got exactly 1
+		-- from the floor, drop to 0 (unless 2-civ game allows singles).
+		if not bAllowSingleContinent then
+			for _, contData in ipairs(qualifyingContinents) do
+				if regionsPerContinent[contData.contID] == 1 then
+					local exact = totalRegions * contData.fertility / qualifyingContFert;
+					print(string.format("Anti-isolation: dropped Continent# %d from 1 to 0 (remainder=%.2f)",
+						contData.contID, exact));
+					contAllocated = contAllocated - 1;
+					regionsPerContinent[contData.contID] = 0;
+					contRemainders[contData.contID] = exact;
 				end
 			end
 		end
 
-		-- Step 1e: Failsafe — assign any still-remaining to the largest qualifying landmass.
-		if lmRemaining > 0 then
-			local largest = qualifyingLandmasses[1];
-			regionsPerLandmass[largest.lmID] = regionsPerLandmass[largest.lmID] + lmRemaining;
-			print("Failsafe: assigned", lmRemaining, "extra regions to Landmass#", largest.lmID);
+		-- Step 0d: Distribute remaining seats by largest remainder.
+		local contSortedForRemainder = {};
+		for _, contData in ipairs(qualifyingContinents) do
+			table.insert(contSortedForRemainder, {contID = contData.contID,
+				remainder = contRemainders[contData.contID], fertility = contData.fertility});
+		end
+		table.sort(contSortedForRemainder, function(a, b)
+			if a.remainder ~= b.remainder then return a.remainder > b.remainder; end
+			return a.fertility > b.fertility;
+		end);
+
+		local contRemaining = totalRegions - contAllocated;
+		if bAllowSingleContinent then
+			-- Single pass, no anti-isolation constraint at continent level.
+			for _, entry in ipairs(contSortedForRemainder) do
+				if contRemaining <= 0 then break; end
+				regionsPerContinent[entry.contID] = (regionsPerContinent[entry.contID] or 0) + 1;
+				contRemaining = contRemaining - 1;
+			end
+		else
+			-- Two passes: first pass avoids creating isolation (0→1), second allows as fallback.
+			for pass = 1, 2 do
+				if contRemaining <= 0 then break; end
+				for _, entry in ipairs(contSortedForRemainder) do
+					if contRemaining <= 0 then break; end
+					local current = regionsPerContinent[entry.contID] or 0;
+					if current == 0 and pass == 1 then
+						-- Try to jump 0→2 to avoid isolation.
+						if contRemaining >= 2 then
+							regionsPerContinent[entry.contID] = 2;
+							contRemaining = contRemaining - 2;
+							print(string.format("Anti-isolation: Continent# %d gets 2 seats (jump 0→2)", entry.contID));
+						end
+					else
+						regionsPerContinent[entry.contID] = current + 1;
+						contRemaining = contRemaining - 1;
+					end
+				end
+			end
+		end
+
+		-- Step 0e: Failsafe.
+		if contRemaining > 0 then
+			local largest = qualifyingContinents[1];
+			regionsPerContinent[largest.contID] = (regionsPerContinent[largest.contID] or 0) + contRemaining;
+			print("Failsafe: assigned", contRemaining, "extra regions to Continent#", largest.contID);
+		end
+
+		print("-");
+		print("*** Level 0 — Regions per Continent ***");
+		for _, contData in ipairs(continentList) do
+			local count = regionsPerContinent[contData.contID] or 0;
+			if count > 0 then
+				print(string.format("  Continent# %d: fertility=%.1f, regions=%d, landmasses=%d",
+					contData.contID, contData.fertility, count, #contData.landmasses));
+			end
+		end
+
+		-- =============================================================
+		-- Level 1: Distribute each continent's seats to its landmasses.
+		-- No anti-isolation here — a landmass CAN get exactly 1 region
+		-- as long as it's coast-connected to other landmasses in the
+		-- same continent (which is guaranteed by the continent grouping).
+		-- =============================================================
+		local regionsPerLandmass = {}; -- [lmID] = count
+		for _, lmData in ipairs(landmassList) do
+			regionsPerLandmass[lmData.lmID] = 0;
+		end
+
+		for _, contData in ipairs(continentList) do
+			local contSeats = regionsPerContinent[contData.contID] or 0;
+			if contSeats <= 0 then
+				-- This continent gets no civs.
+			elseif #contData.landmasses == 1 then
+				-- Only one landmass in this continent — it gets all seats.
+				regionsPerLandmass[contData.landmasses[1].lmID] = contSeats;
+			else
+				-- Hamilton among this continent's landmasses (no anti-isolation).
+				local lmRemainders = {};
+				local lmAllocated = 0;
+				local contFert = contData.fertility;
+
+				for _, lmData in ipairs(contData.landmasses) do
+					local exact = contSeats * lmData.fertility / contFert;
+					local floored = math.floor(exact);
+					regionsPerLandmass[lmData.lmID] = floored;
+					lmRemainders[lmData.lmID] = exact - floored;
+					lmAllocated = lmAllocated + floored;
+				end
+
+				-- Distribute remaining seats by largest remainder.
+				local lmSorted = {};
+				for _, lmData in ipairs(contData.landmasses) do
+					table.insert(lmSorted, {lmID = lmData.lmID,
+						remainder = lmRemainders[lmData.lmID], fertility = lmData.fertility});
+				end
+				table.sort(lmSorted, function(a, b)
+					if a.remainder ~= b.remainder then return a.remainder > b.remainder; end
+					return a.fertility > b.fertility;
+				end);
+
+				local lmRemaining = contSeats - lmAllocated;
+				for _, entry in ipairs(lmSorted) do
+					if lmRemaining <= 0 then break; end
+					regionsPerLandmass[entry.lmID] = regionsPerLandmass[entry.lmID] + 1;
+					lmRemaining = lmRemaining - 1;
+				end
+			end
 		end
 
 		print("-");
@@ -2140,8 +2257,8 @@ function AssignStartingPlots:GenerateRegions(args)
 		for _, lmData in ipairs(landmassList) do
 			local count = regionsPerLandmass[lmData.lmID];
 			if count > 0 then
-				print(string.format("  Landmass# %d: fertility=%.1f, regions=%d, avg_fert=%.1f",
-					lmData.lmID, lmData.fertility, count, lmData.fertility / count));
+				print(string.format("  Landmass# %d (Continent# %d): fertility=%.1f, regions=%d, avg_fert=%.1f",
+					lmData.lmID, landmass_continent[lmData.lmID] or -1, lmData.fertility, count, lmData.fertility / count));
 			end
 		end
 
@@ -2712,10 +2829,10 @@ function AssignStartingPlots:PlaceImpactAndRipples(x, y)
 	local numRipples = self.adaptiveRippleRadius or 8;
 	local ripple_values = {};
 	for i = 1, numRipples do
-		-- Quadratic falloff from 97 at ring 1 down to ~10 at the outermost ring.
+		-- Quadratic falloff from 97 at ring 1 down to ~3 at the outermost ring.
 		local t = (i - 1) / math.max(1, numRipples - 1); -- 0.0 at ring 1, 1.0 at last ring
-		local value = math.floor(97 - 87 * (t * t)); -- 97 -> 10
-		ripple_values[i] = math.max(10, value);
+		local value = math.floor(97 - 94 * (t * t)); -- 97 -> 3
+		ripple_values[i] = math.max(3, value);
 	end
 
 	local odd = self.firstRingYIsOdd;
