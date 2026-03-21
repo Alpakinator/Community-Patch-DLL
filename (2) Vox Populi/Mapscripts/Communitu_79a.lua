@@ -2155,6 +2155,12 @@ function GeneratePlotTypes()
 	riverMap:EnsureSingleLakeOutflows();
 
 	-- Find exact elevation thresholds
+	-- Regenerate DiffMap now that all elevation modifications (rift balancing,
+	-- continent connectivity, sea connections) are complete. The original DiffMap
+	-- was built before these steps, so its land/water boundaries and elevation
+	-- values are stale. Regenerating ensures the mountain % target is applied
+	-- to the actual final land layout, not the pre-rift snapshot.
+	DiffMap = GenerateDiffMap(mapW, mapH, true, false);
 	local hillsThreshold = DiffMap:FindThresholdFromPercent(MG.flatPercent, false, true);
 	local mountainsThreshold = DiffMap:FindThresholdFromPercent(MG.belowMountainPercent, false, true);
 	local i = 0;
