@@ -89,7 +89,7 @@ function MapGlobals:New()
 	mglobal.coastScatter = 0.015; -- Recommended range: [0.01 to 0.3]
 
 	-- Lower values make large, long, mountain ranges. Higher values make sporadic mountainous features.
-	mglobal.mountainScatter = 250 * mapW; -- Recommended range: [130 to 1000]
+	mglobal.mountainScatter = 1000 * mapW; -- Recommended range: [130 to 1000]
 
 	--------------
 	-- Terrain
@@ -98,6 +98,7 @@ function MapGlobals:New()
 	mglobal.belowMountainPercent = 0.95; -- Percent of non-mountain land
 	-- flatPercent to belowMountainPercent : hills
 	mglobal.flatPercent = 0.65; -- Percent of flat land
+	mglobal.mountainRidgeThreshold = 0.3; -- Ridge map value required for a high-elevation tile to become a mountain (0-1). Tiles above the mountain elevation percentile but below this ridge value become hills instead.
 	mglobal.hillsBlendPercent = 0.3; -- Chance for flat land to become hills per near mountain. Requires at least 2 near mountains.
 	mglobal.terrainBlendRange = 2; -- range to smooth terrain (desert surrounded by plains turns to plains, etc)
 	mglobal.terrainBlendRandom = 0.4; -- random modifier for terrain smoothing
@@ -2121,7 +2122,7 @@ function GeneratePlotTypes()
 	PWRandSeed();
 
 	-- Elevations
-	elevationMap = GenerateElevationMap(mapW, mapH, true, false);
+	elevationMap, RidgeMap = GenerateElevationMap(mapW, mapH, true, false);
 	-- elevationMap:Save("elevationMap.csv");
 
 	-- Plots
@@ -2154,34 +2155,56 @@ function GeneratePlotTypes()
 	riverMap:SetRiverSizes();
 	riverMap:EnsureSingleLakeOutflows();
 
-	-- Find exact elevation thresholds
-	-- Regenerate DiffMap now that all elevation modifications (rift balancing,
-	-- continent connectivity, sea connections) are complete. The original DiffMap
-	-- was built before these steps, so its land/water boundaries and elevation
-	-- values are stale. Regenerating ensures the mountain % target is applied
-	-- to the actual final land layout, not the pre-rift snapshot.
-	DiffMap = GenerateDiffMap(mapW, mapH, true, false);
-	local hillsThreshold = DiffMap:FindThresholdFromPercent(MG.flatPercent, false, true);
-	local mountainsThreshold = DiffMap:FindThresholdFromPercent(MG.belowMountainPercent, false, true);
-	local i = 0;
+	-- Find elevation thresholds for plot types (flat / hills / mountains).
+	-- Use elevation directly instead of DiffMap so that the actual height of
+	-- each tile determines its plot type. The highest land tiles become
+	-- mountains, mid-elevation tiles become hills, and low-elevation tiles
+	-- become flat land. This produces mountain ranges that follow the
+	-- elevation ridges created by the mountain map, rather than relying on
+	-- local-difference spikes that can scatter mountains in odd places.
+	--
+	-- Collect land-only elevation values to compute percentile thresholds.
+	local landElevations = {};
+	for y = 0, mapH - 1 do
+		for x = 0, mapW - 1 do
+			if not elevationMap:IsBelowSeaLevel(x, y) then
+				local i = elevationMap:GetIndex(x, y);
+				table.insert(landElevations, elevationMap.data[i]);
+			end
+		end
+	end
+	table.sort(landElevations);
+
+	local hillsIndex = math.max(1, math.floor(#landElevations * MG.flatPercent));
+	local mountainsIndex = math.max(1, math.floor(#landElevations * MG.belowMountainPercent));
+	local hillsThreshold = landElevations[hillsIndex] or 0;
+	local mountainsThreshold = landElevations[mountainsIndex] or 1;
+	print(string.format("Elevation-based plot thresholds: hills=%.4f (%.0f%%), mountains=%.4f (%.0f%%), land tiles=%d",
+		hillsThreshold, MG.flatPercent * 100, mountainsThreshold, MG.belowMountainPercent * 100, #landElevations));
+
 	for y = 0, mapH - 1 do
 		for x = 0, mapW - 1 do
 			local plot = Map.GetPlot(x, y);
 			if elevationMap:IsBelowSeaLevel(x, y) then
 				plot:SetPlotType(PlotTypes.PLOT_OCEAN, false, true);
-			elseif DiffMap.data[i] < hillsThreshold then
-				plot:SetPlotType(PlotTypes.PLOT_LAND, false, true);
-			-- This code makes the game only ever plot flat land if it's within two tiles of the seam.
-			-- This prevents issues with tiles that don't look like what they are.
-			elseif x == 0 or x == 1 or x == mapW - 1 or x == mapW - 2 then
-				plot:SetPlotType(PlotTypes.PLOT_LAND, false, true);
-			-- Bobert13
-			elseif DiffMap.data[i] < mountainsThreshold then
-				plot:SetPlotType(PlotTypes.PLOT_HILLS, false, true);
 			else
-				plot:SetPlotType(PlotTypes.PLOT_MOUNTAIN, false, true);
+				local i = elevationMap:GetIndex(x, y);
+				local elev = elevationMap.data[i];
+				if elev < hillsThreshold then
+					plot:SetPlotType(PlotTypes.PLOT_LAND, false, true);
+				-- This code makes the game only ever plot flat land if it's within two tiles of the seam.
+				-- This prevents issues with tiles that don't look like what they are.
+				elseif x == 0 or x == 1 or x == mapW - 1 or x == mapW - 2 then
+					plot:SetPlotType(PlotTypes.PLOT_LAND, false, true);
+				elseif elev < mountainsThreshold then
+					plot:SetPlotType(PlotTypes.PLOT_HILLS, false, true);
+				elseif RidgeMap and RidgeMap.data[i] >= MG.mountainRidgeThreshold then
+					plot:SetPlotType(PlotTypes.PLOT_MOUNTAIN, false, true);
+				else
+					-- High elevation but not on a ridge: demote to hills
+					plot:SetPlotType(PlotTypes.PLOT_HILLS, false, true);
+				end
 			end
-			i = i + 1;
 		end
 	end
 	Map.RecalculateAreas();
@@ -6350,7 +6373,7 @@ function GenerateElevationMap(width, height, xWrap, yWrap)
 		print(string.format("%5s ms, GenerateElevationMap %s", math.floor((os.clock() - timeStart) * 1000), "End"));
 	end
 
-	return eMap;
+	return eMap, mountainMap;
 end
 
 function GenerateTempMaps()
