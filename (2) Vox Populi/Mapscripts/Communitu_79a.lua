@@ -95,9 +95,9 @@ function MapGlobals:New()
 	-- Terrain
 	--------------
 	mglobal.mountainWeight = 1; -- Weight of the mountain elevation map versus the coastline elevation map.
-	mglobal.belowMountainPercent = 0.95; -- Percent of non-mountain land
+	mglobal.belowMountainPercent = 0.96; -- Percent of non-mountain land
 	-- flatPercent to belowMountainPercent : hills
-	mglobal.flatPercent = 0.65; -- Percent of flat land
+	mglobal.flatPercent = 0.71; -- Percent of flat land
 	mglobal.mountainRidgeThreshold = 0.3; -- Ridge map value required for a high-elevation tile to become a mountain (0-1). Tiles above the mountain elevation percentile but below this ridge value become hills instead.
 	mglobal.hillsBlendPercent = 0.3; -- Chance for flat land to become hills per near mountain. Requires at least 2 near mountains.
 	mglobal.terrainBlendRange = 2; -- range to smooth terrain (desert surrounded by plains turns to plains, etc)
