@@ -1233,7 +1233,7 @@ end
 function GetMapScriptInfo()
 	local world_age, temperature, rainfall, sea_level = GetCoreMapOptions();
 	return {
-		Name = "Climatic 1.2.0",
+		Name = "Climatic 1.2.2",
 		Description = "Enhanced Communitu_79a mapscript for Vox Populi",
 		IsAdvancedMap = false,
 		SupportsMultiplayer = true,
