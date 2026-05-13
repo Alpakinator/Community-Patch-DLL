@@ -225,6 +225,10 @@ SET Text = 'Barbarian encampments can create almost any kind of unit in the game
 WHERE Tag = 'TXT_KEY_BARBARIAN_UNITS_HEADING2_BODY';
 
 UPDATE Language_en_US
+SET Text = 'Missiles are one-shot weapons. They perform a single air strike mission against a target, and then, win or lose, they are destroyed.' 
+WHERE Tag="TXT_KEY_AIRPOWER_MISSILES_HEADING2_BODY"
+
+UPDATE Language_en_US
 SET Text = '[COLOR_YELLOW]Experience Points Limitations[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_BARBARIAN_POINTLIMITS_HEADING3_TITLE';
 UPDATE Language_en_US
