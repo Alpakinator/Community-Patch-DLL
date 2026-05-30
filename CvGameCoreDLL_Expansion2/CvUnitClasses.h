@@ -106,6 +106,7 @@ public:
 	UnitAITypes GetDefaultUnitAIType() const;
 	int GetPrereqPillageTech() const;
 	int GetPrereqAndTech() const;
+	int GetPrereqAndTechForCivilization(int iCivilizationType) const;
 	int GetObsoleteTech() const;
 	int GetEra() const;
 	int GetCostScalerNumberBuilt() const;
@@ -413,6 +414,7 @@ private:
 	int** m_ppiEraUnitPromotions;
 
 	std::map<int, int> m_piResourceQuantityTotals;
+	std::map<int, int> m_miCivilizationPrereqAndTech;
 
 	bool* m_pbFreePromotions;
 

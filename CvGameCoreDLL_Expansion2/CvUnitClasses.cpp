@@ -429,6 +429,25 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	//Arrays
 	const char* szUnitType = GetType();
 	const size_t lenUnitType = strlen(szUnitType);
+	m_miCivilizationPrereqAndTech.clear();
+
+	{
+		std::string strKey = "Units - Civilization Tech Overrides";
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "SELECT Civilizations.ID, Technologies.ID FROM Civilization_UnitTechOverrides INNER JOIN Civilizations ON CivilizationType = Civilizations.Type INNER JOIN Technologies ON PrereqTech = Technologies.Type WHERE UnitType = ?");
+		}
+
+		pResults->Bind(1, szUnitType, -1, false);
+
+		while (pResults->Step())
+		{
+			m_miCivilizationPrereqAndTech[pResults->GetInt(0)] = pResults->GetInt(1);
+		}
+
+		pResults->Reset();
+	}
 
 	kUtility.SetFlavors(m_piFlavorValue, "Unit_Flavors", "UnitType", szUnitType);
 
@@ -1071,6 +1090,17 @@ int CvUnitEntry::GetPrereqPillageTech() const
 /// Prerequisite techs with AND
 int CvUnitEntry::GetPrereqAndTech() const
 {
+	return m_iPrereqAndTech;
+}
+
+int CvUnitEntry::GetPrereqAndTechForCivilization(int iCivilizationType) const
+{
+	std::map<int, int>::const_iterator it = m_miCivilizationPrereqAndTech.find(iCivilizationType);
+	if (it != m_miCivilizationPrereqAndTech.end())
+	{
+		return it->second;
+	}
+
 	return m_iPrereqAndTech;
 }
 

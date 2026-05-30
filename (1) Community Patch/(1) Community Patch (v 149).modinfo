@@ -674,6 +674,7 @@
     <File md5="F33370F877B756332373AB93250A44DE" import="0">Database Changes/WorldMap/Yields/YieldTableChanges.sql</File>
     <File md5="D0BFB3F71AFB183457D538EE3B0D771F" import="0">Database Migrations/2025_01_27_AddTableIndexes.sql</File>
     <File md5="8E4B0FB3A28A7A73D6732980DE8FA7C4" import="0">Database Migrations/2026_01_17_FixTypeConstraints.sql</File>
+    <File md5="0E2B47C63C97CDC13289CF79092AE759" import="0">Database Migrations/2026_05_30_AddCivilizationUnitTechOverrides.sql</File>
     <File md5="57387DAD981AA3C71ACC3D4C2F0AC04C" import="1">Kit/Args/CPK.Args.Each.lua</File>
     <File md5="6819884D2C1FDD48E64EACC18061EE7C" import="1">Kit/Args/CPK.Args.Empty.lua</File>
     <File md5="7699F864C526C5A55BC01B75758933A4" import="1">Kit/Args/CPK.Args.Pack.lua</File>
@@ -951,6 +952,7 @@
       <UpdateDatabase>Database Changes\Remapper.sql</UpdateDatabase>
       <UpdateDatabase>Database Migrations/2025_01_27_AddTableIndexes.sql</UpdateDatabase>
       <UpdateDatabase>Database Migrations/2026_01_17_FixTypeConstraints.sql</UpdateDatabase>
+      <UpdateDatabase>Database Migrations/2026_05_30_AddCivilizationUnitTechOverrides.sql</UpdateDatabase>
     </OnModActivated>
   </Actions>
   <EntryPoints>

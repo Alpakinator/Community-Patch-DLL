@@ -14001,7 +14001,8 @@ bool CvPlayer::canTrainUnit(UnitTypes eUnit, bool bContinue, bool bTestVisible, 
 	// Tech requirements
 	if (!bIgnoreTechRequirements)
 	{
-		if (!(GET_TEAM(getTeam()).GetTeamTechs()->HasTech((TechTypes)(pUnitInfo.GetPrereqAndTech()))))
+		const TechTypes ePrereqTech = static_cast<TechTypes>(pUnitInfo.GetPrereqAndTechForCivilization(getCivilizationType()));
+		if (!(GET_TEAM(getTeam()).GetTeamTechs()->HasTech(ePrereqTech)))
 		{
 			return false;
 		}
