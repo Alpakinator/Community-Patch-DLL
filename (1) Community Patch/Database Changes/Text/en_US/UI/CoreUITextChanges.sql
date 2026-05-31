@@ -193,6 +193,24 @@ SET Text = 'LEFT CLICK adds an additional item to the end of the production queu
 WHERE Tag = 'TXT_KEY_CITYVIEW_QUEUE_PROD_TT';
 
 UPDATE Language_en_US
+SET Text = 'Each City adds +{1_Str}% of base [ICON_RESEARCH] Science cost.'
+WHERE Tag = 'TXT_KEY_TP_TECH_CITY_COST';
+
+UPDATE Language_en_US
+SET Text = 'Each [ICON_PUPPET] non-Puppet City adds +{1_Str}% of base [ICON_CULTURE] Culture cost.'
+WHERE Tag = 'TXT_KEY_TP_CULTURE_CITY_COST';
+
+INSERT INTO Language_en_US (Tag, Text)
+SELECT 'TXT_KEY_TP_TECH_CITY_COST_DETAIL',
+	'[ICON_BULLET]Current research cost: {1_Num} [ICON_RESEARCH] Science = {2_Num} [ICON_RESEARCH] base + {3_Num} [ICON_RESEARCH] (+{5_Str}% from {7_Num} {7_Num: plural 1?city; other?cities;}).[NEWLINE][ICON_BULLET]Gaining a new City will add [COLOR_NEGATIVE_TEXT]+{4_Num}[ENDCOLOR] [ICON_RESEARCH] (+{6_Str}% of base cost).'
+WHERE NOT EXISTS (SELECT 1 FROM Language_en_US WHERE Tag = 'TXT_KEY_TP_TECH_CITY_COST_DETAIL');
+
+INSERT INTO Language_en_US (Tag, Text)
+SELECT 'TXT_KEY_TP_CULTURE_CITY_COST_DETAIL',
+	'[ICON_BULLET]Next policy cost: {1_Num} [ICON_CULTURE] Culture = {2_Num} [ICON_CULTURE] base + {3_Num} [ICON_CULTURE] (+{5_Str}% from {7_Num} {7_Num: plural 1?city; other?cities;}).[NEWLINE][ICON_BULLET]Gaining a new City will add [COLOR_NEGATIVE_TEXT]+{4_Num}[ENDCOLOR] [ICON_CULTURE] (+{6_Str}% of base cost).'
+WHERE NOT EXISTS (SELECT 1 FROM Language_en_US WHERE Tag = 'TXT_KEY_TP_CULTURE_CITY_COST_DETAIL');
+
+UPDATE Language_en_US
 SET Text = 'Click here to stop this city from growing in [ICON_CITIZEN] Population.'
 WHERE Tag = 'TXT_KEY_CITYVIEW_FOCUS_AVOID_GROWTH_TT';
 
