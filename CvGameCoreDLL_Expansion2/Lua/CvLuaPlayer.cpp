@@ -213,6 +213,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetResearchTurnsLeft);
 	Method(GetResearchCost);
 	Method(GetResearchCityCostBreakdown);
+	Method(GetResearchModifierBreakdown);
 	Method(GetResearchProgress);
 	Method(GetResearchProgressTimes100);
 
@@ -3067,6 +3068,75 @@ int CvLuaPlayer::lGetResearchCost(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+//int GetResearchModifierBreakdown(TechTypes eTech); returns knownTechBonus%, knownCount, possibleKnownCount, leaguesMod%
+// knownTechBonus: research speed bonus (%) from other civs already having this tech
+// leaguesMod: research speed bonus (%) from Scholars in Residence + CS allies
+int CvLuaPlayer::lGetResearchModifierBreakdown(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const TechTypes eTech = (TechTypes)luaL_optint(L, 2, NO_TECH);
+
+	int iKnownTechBonus = 0;
+	int iKnownCount = 0;
+	int iPossibleKnownCount = 0;
+	int iLeaguesMod = 0;
+
+	if (eTech != NO_TECH)
+	{
+		for (int iI = 0; iI < MAX_CIV_TEAMS; iI++)
+		{
+			CvTeam& kLoopTeam = GET_TEAM((TeamTypes)iI);
+			if (kLoopTeam.isAlive() && !kLoopTeam.isMinorCiv() && kLoopTeam.GetID() != pkPlayer->getTeam())
+			{
+				bool bCouldBorrowTech = false;
+				if (MOD_DIPLOMACY_TECH_BONUSES)
+				{
+					if (pkPlayer->GetEspionage()->GetNumSpies() > 0)
+						bCouldBorrowTech = GET_TEAM(pkPlayer->getTeam()).HasSpyAtTeam((TeamTypes)iI);
+					else
+						bCouldBorrowTech = GET_TEAM(pkPlayer->getTeam()).HasEmbassyAtTeam((TeamTypes)iI);
+				}
+				else
+					bCouldBorrowTech = GET_TEAM(pkPlayer->getTeam()).isHasMet((TeamTypes)iI);
+
+				if (bCouldBorrowTech)
+				{
+					if (kLoopTeam.GetTeamTechs()->HasTech(eTech))
+						iKnownCount++;
+					iPossibleKnownCount++;
+				}
+			}
+		}
+
+		if (iPossibleKnownCount > 0)
+		{
+			int iExtraCatchUp = 0;
+			if (pkPlayer->isMajorCiv())
+			{
+				iExtraCatchUp = pkPlayer->getHandicapInfo().getTechCatchUpMod();
+				iExtraCatchUp += pkPlayer->isHuman(ISHUMAN_HANDICAP) ? 0 : GC.getGame().getHandicapInfo().getAITechCatchUpMod();
+				iExtraCatchUp *= GC.getGame().getCurrentEra();
+			}
+			iKnownTechBonus = ((GD_INT_GET(TECH_COST_TOTAL_KNOWN_TEAM_MODIFIER) + iExtraCatchUp) * iKnownCount) / iPossibleKnownCount;
+		}
+
+		iLeaguesMod = GC.getGame().GetGameLeagues()->GetResearchMod(pkPlayer->GetID(), eTech);
+		if (iLeaguesMod != 0 && pkPlayer->isMajorCiv() && MOD_BALANCE_VP)
+		{
+			const int iMinorAllies = pkPlayer->GetNumCSAllies();
+			if (iMinorAllies > 0)
+				iLeaguesMod += min(50, iMinorAllies * GD_INT_GET(SCHOLAR_MINOR_ALLY_MULTIPLIER));
+		}
+	}
+
+	lua_pushinteger(L, iKnownTechBonus);
+	lua_pushinteger(L, iKnownCount);
+	lua_pushinteger(L, iPossibleKnownCount);
+	lua_pushinteger(L, iLeaguesMod);
+	return 4;
+}
+//------------------------------------------------------------------------------
+
 //int GetResearchCityCostBreakdown(TechTypes eTech); returns totalCost, baseCost, cityCost, nextCityDelta, currentModifierTimes100, nextCityModifierTimes100, cityCountUsed, basePerCityTimes100, scalingPerCityTimes100
 int CvLuaPlayer::lGetResearchCityCostBreakdown(lua_State* L)
 {

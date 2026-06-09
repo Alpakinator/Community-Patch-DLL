@@ -210,6 +210,16 @@ SELECT 'TXT_KEY_TP_CULTURE_CITY_COST_DETAIL',
 	'[ICON_BULLET]Next policy cost: {1_Num} [ICON_CULTURE] Culture = {2_Num} [ICON_CULTURE] base + {3_Num} [ICON_CULTURE] (+{5_Str}% from {7_Num} {7_Num: plural 1?city; other?cities;}).[NEWLINE][ICON_BULLET]Gaining a new City will add [COLOR_NEGATIVE_TEXT]+{4_Num}[ENDCOLOR] [ICON_CULTURE] (+{6_Str}% of base cost).'
 WHERE NOT EXISTS (SELECT 1 FROM Language_en_US WHERE Tag = 'TXT_KEY_TP_CULTURE_CITY_COST_DETAIL');
 
+INSERT INTO Language_en_US (Tag, Text)
+SELECT 'TXT_KEY_TP_TECH_KNOWN_MODIFIER',
+	'[ICON_BULLET]{1_Num}/{2_Num} known {2_Num: plural 1?civilization; other?civilizations;} already have this technology: [COLOR_POSITIVE_TEXT]+{3_Num}%[ENDCOLOR] [ICON_RESEARCH] research speed.'
+WHERE NOT EXISTS (SELECT 1 FROM Language_en_US WHERE Tag = 'TXT_KEY_TP_TECH_KNOWN_MODIFIER');
+
+INSERT INTO Language_en_US (Tag, Text)
+SELECT 'TXT_KEY_TP_TECH_SCHOLARS_MODIFIER',
+	'[ICON_BULLET]Scholars in Residence (+ [ICON_CITY_STATE] City-State allies): [COLOR_POSITIVE_TEXT]+{1_Num}%[ENDCOLOR] [ICON_RESEARCH] research speed.'
+WHERE NOT EXISTS (SELECT 1 FROM Language_en_US WHERE Tag = 'TXT_KEY_TP_TECH_SCHOLARS_MODIFIER');
+
 UPDATE Language_en_US
 SET Text = 'Click here to stop this city from growing in [ICON_CITIZEN] Population.'
 WHERE Tag = 'TXT_KEY_CITYVIEW_FOCUS_AVOID_GROWTH_TT';

@@ -197,6 +197,7 @@ protected:
 	static int lGetResearchTurnsLeft(lua_State* L);
 	static int lGetResearchCost(lua_State* L);
 	static int lGetResearchCityCostBreakdown(lua_State* L);
+	static int lGetResearchModifierBreakdown(lua_State* L);
 	static int lGetResearchProgress(lua_State* L);
 	static int lGetResearchProgressTimes100(lua_State* L);
 

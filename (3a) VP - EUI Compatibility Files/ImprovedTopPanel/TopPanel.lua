@@ -1194,6 +1194,14 @@ g_toolTipHandler.SciencePerTurn = function()-- control )
 			if totalCost >= 0 then
 				tips:insert( L( "TXT_KEY_TP_TECH_CITY_COST_DETAIL", totalCost, baseCost, cityCost, nextCityDelta, cStr, eStr, N_actual ) )
 			end
+			-- Known-tech and Scholars in Residence research speed bonuses (tech-specific, dynamically correct)
+			local iKnownBonus, iKnownCount, iPossibleCount, iLeaguesMod = g_activePlayer:GetResearchModifierBreakdown( iTech )
+			if iKnownBonus > 0 then
+				tips:insert( L( "TXT_KEY_TP_TECH_KNOWN_MODIFIER", iKnownCount, iPossibleCount, iKnownBonus ) )
+			end
+			if iLeaguesMod > 0 then
+				tips:insert( L( "TXT_KEY_TP_TECH_SCHOLARS_MODIFIER", iLeaguesMod ) )
+			end
 		end
 	end
 
