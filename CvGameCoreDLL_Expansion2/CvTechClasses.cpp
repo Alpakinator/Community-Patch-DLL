@@ -1689,7 +1689,7 @@ int CvPlayerTechs::GetResearchTurnsLeftTimes100(TechTypes eTech, bool bOverflow,
 		return INT_MAX;
 	}
 
-	// Get our research cost (not the 'team' one which doesn't use our player modifier)
+	// Get our Technology cost (not the 'team' one which doesn't use our player modifier)
 	int iResearchCost = GetResearchCost(eTech) * 100;				
 	// Get the team progress
 	int iResearchProgress = GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetResearchProgressTimes100(eTech);
@@ -1763,11 +1763,11 @@ int CvPlayerTechs::GetResearchOneMoreCityModifierTimes100(int iCityOffset) const
 }
 
 //	----------------------------------------------------------------------------
-/// Return the research cost for a tech for this player.  This will be different from the team research cost as it will
+/// Return the Technology cost for a tech for this player.  This will be different from the team Technology cost as it will
 /// include the player's research adjustment
 int CvPlayerTechs::GetResearchCost(TechTypes eTech, bool bIgnoreCities, int iCityOffset) const
 {
-	// Get the research cost for the team
+	// Get the Technology cost for the team
 	int iResearchCost = GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetResearchCost(eTech);
 	
 	// Adjust to the player's research modifier
