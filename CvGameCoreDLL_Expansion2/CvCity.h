@@ -1326,6 +1326,10 @@ public:
 
 	void changeNukeInterceptionChance(int iNewValue);
 	int getNukeInterceptionChance() const;
+	bool canAttemptNukeInterception() const;
+	void changeNukeInterceptionAttemptsThisTurn(int iChange);
+	void resetNukeInterceptionAttemptsThisTurn();
+	int getNukeInterceptionAttemptsThisTurn() const;
 
 	void SetPurchased(BuildingClassTypes eBuildingClass, bool bValue);
 	bool IsPurchased(BuildingClassTypes eBuildingClass);
@@ -2068,6 +2072,7 @@ protected:
 	int m_iTradeRouteSeaDistanceModifier;
 	int m_iTradeRouteLandDistanceModifier;
 	int m_iNukeInterceptionChance;
+	int m_iNukeInterceptionAttemptsThisTurn;
 	std::vector<int> m_aiEconomicValue;
 	std::tr1::unordered_map<YieldTypes, int> m_miInstantYieldsTotal;
 	map<UnitClassTypes, int> m_miUnitClassTrainingAllowed;
@@ -2478,6 +2483,7 @@ SYNC_ARCHIVE_VAR(int, m_iReligiousUnrestModifier)
 SYNC_ARCHIVE_VAR(int, m_iTradeRouteSeaDistanceModifier)
 SYNC_ARCHIVE_VAR(int, m_iTradeRouteLandDistanceModifier)
 SYNC_ARCHIVE_VAR(int, m_iNukeInterceptionChance)
+SYNC_ARCHIVE_VAR(int, m_iNukeInterceptionAttemptsThisTurn)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiEconomicValue)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(map<UnitClassTypes, int>), m_miUnitClassTrainingAllowed)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(map<ProjectTypes, int>), m_miWLTKDFromProject)

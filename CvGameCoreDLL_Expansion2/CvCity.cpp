@@ -1309,6 +1309,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_iExperienceFromPreviousGoldenAges = 0;
 	m_iTradePriorityLand = 0;
 	m_iNukeInterceptionChance = 0;
+	m_iNukeInterceptionAttemptsThisTurn = 0;
 	m_iTradeRouteSeaDistanceModifier = 0;
 	m_iTradeRouteLandDistanceModifier = 0;
 	m_iTradePrioritySea = 0;
@@ -26093,6 +26094,26 @@ int CvCity::getNukeInterceptionChance() const
 	VALIDATE_OBJECT();
 	return m_iNukeInterceptionChance;
 }
+bool CvCity::canAttemptNukeInterception() const
+{
+	VALIDATE_OBJECT();
+	return m_iNukeInterceptionAttemptsThisTurn < 2;
+}
+void CvCity::changeNukeInterceptionAttemptsThisTurn(int iChange)
+{
+	VALIDATE_OBJECT();
+	m_iNukeInterceptionAttemptsThisTurn += iChange;
+}
+void CvCity::resetNukeInterceptionAttemptsThisTurn()
+{
+	VALIDATE_OBJECT();
+	m_iNukeInterceptionAttemptsThisTurn = 0;
+}
+int CvCity::getNukeInterceptionAttemptsThisTurn() const
+{
+	VALIDATE_OBJECT();
+	return m_iNukeInterceptionAttemptsThisTurn;
+}
 void CvCity::SetPurchased(BuildingClassTypes eBuildingClass, bool bValue)
 {
 	VALIDATE_OBJECT();
@@ -32172,6 +32193,7 @@ void CvCity::Serialize(City& city, Visitor& visitor)
 	visitor(city.m_iTradeRouteSeaDistanceModifier);
 	visitor(city.m_iTradeRouteLandDistanceModifier);
 	visitor(city.m_iNukeInterceptionChance);
+	visitor(city.m_iNukeInterceptionAttemptsThisTurn);
 	visitor(city.m_aiEconomicValue);
 	visitor(city.m_miUnitClassTrainingAllowed);
 	visitor(city.m_miWLTKDFromProject);

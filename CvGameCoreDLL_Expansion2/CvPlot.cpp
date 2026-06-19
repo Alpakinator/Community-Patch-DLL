@@ -3765,9 +3765,10 @@ CvCity* CvPlot::GetNukeInterceptor(PlayerTypes eAttackingPlayer) const
 	if (kPlayer.isMinorCiv() || kPlayer.isBarbarian())
 		return NULL;
 
-	if (pCity->getNukeInterceptionChance() <= 0)
+	if (pCity->getNukeInterceptionChance() <= 0 || !pCity->canAttemptNukeInterception())
 		return NULL;
 
+	pCity->changeNukeInterceptionAttemptsThisTurn(1);
 	return pCity;
 }
 

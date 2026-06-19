@@ -10700,6 +10700,12 @@ void CvPlayer::SetAllUnitsUnprocessed()
 void CvPlayer::DoUnitReset()
 {
 	int iLoop = 0;
+	int iCityLoop = 0;
+	for (CvCity* pLoopCity = firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = nextCity(&iCityLoop))
+	{
+		pLoopCity->resetNukeInterceptionAttemptsThisTurn();
+	}
+
 	for (CvUnit* pLoopUnit = firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = nextUnit(&iLoop))
 	{
 		// Trade units don't heal, take plot damage or fortify

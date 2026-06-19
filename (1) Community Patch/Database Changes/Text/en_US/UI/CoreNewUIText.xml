@@ -986,7 +986,7 @@
 			<Text>{2_Sign}{1_Num}% Damage on Unit Garrison and [ICON_CITIZEN] Population Loss when Nuked</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PRODUCTION_BUILDING_NUKE_INTERCEPTION">
-			<Text>{2_Sign}{1_Num}% Chance to Intercept Nukes, lowering their Damage Level</Text>
+			<Text>Twice per turn {2_Sign}{1_Num}% Chance to Intercept Nukes, lowering their Damage Level</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PRODUCTION_BUILDING_WORK_RATE_MODIFIER">
 			<Text>{2_Sign}{1_Num}% Tile Improvement Rate</Text>
