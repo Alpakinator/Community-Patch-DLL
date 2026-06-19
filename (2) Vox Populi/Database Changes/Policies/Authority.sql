@@ -70,8 +70,8 @@ WHERE Type = 'POLICY_DISCIPLINE';
 INSERT INTO Policy_YieldFromBorderGrowth
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_DISCIPLINE', 'YIELD_PRODUCTION', 20),
-	('POLICY_DISCIPLINE', 'YIELD_GOLD', 20);
+	('POLICY_DISCIPLINE', 'YIELD_PRODUCTION', 15),
+	('POLICY_DISCIPLINE', 'YIELD_GOLD', 15);
 
 INSERT INTO Policy_FounderYield
 	(PolicyType, YieldType, Yield)
@@ -156,8 +156,8 @@ UPDATE Policies SET GoldFromKills = 0 WHERE Type = 'POLICY_HONOR_FINISHER';
 INSERT INTO Policy_YieldFromBorderGrowth
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_HONOR_FINISHER', 'YIELD_GOLD', 20),
-	('POLICY_HONOR_FINISHER', 'YIELD_PRODUCTION', 20);
+	('POLICY_HONOR_FINISHER', 'YIELD_GOLD', 15),
+	('POLICY_HONOR_FINISHER', 'YIELD_PRODUCTION', 15);
 
 INSERT INTO Policy_YieldFromMinorDemand
 	(PolicyType, YieldType, Yield)

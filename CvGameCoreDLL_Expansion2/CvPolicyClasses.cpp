@@ -4762,37 +4762,6 @@ int CvPlayerPolicies::GetNextPolicyCost()
 	iCost *= GC.getGame().getGameSpeedInfo().getCulturePercent();
 	iCost /= 100;
 
-	// Adopting Ideology tenets increases the cost of future policies/tenets
-	if (MOD_BALANCE_VP)
-	{
-		int iTier1 = 0;
-		int iTier2 = 0;
-		int iTier3 = 0;
-		for (int iBranchLoop = 0; iBranchLoop < m_pPolicies->GetNumPolicyBranches(); iBranchLoop++)
-		{
-			PolicyBranchTypes eLoopBranch = (PolicyBranchTypes) iBranchLoop;
-
-			if (eLoopBranch != NO_POLICY_BRANCH_TYPE)
-			{
-				CvPolicyBranchEntry* pkPolicyBranchInfo = GC.getPolicyBranchInfo(eLoopBranch);
-				if (pkPolicyBranchInfo && pkPolicyBranchInfo->IsPurchaseByLevel())
-				{
-					iTier1 += m_pPlayer->GetPlayerPolicies()->GetNumTenetsOfLevel(eLoopBranch, 1);
-					iTier2 += m_pPlayer->GetPlayerPolicies()->GetNumTenetsOfLevel(eLoopBranch, 2);
-					iTier3 += m_pPlayer->GetPlayerPolicies()->GetNumTenetsOfLevel(eLoopBranch, 3);
-				}
-			}
-		}
-
-		//% cost increases.
-		iTier1 *= /*2*/ (int)(GD_FLOAT_GET(POLICY_COST_EXPONENT));
-		iTier2 *= /*4*/ (int)(GD_FLOAT_GET(POLICY_COST_EXPONENT) * 2);
-		iTier3 *= /*6*/ (int)(GD_FLOAT_GET(POLICY_COST_EXPONENT) * 3);
-
-		iCost *= (100 + iTier1 + iTier2 + iTier3);
-		iCost /= 100;
-	}
-
 	if (GetPlayer()->isMajorCiv())
 	{
 		iCost *= m_pPlayer->getHandicapInfo().getPolicyPercent();

@@ -11,6 +11,13 @@ INSERT INTO Policy_GoldenAgeYieldMod
 VALUES
 	('POLICY_AESTHETICS', 'YIELD_CULTURE', 10);
 
+UPDATE Policies
+SET
+	GreatWriterRateModifier = 50,
+	GreatArtistRateModifier = 50,
+	GreatMusicianRateModifier = 50
+WHERE Type = 'POLICY_AESTHETICS';
+
 -- Cultural Centers (now Humanism)
 UPDATE Policies
 SET GoldenAgeMeterMod = -25

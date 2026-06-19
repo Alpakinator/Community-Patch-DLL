@@ -2704,6 +2704,8 @@ public:
 	bool isNoBarbUnits() const;
 	bool isNoReligion() const;
 
+	int GetCultureBlastModifier() const;
+
 	// Arrays
 
 
@@ -2743,6 +2745,7 @@ protected:
 	int m_iLeaguePercent;
 	int m_iWarmongerPercent;
 	int m_iSpecialistExtraFoodCost;
+	int m_iCultureBlastModifier;
 	bool m_bVassalageEnabled;
 
 	CvString m_strCityBombardEffectTag;

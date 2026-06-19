@@ -37,7 +37,7 @@ UPDATE Policies
 SET
 	HappinessToScience = 0,
 	GreatScientistRateModifier = 33,
-	CityGrowthMod = 10
+	CityGrowthMod = 15
 WHERE Type = 'POLICY_RATIONALISM';
 
 INSERT INTO Policy_SpecialistYieldChanges
@@ -62,7 +62,7 @@ VALUES
 INSERT INTO Policy_GoldenAgeGreatPersonRateModifier
 	(PolicyType, GreatPersonType, Modifier)
 SELECT
-	'POLICY_SCIENTIFIC_REVOLUTION', Type, 25
+	'POLICY_SCIENTIFIC_REVOLUTION', Type, 40
 FROM GreatPersons
 WHERE Specialist IS NOT NULL;
 
@@ -126,6 +126,12 @@ INSERT INTO Policy_GoldenAgeYieldMod
 VALUES
 	('POLICY_SOVEREIGNTY', 'YIELD_FOOD', 10);
 
+INSERT INTO Policy_YieldFromBirth
+	(PolicyType, YieldType, Yield)
+VALUES
+	('POLICY_SOVEREIGNTY', 'YIELD_CULTURE', 5),
+	('POLICY_SOVEREIGNTY', 'YIELD_GOLDEN_AGE_POINTS', 5);
+
 INSERT INTO Policy_YieldFromBirthRetroactive
 	(PolicyType, YieldType, Yield)
 VALUES
@@ -157,4 +163,4 @@ SET
 WHERE Type = 'POLICY_RATIONALISM_FINISHER';
 
 -- Scaler
-UPDATE Policies SET CityGrowthMod = 5 WHERE PolicyBranchType = 'POLICY_BRANCH_RATIONALISM';
+UPDATE Policies SET CityGrowthMod = 7 WHERE PolicyBranchType = 'POLICY_BRANCH_RATIONALISM';

@@ -33,7 +33,7 @@ WHERE SpecificCivRequired = 1 OR Type IN (
 -- United Front
 UPDATE Policies
 SET
-	ExtraSupplyPerPopulation = 25,
+	ExtraSupplyPerPopulation = 15,
 	MinimumAllyInfluenceIncreaseAtWar = 100,
 	CityStateUnitFrequencyModifier = 300
 WHERE Type = 'POLICY_UNITED_FRONT';

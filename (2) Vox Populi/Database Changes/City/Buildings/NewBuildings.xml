@@ -2350,7 +2350,7 @@
 			<Description>TXT_KEY_BUILDING_ROYAL_GUARDHOUSE</Description>
 			<Civilopedia>TXT_KEY_BUILDING_ROYAL_GUARDHOUSE_TEXT</Civilopedia>
 			<Help>TXT_KEY_BUILDING_ROYAL_GUARDHOUSE_HELP</Help>
-			<CitySupplyModifierGlobal>10</CitySupplyModifierGlobal>
+			<CitySupplyModifier>70</CitySupplyModifier>
 			<CapitalOnly>true</CapitalOnly>
 			<SpecialistType>SPECIALIST_ENGINEER</SpecialistType>
 			<SpecialistCount>1</SpecialistCount>
@@ -2366,7 +2366,7 @@
 			<Help>TXT_KEY_BUILDING_PALACE_GARDEN_HELP</Help>
 			<SpecialistType>SPECIALIST_WRITER</SpecialistType>
 			<SpecialistCount>1</SpecialistCount>
-			<GreatPeopleRateModifier>25</GreatPeopleRateModifier>
+			<GreatPeopleRateModifier>35</GreatPeopleRateModifier>
 			<GreatWorkSlotType>GREAT_WORK_SLOT_LITERATURE</GreatWorkSlotType>
 			<GreatWorkCount>1</GreatWorkCount>
 			<NoUnhappfromXSpecialists>2</NoUnhappfromXSpecialists>

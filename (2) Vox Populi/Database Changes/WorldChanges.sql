@@ -3,9 +3,9 @@ SET
 	MinDistanceCities = 3,
 	MinDistanceCityStates = 2,
 	NumCitiesPolicyCostMod = 5,
-	NumCitiesTourismCostMod = 5,
+	NumCitiesTourismCostMod = 10,
 	NumCitiesTechCostMod = 5,
-	NumCitiesUnitSupplyMod = 5,
+	NumCitiesUnitSupplyMod = 6,
 	ResearchPercent = 100;
 
 UPDATE Worlds

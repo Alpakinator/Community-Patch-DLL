@@ -8679,6 +8679,7 @@ CvEraInfo::CvEraInfo() :
 	m_iLeaguePercent(0),
 	m_iWarmongerPercent(0),
 	m_iSpecialistExtraFoodCost(0),
+	m_iCultureBlastModifier(100),
 	m_bVassalageEnabled(false),
 	m_bNoGoodies(false),
 	m_bNoBarbUnits(false),
@@ -8924,7 +8925,11 @@ const char* CvEraInfo::getAbbreviation() const
 {
 	return m_strAbbreviation.c_str();
 }
-
+//------------------------------------------------------------------------------
+int CvEraInfo::GetCultureBlastModifier() const
+{
+	return m_iCultureBlastModifier;
+}
 //------------------------------------------------------------------------------
 bool CvEraInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
@@ -8967,6 +8972,7 @@ bool CvEraInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUt
 	m_iLeaguePercent			= kResults.GetInt("LeaguePercent");
 	m_iWarmongerPercent			= kResults.GetInt("WarmongerPercent");
 	m_iSpecialistExtraFoodCost	= kResults.GetInt("SpecialistExtraFoodCost");
+	m_iCultureBlastModifier		= kResults.GetInt("CultureBlastModifier");
 	m_bVassalageEnabled			= kResults.GetBool("VassalageEnabled");
 
 	m_strCityBombardEffectTag	= kResults.GetText("CityBombardEffectTag");

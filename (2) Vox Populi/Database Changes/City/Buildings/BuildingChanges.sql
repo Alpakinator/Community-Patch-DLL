@@ -110,7 +110,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_AMPHITHEATER';
 INSERT INTO Building_SpecificGreatPersonRateModifier
 	(BuildingType, SpecialistType, Modifier)
 SELECT
-	Type, 'SPECIALIST_WRITER', 33
+	Type, 'SPECIALIST_WRITER', 25
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_AMPHITHEATER';
 
@@ -148,7 +148,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_OPERA_HOUSE';
 INSERT INTO Building_SpecificGreatPersonRateModifier
 	(BuildingType, SpecialistType, Modifier)
 SELECT
-	Type, 'SPECIALIST_MUSICIAN', 33
+	Type, 'SPECIALIST_MUSICIAN', 25
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_OPERA_HOUSE';
 
@@ -163,7 +163,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_GALLERY';
 INSERT INTO Building_SpecificGreatPersonRateModifier
 	(BuildingType, SpecialistType, Modifier)
 SELECT
-	Type, 'SPECIALIST_ARTIST', 33
+	Type, 'SPECIALIST_ARTIST', 25
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_GALLERY';
 
@@ -469,7 +469,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_COUNCIL';
 INSERT INTO Building_YieldFromBirth
 	(BuildingType, YieldType, Yield, IsEraScaling)
 SELECT
-	Type, 'YIELD_SCIENCE', 5, 1
+	Type, 'YIELD_SCIENCE', 8, 0
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_COUNCIL';
 
@@ -526,7 +526,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_UNIVERSITY';
 INSERT INTO Building_GrowthExtraYield
 	(BuildingType, YieldType, Yield)
 SELECT
-	Type, 'YIELD_SCIENCE', 25
+	Type, 'YIELD_SCIENCE', 35
 FROM Buildings
 WHERE BuildingClass = 'BUILDINGCLASS_UNIVERSITY';
 
@@ -860,14 +860,13 @@ WHERE Type = 'BUILDING_WALLS';
 UPDATE Buildings
 SET
 	CityRangedStrikeRange = 1,
-	CitySupplyModifier = 5,
 	EmpireSizeModifierReduction = -5
 WHERE BuildingClass = 'BUILDINGCLASS_WALLS';
 
 -- Castle
 UPDATE Buildings
 SET
-	CitySupplyModifier = 5,
+	CitySupplyModifier = 3,
 	EmpireSizeModifierReduction = -5
 WHERE BuildingClass = 'BUILDINGCLASS_CASTLE';
 
@@ -2673,18 +2672,18 @@ CREATE TEMP TABLE BuildingsTemp (
 
 INSERT INTO BuildingsTemp
 VALUES
-	('BUILDINGCLASS_WALLS', 600, 100, 0),
-	('BUILDINGCLASS_CASTLE', 800, 0, 2),
-	('BUILDINGCLASS_BASTION_FORT', 1000, 0, 2),
-	('BUILDINGCLASS_ARSENAL', 1200, 300, 0),
-	('BUILDINGCLASS_MILITARY_BASE', 2400, 200, 0),
+	('BUILDINGCLASS_WALLS', 700, 100, 0),
+	('BUILDINGCLASS_CASTLE', 900, 0, 2),
+	('BUILDINGCLASS_BASTION_FORT', 1200, 0, 2),
+	('BUILDINGCLASS_ARSENAL', 1600, 300, 0),
+	('BUILDINGCLASS_MILITARY_BASE', 2800, 200, 0),
 	('BUILDINGCLASS_BOMB_SHELTER', 500, 0, 0),
 	-- Capital
 	('BUILDINGCLASS_PALACE', 400, 0, 0),
 	-- Tradition
-	('BUILDINGCLASS_ROYAL_GUARDHOUSE', 200, 50, 0),
+	('BUILDINGCLASS_ROYAL_GUARDHOUSE', 800, 50, 0),
 	-- World Wonders
-	('BUILDINGCLASS_RED_FORT', 600, 100, 0),
+	('BUILDINGCLASS_RED_FORT', 1200, 100, 0),
 	-- Beliefs
 	('BUILDINGCLASS_GURDWARA', 300, 0, 0);
 

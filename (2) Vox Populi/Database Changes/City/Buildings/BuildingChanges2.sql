@@ -151,13 +151,13 @@ VALUES
 INSERT INTO Building_YieldChanges
 	(BuildingType, YieldType, Yield)
 VALUES
-	('BUILDING_MANDIR', 'YIELD_FOOD', 2),
+	('BUILDING_MANDIR', 'YIELD_FOOD', 3),
 	('BUILDING_MANDIR', 'YIELD_FAITH', 3);
 
 INSERT INTO Building_YieldFromBirth
 	(BuildingType, YieldType, Yield, IsEraScaling)
 SELECT
-	'BUILDING_MANDIR', Type, 5, 1
+	'BUILDING_MANDIR', Type, 4, 1
 FROM Yields
 WHERE ID < 6; -- "All" yields
 

@@ -137,7 +137,7 @@ UPDATE Defines SET Value = 10 WHERE Name = 'VASSAL_HAPPINESS_PERCENT'; -- (NOTE:
 -------------------------------------------------------------------------------------------------------------------
 
 -- Excess food needed for next population
-UPDATE Defines SET Value = 2.05 WHERE Name = 'CITY_GROWTH_EXPONENT';
+UPDATE Defines SET Value = 2.06 WHERE Name = 'CITY_GROWTH_EXPONENT';
 UPDATE Defines SET Value = 18.0 WHERE Name = 'CITY_GROWTH_MULTIPLIER';
 
 -- Border growth cost
@@ -194,22 +194,22 @@ UPDATE Defines SET Value = 45 WHERE Name = 'BARBARIAN_MAX_XP_VALUE';
 UPDATE Defines SET Value = 70 WHERE Name = 'MINOR_MAX_XP_VALUE';
 
 -- More maintenance if this value is increased
-UPDATE Defines SET Value = 8 WHERE Name = 'UNIT_MAINTENANCE_GAME_MULTIPLIER';
+UPDATE Defines SET Value = 16 WHERE Name = 'UNIT_MAINTENANCE_GAME_MULTIPLIER';
 
 -- More maintenance if this value is lowered
-UPDATE Defines SET Value = 5 WHERE Name = 'UNIT_MAINTENANCE_GAME_EXPONENT_DIVISOR';
+UPDATE Defines SET Value = 4 WHERE Name = 'UNIT_MAINTENANCE_GAME_EXPONENT_DIVISOR';
 
 -- Combat penalty if out of strategic resource
 UPDATE Defines SET Value = 0 WHERE Name = 'STRATEGIC_RESOURCE_EXHAUSTED_PENALTY';
 
 -- Number of unexplored plots required per recon unit, used by AI
 -- Modified by personality!
-UPDATE Defines SET Value = 54 WHERE Name = 'MAX_PLOTS_PER_EXPLORER';
+UPDATE Defines SET Value = 60 WHERE Name = 'MAX_PLOTS_PER_EXPLORER';
 
 UPDATE Defines SET Value = 1.25 WHERE Name = 'UNIT_UPGRADE_COST_PER_PRODUCTION';
 
 -- Maximum discount you can get for stacking unit upgrade discounts, so the number doesn't go negative
-UPDATE Defines SET Value = -99 WHERE Name = 'UNIT_UPGRADE_COST_DISCOUNT_MAX';
+UPDATE Defines SET Value = -90 WHERE Name = 'UNIT_UPGRADE_COST_DISCOUNT_MAX';
 
 UPDATE Defines SET Value = 4 WHERE Name = 'GOLD_PURCHASE_GOLD_PER_PRODUCTION';
 UPDATE Defines SET Value = 0.88 WHERE Name = 'HURRY_GOLD_PRODUCTION_EXPONENT';
@@ -392,7 +392,7 @@ UPDATE Defines SET Value = 18 WHERE Name = 'GOLD_GIFT_FRIENDSHIP_DIVISOR';
 -- Policies
 -------------------------------------------------------------------------------------------------------------------
 UPDATE Defines SET Value = 50 WHERE Name = 'BASE_POLICY_COST';
-UPDATE Defines SET Value = 2.22 WHERE Name = 'POLICY_COST_EXPONENT';
+UPDATE Defines SET Value = 2.27 WHERE Name = 'POLICY_COST_EXPONENT';
 UPDATE Defines SET Value = 4 WHERE Name = 'POLICY_COST_INCREASE_TO_BE_EXPONENTED';
 UPDATE Defines SET Value = .20 WHERE Name = 'POLICY_COST_EXTRA_VALUE';
 

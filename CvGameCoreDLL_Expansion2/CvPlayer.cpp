@@ -16983,7 +16983,7 @@ int CvPlayer::GetNumUnitsSuppliedByCities(bool bIgnoreReduction) const
 	{
 		int iTechProgress = range((GET_TEAM(getTeam()).GetTeamTechs()->GetNumTechsKnown() * 100) / GC.getNumTechInfos(), 0, 100);
 
-		iTechProgress *= /*0 in CP, 83 in VP*/ GD_INT_GET(UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER);
+		iTechProgress *= /*0 in CP, 100 in VP*/ GD_INT_GET(UNIT_SUPPLY_CITIES_TECH_REDUCTION_MULTIPLIER);
 		iTechProgress /= 100;
 
 		iSupply *= 100;
@@ -48831,6 +48831,16 @@ int CvPlayer::GetTreatiseCulture(UnitTypes eUnit) const
 			iCulture /= 100;
 		}
 	}
+
+	// Era-based reduction to flatten late-game exponential growth
+	EraTypes eCurrentEra = GetCurrentEra();
+	const CvEraInfo* pkEraInfo = GC.getEraInfo(eCurrentEra);
+	int iEraModifier = 100;
+	if (pkEraInfo)
+	{
+		iEraModifier = pkEraInfo->GetCultureBlastModifier();
+	}
+	iCulture = iCulture * iEraModifier / 100;
 
 	// Scale with game speed
 	iCulture = iCulture * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;

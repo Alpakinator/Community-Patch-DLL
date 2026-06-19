@@ -15,7 +15,7 @@ You are a specialist for Community Patch DLL and Vox Populi gameplay changes.
 
 ## Skill Routing
 - If the task mentions SQL, XML, table rows, override chain, modinfo order, or "where is this defined", use `sql-xml-override-trace` first.
-- If the task mentions hardcoded behavior, C++ mechanics, AI logic, or missing SQL/XML definitions, use `dll-mechanic-implementation` first.
+- If the task mentions hardcoded behavior, C++ mechanics, game engine, DLL, AI logic, or missing SQL/XML definitions, use `dll-mechanic-implementation` first.
 - Prefer skill workflow before broad repository exploration.
 
 ## Always-True Rules

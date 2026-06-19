@@ -192,7 +192,7 @@ WHERE Type = 'POLICY_UNIVERSAL_HEALTHCARE_F';
 INSERT INTO Policy_YieldFromBirth
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_UNIVERSAL_HEALTHCARE_F', 'YIELD_CULTURE', 50);
+	('POLICY_UNIVERSAL_HEALTHCARE_F', 'YIELD_CULTURE', 35);
 
 -- Transnationalism
 INSERT INTO Policy_FranchisePerImprovement
