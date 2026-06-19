@@ -137,8 +137,8 @@ UPDATE Defines SET Value = 10 WHERE Name = 'VASSAL_HAPPINESS_PERCENT'; -- (NOTE:
 -------------------------------------------------------------------------------------------------------------------
 
 -- Excess food needed for next population
-UPDATE Defines SET Value = 2.22 WHERE Name = 'CITY_GROWTH_EXPONENT';
-UPDATE Defines SET Value = 12.0 WHERE Name = 'CITY_GROWTH_MULTIPLIER';
+UPDATE Defines SET Value = 2.05 WHERE Name = 'CITY_GROWTH_EXPONENT';
+UPDATE Defines SET Value = 18.0 WHERE Name = 'CITY_GROWTH_MULTIPLIER';
 
 -- Border growth cost
 UPDATE Defines SET Value = 20 WHERE Name = 'CULTURE_COST_FIRST_PLOT';

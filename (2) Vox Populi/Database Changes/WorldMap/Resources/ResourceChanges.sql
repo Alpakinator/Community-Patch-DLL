@@ -374,7 +374,7 @@ VALUES
 	('RESOURCE_MARBLE', 'YIELD_CULTURE', 10);
 
 UPDATE Resources
-SET MonopolyHappiness = 6
+SET MonopolyHappiness = 10
 WHERE Type IN (
 	'RESOURCE_FUR',
 	'RESOURCE_AMBER',
@@ -384,7 +384,7 @@ WHERE Type IN (
 );
 
 UPDATE Resources
-SET MonopolyGALength = 25
+SET MonopolyGALength = 35
 WHERE Type IN (
 	'RESOURCE_GOLD',
 	'RESOURCE_IVORY',
@@ -393,7 +393,7 @@ WHERE Type IN (
 );
 
 UPDATE Resources
-SET MonopolyGALength = 30
+SET MonopolyGALength = 40
 WHERE Type = 'RESOURCE_PORCELAIN';
 
 -- Strategic monopolies
