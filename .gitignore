@@ -46,6 +46,9 @@
 
 !docs/images/*
 
+#local config (private paths)
+scripts/deploy_config.local.json
+
 #the following files should never be changed
 (2) Vox Populi/Mapscripts/EMP
 
