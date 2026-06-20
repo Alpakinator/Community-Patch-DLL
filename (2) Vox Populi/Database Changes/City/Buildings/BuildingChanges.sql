@@ -2070,6 +2070,7 @@ WHERE BuildingClass = 'BUILDINGCLASS_RECYCLING_CENTER';
 UPDATE Buildings
 SET
 	PrereqTech = 'TECH_NUCLEAR_FISSION',
+	NukeModifier = -70,
 	NukeInterceptionChance = 50,
 	CityAirStrikeDefense = 10
 WHERE BuildingClass = 'BUILDINGCLASS_BOMB_SHELTER';

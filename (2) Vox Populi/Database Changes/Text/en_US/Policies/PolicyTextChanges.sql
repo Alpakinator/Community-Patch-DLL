@@ -16,7 +16,7 @@ SET Text = 'Justice'
 WHERE Tag = 'TXT_KEY_POLICY_ARISTOCRACY';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Justice[ENDCOLOR][NEWLINE][ICON_BULLET]Cities with a garrison gain +25% [ICON_RANGE_STRENGTH] Ranged Combat Strength.[NEWLINE][ICON_BULLET][COLOR_POSITIVE_TEXT]{TXT_KEY_BUILDING_ROYAL_GUARDHOUSE}[ENDCOLOR] built in [ICON_CAPITAL] Capital (+3 [ICON_PRODUCTION] Production, +2 [ICON_STRENGTH] Defense, +50 Hit Points, +10% [ICON_SILVER_FIST] Military Supply from [ICON_CITIZEN] Population in all Cities, +1 [ICON_PRODUCTION] Production to all Councils and Forges, 1 [ICON_ENGINEER] Engineer Slot).'
+SET Text = '[COLOR_POSITIVE_TEXT]Justice[ENDCOLOR][NEWLINE][ICON_BULLET]Cities with a garrison gain +25% [ICON_RANGE_STRENGTH] Ranged Combat Strength.[NEWLINE][ICON_BULLET][COLOR_POSITIVE_TEXT]{TXT_KEY_BUILDING_ROYAL_GUARDHOUSE}[ENDCOLOR] built in [ICON_CAPITAL] Capital (+3 [ICON_PRODUCTION] Production, +2 [ICON_STRENGTH] Defense, +50 Hit Points, +70% [ICON_SILVER_FIST] Military Supply from [ICON_CITIZEN] Population in the City, +1 [ICON_PRODUCTION] Production to all Councils and Forges, 1 [ICON_ENGINEER] Engineer Slot).'
 WHERE Tag = 'TXT_KEY_POLICY_ARISTOCRACY_HELP';
 
 UPDATE Language_en_US
@@ -79,7 +79,7 @@ SET Text = 'Progress'
 WHERE Tag = 'TXT_KEY_POLICY_BRANCH_LIBERTY';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Progress[ENDCOLOR] plans to found a sprawl of self-sufficient Cities in the [COLOR_CYAN]early game[ENDCOLOR] with free starting yields and faster [ICON_WORKER] rate of tile improvement. Constructing Buildings and birthing [ICON_CITIZEN] Citizens supports the economy [COLOR_CYAN]throughout the game[ENDCOLOR].[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting Progress grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Receive an instant boost of 75 [ICON_RESEARCH] Science.[NEWLINE][ICON_BULLET]Receive 8 [ICON_RESEARCH] Science when a [ICON_CITIZEN] Citizen is born, scaling with Era.[NEWLINE][ICON_BULLET]Receive 15 [ICON_CULTURE] Culture when a Technology is researched, scaling with Era, and for every Technology already unlocked (not scaling with Era).[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Each Progress policy unlocked grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Gain an additional 15 [ICON_CULTURE] Culture when a Technology is researched, scaling with Era.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting all policies in Progress grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Unlocks building the [COLOR_POSITIVE_TEXT]Forbidden Palace[ENDCOLOR].[NEWLINE][ICON_BULLET]Receive 25 [ICON_GOLD] Gold when a [ICON_CITIZEN] Citizen is born in any city, scaling with Era.[NEWLINE][ICON_BULLET]Allows for the purchase of [ICON_GREAT_WRITER] Great Writers with [ICON_PEACE] Faith starting in the Industrial Era.'
+SET Text = '[COLOR_POSITIVE_TEXT]Progress[ENDCOLOR] plans to found a sprawl of self-sufficient Cities in the [COLOR_CYAN]early game[ENDCOLOR] with free starting yields and faster [ICON_WORKER] rate of tile improvement. Constructing Buildings and birthing [ICON_CITIZEN] Citizens supports the economy [COLOR_CYAN]throughout the game[ENDCOLOR].[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting Progress grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Receive an instant boost of 50 [ICON_RESEARCH] Science.[NEWLINE][ICON_BULLET]Receive 8 [ICON_RESEARCH] Science when a [ICON_CITIZEN] Citizen is born, scaling with Era.[NEWLINE][ICON_BULLET]Receive 15 [ICON_CULTURE] Culture when a Technology is researched, scaling with Era, and for every Technology already unlocked (not scaling with Era).[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Each Progress policy unlocked grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Gain an additional 15 [ICON_CULTURE] Culture when a Technology is researched, scaling with Era.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting all policies in Progress grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Unlocks building the [COLOR_POSITIVE_TEXT]Forbidden Palace[ENDCOLOR].[NEWLINE][ICON_BULLET]Receive 25 [ICON_GOLD] Gold when a [ICON_CITIZEN] Citizen is born in any city, scaling with Era.[NEWLINE][ICON_BULLET]Allows for the purchase of [ICON_GREAT_WRITER] Great Writers with [ICON_PEACE] Faith starting in the Industrial Era.'
 WHERE Tag = 'TXT_KEY_POLICY_BRANCH_LIBERTY_HELP';
 
 UPDATE Language_en_US
@@ -598,7 +598,7 @@ SET Text = 'Chancellor {1_PlayerName:textkey} of {2_CivName:textkey}'
 WHERE Tag = 'TXT_KEY_RATIONALISM_TITLE';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Rationalism[ENDCOLOR] unleashes a wave of new [ICON_CITIZEN] Citizens by providing large [ICON_HAPPINESS_1] Happiness and [ICON_FOOD] Food bonuses. It simultaneously boosts the output of the resulting [ICON_GOLDEN_AGE] Golden Ages and Specialists, especially [ICON_SCIENTIST] Scientists.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting Rationalism grants:[ENDCOLOR][NEWLINE][ICON_BULLET]+1 [ICON_RESEARCH] Science and [ICON_CULTURE] Culture from [ICON_SCIENTIST] Scientists.[NEWLINE][ICON_BULLET]Earn [ICON_GREAT_SCIENTIST] Great Scientists 33% faster.[NEWLINE][ICON_BULLET]+10% [ICON_FOOD] Growth in all Cities.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Each Rationalism policy unlocked grants:[ENDCOLOR][NEWLINE][ICON_BULLET]+5% [ICON_FOOD] Growth in all Cities.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting all Policies in Rationalism grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Unlocks building [COLOR_POSITIVE_TEXT]Bletchley Park[ENDCOLOR].[NEWLINE][ICON_BULLET]+25% Instant Yields from [ICON_GREAT_SCIENTIST] Great Scientists.[NEWLINE][ICON_BULLET]+12 [ICON_SPY] City Security in every City.[NEWLINE][ICON_BULLET]Allows for the purchase of [ICON_GREAT_SCIENTIST] Great Scientists with [ICON_PEACE] Faith starting in the Industrial Era.'
+SET Text = '[COLOR_POSITIVE_TEXT]Rationalism[ENDCOLOR] unleashes a wave of new [ICON_CITIZEN] Citizens by providing large [ICON_HAPPINESS_1] Happiness and [ICON_FOOD] Food bonuses. It simultaneously boosts the output of the resulting [ICON_GOLDEN_AGE] Golden Ages and Specialists, especially [ICON_SCIENTIST] Scientists.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting Rationalism grants:[ENDCOLOR][NEWLINE][ICON_BULLET]+1 [ICON_RESEARCH] Science and [ICON_CULTURE] Culture from [ICON_SCIENTIST] Scientists.[NEWLINE][ICON_BULLET]Earn [ICON_GREAT_SCIENTIST] Great Scientists 33% faster.[NEWLINE][ICON_BULLET]+15% [ICON_FOOD] Growth in all Cities.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Each Rationalism policy unlocked grants:[ENDCOLOR][NEWLINE][ICON_BULLET]+7% [ICON_FOOD] Growth in all Cities.[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Adopting all Policies in Rationalism grants:[ENDCOLOR][NEWLINE][ICON_BULLET]Unlocks building [COLOR_POSITIVE_TEXT]Bletchley Park[ENDCOLOR].[NEWLINE][ICON_BULLET]+25% Instant Yields from [ICON_GREAT_SCIENTIST] Great Scientists.[NEWLINE][ICON_BULLET]+12 [ICON_SPY] City Security in every City.[NEWLINE][ICON_BULLET]Allows for the purchase of [ICON_GREAT_SCIENTIST] Great Scientists with [ICON_PEACE] Faith starting in the Industrial Era.'
 WHERE Tag = 'TXT_KEY_POLICY_BRANCH_RATIONALISM_HELP';
 
 UPDATE Language_en_US
@@ -618,7 +618,7 @@ SET Text = 'Liberalism'
 WHERE Tag = 'TXT_KEY_POLICY_SCIENTIFIC_REVOLUTION';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Liberalism[ENDCOLOR][NEWLINE][ICON_BULLET]+2 [ICON_GOLD] Gold and +1 [ICON_PRODUCTION] Production from Specialists.[NEWLINE][ICON_BULLET]+25% [ICON_GREAT_PEOPLE] Great Person Rate during [ICON_GOLDEN_AGE] Golden Ages.'
+SET Text = '[COLOR_POSITIVE_TEXT]Liberalism[ENDCOLOR][NEWLINE][ICON_BULLET]+2 [ICON_GOLD] Gold and +1 [ICON_PRODUCTION] Production from Specialists.[NEWLINE][ICON_BULLET]+40% [ICON_GREAT_PEOPLE] Great Person Rate during [ICON_GOLDEN_AGE] Golden Ages.'
 WHERE Tag = 'TXT_KEY_POLICY_SCIENTIFIC_REVOLUTION_HELP';
 
 UPDATE Language_en_US
@@ -634,7 +634,7 @@ SET Text = 'Emancipation'
 WHERE Tag = 'TXT_KEY_POLICY_SOVEREIGNTY';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]Emancipation[ENDCOLOR][NEWLINE][ICON_BULLET]Receive an [COLOR_POSITIVE_TEXT]Instant Boost[ENDCOLOR] of 5 [ICON_CULTURE] Culture and [ICON_GOLDEN_AGE] Golden Age Points for every [ICON_CITIZEN] Citizen in the Empire, and for future citizens, scaling with Era.[NEWLINE][ICON_BULLET]+10% [ICON_FOOD] Food during [ICON_GOLDEN_AGE] Golden Ages.[NEWLINE][ICON_BULLET]+1 [ICON_HAPPINESS_1] Happiness from every Zoo, Hotel, and Museum.'
+SET Text = '[COLOR_POSITIVE_TEXT]Emancipation[ENDCOLOR][NEWLINE][ICON_BULLET]Receive an [COLOR_POSITIVE_TEXT]Instant Boost[ENDCOLOR] of 5 [ICON_CULTURE] Culture and [ICON_GOLDEN_AGE] Golden Age Points for every [ICON_CITIZEN] Citizen in the Empire, and for future ones, scaling with Era.[NEWLINE][ICON_BULLET]+10% [ICON_FOOD] Food during [ICON_GOLDEN_AGE] Golden Ages.[NEWLINE][ICON_BULLET]+1 [ICON_HAPPINESS_1] Happiness from every Zoo, Hotel, and Museum.'
 WHERE Tag = 'TXT_KEY_POLICY_SOVEREIGNTY_HELP';
 
 UPDATE Language_en_US
@@ -972,5 +972,5 @@ SET Text = 'The Greater East Asia Co-Prosperity Sphere was an economic bloc cons
 WHERE Tag = 'TXT_KEY_POLICY_GUNBOAT_DIPLOMACY_TEXT';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_POSITIVE_TEXT]United Front[ENDCOLOR]: Military Supply generated by [ICON_CITIZEN] Population increased by 25%. While at war, your resting point for [ICON_INFLUENCE] Influence with allied City-States is increased by 100, and Militaristic City-State unit gift rates triple.'
+SET Text = '[COLOR_POSITIVE_TEXT]United Front[ENDCOLOR]: Military Supply generated by [ICON_CITIZEN] Population increased by 15%. While at war, your resting point for [ICON_INFLUENCE] Influence with allied City-States is increased by 100, and Militaristic City-State unit gift rates triple.'
 WHERE Tag = 'TXT_KEY_POLICY_UNITED_FRONT_HELP';

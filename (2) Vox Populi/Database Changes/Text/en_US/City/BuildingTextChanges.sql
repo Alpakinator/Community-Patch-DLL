@@ -154,12 +154,12 @@ WHERE Tag = 'TXT_KEY_BUILDING_SOLAR_PLANT_STRATEGY';
 
 -- Walls
 UPDATE Language_en_US
-SET Text = 'Walls increase City Strength and Hit Points, making the City more difficult to capture. Increases Military Units supplied by this City''s population by 10%, and increases the City''s Ranged Strike range by 1. Also helps with managing the Empire Size Modifier in this City. Walls are quite useful for cities located along a frontier.'
+SET Text = 'Walls increase City Strength and Hit Points, making the City more difficult to capture. Increases the City''s Ranged Strike range by 1. Also helps with managing the Empire Size Modifier in this City. Walls are quite useful for cities located along a frontier.'
 WHERE Tag = 'TXT_KEY_BUILDING_WALLS_STRATEGY';
 
 -- Castle
 UPDATE Language_en_US
-SET Text = 'The Castle is a Medieval-era building which increases Defensive Strength and reduces all incoming damage by 2. Increases Military Units supplied by this City''s population by 5%, and provides Tourism to Jail and Constabulary in this City. Also helps with managing the Empire Size Modifier in this City. The City must already possess Walls before a Castle can be constructed.'
+SET Text = 'The Castle is a Medieval-era building which increases Defensive Strength and reduces all incoming damage by 2. Increases Military Units supplied by this City''s population by 3%, and provides Tourism to Jail and Constabulary in this City. Also helps with managing the Empire Size Modifier in this City. The City must already possess Walls before a Castle can be constructed.'
 WHERE Tag = 'TXT_KEY_BUILDING_CASTLE_STRATEGY';
 
 -- Arsenal
