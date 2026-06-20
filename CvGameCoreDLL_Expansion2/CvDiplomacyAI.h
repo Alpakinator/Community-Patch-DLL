@@ -504,7 +504,7 @@ public:
 	// Num Players Nuked
 	int GetOtherPlayerNumPlayersNuked(PlayerTypes ePlayer) const;
 	void SetOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iValue);
-	void ChangeOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iChange, TeamTypes eAttackedTeam);
+	void ChangeOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iChange, TeamTypes eAttackedTeam, int iNukeLevel = -1);
 
 	// Num Minors Conquered
 	int GetPlayerNumMinorsConquered(PlayerTypes ePlayer) const;
@@ -835,7 +835,7 @@ public:
 
 	int GetNumTimesNuked(PlayerTypes ePlayer) const;
 	void SetNumTimesNuked(PlayerTypes ePlayer, int iValue);
-	void ChangeNumTimesNuked(PlayerTypes ePlayer, int iChange);
+	void ChangeNumTimesNuked(PlayerTypes ePlayer, int iChange, int iNukeLevel = -1);
 
 	// ------------------------------------
 	// Turn counters

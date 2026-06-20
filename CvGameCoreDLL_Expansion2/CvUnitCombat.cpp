@@ -2449,14 +2449,14 @@ void CvUnitCombat::GenerateNuclearCombatInfo(CvUnit& kAttacker, CvPlot& plot, Cv
 			{
 				PlayerTypes eInterceptingCityOwner = pInterceptionCity->getOwner();
 				if (GET_PLAYER(eInterceptingCityOwner).isMajorCiv())
-					GET_PLAYER(eInterceptingCityOwner).GetDiplomacyAI()->ChangeNumTimesNuked(kAttacker.getOwner(), 1);
+					GET_PLAYER(eInterceptingCityOwner).GetDiplomacyAI()->ChangeNumTimesNuked(kAttacker.getOwner(), 1, bPartialInterception ? 1 : kAttacker.GetNukeDamageLevel());
 				else if (GET_PLAYER(eInterceptingCityOwner).isMinorCiv())
 				{
 					GET_PLAYER(eInterceptingCityOwner).GetMinorCivAI()->SetFriendshipWithMajor(kAttacker.getOwner(), /*-60*/ GD_INT_GET(MINOR_FRIENDSHIP_AT_WAR));
 					for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 					{
 						PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-						GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(kAttacker.getOwner(), 1, GET_PLAYER(eInterceptingCityOwner).getTeam());
+						GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(kAttacker.getOwner(), 1, GET_PLAYER(eInterceptingCityOwner).getTeam(), bPartialInterception ? 1 : kAttacker.GetNukeDamageLevel());
 					}
 				}
 			}
@@ -2664,14 +2664,14 @@ uint CvUnitCombat::ApplyNuclearExplosionDamage(const CvCombatMemberEntry* pkDama
 			if (GET_PLAYER(pkAttacker->getOwner()).isMajorCiv() && GET_PLAYER(pkAttacker->getOwner()).getTeam() != GET_PLAYER(*iter).getTeam())
 			{
 				if (GET_PLAYER(*iter).isMajorCiv())
-					GET_PLAYER(*iter).GetDiplomacyAI()->ChangeNumTimesNuked(pkAttacker->getOwner(), 1);
+					GET_PLAYER(*iter).GetDiplomacyAI()->ChangeNumTimesNuked(pkAttacker->getOwner(), 1, iDamageLevel);
 				else if (GET_PLAYER(*iter).isMinorCiv())
 				{
 					GET_PLAYER(*iter).GetMinorCivAI()->SetFriendshipWithMajor(pkAttacker->getOwner(), /*-60*/ GD_INT_GET(MINOR_FRIENDSHIP_AT_WAR));
 					for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 					{
 						PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-						GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(pkAttacker->getOwner(), 1, GET_PLAYER(*iter).getTeam());
+						GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(pkAttacker->getOwner(), 1, GET_PLAYER(*iter).getTeam(), iDamageLevel);
 					}
 				}
 			}
@@ -4163,14 +4163,14 @@ CvUnitCombat::ATTACK_RESULT CvUnitCombat::AttackNuclear(CvUnit& kAttacker, int i
 		if (eOwner != NO_PLAYER && GET_PLAYER(kAttacker.getOwner()).isMajorCiv())
 		{
 			if (GET_PLAYER(eOwner).isMajorCiv())
-				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNumTimesNuked(kAttacker.getOwner(), 1);
+				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNumTimesNuked(kAttacker.getOwner(), 1, kAttacker.GetNukeDamageLevel());
 			else if (GET_PLAYER(eOwner).isMinorCiv())
 			{
 				GET_PLAYER(eOwner).GetMinorCivAI()->SetFriendshipWithMajor(kAttacker.getOwner(), /*-60*/ GD_INT_GET(MINOR_FRIENDSHIP_AT_WAR));
 				for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 				{
 					PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(kAttacker.getOwner(), 1, GET_PLAYER(eOwner).getTeam());
+					GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(kAttacker.getOwner(), 1, GET_PLAYER(eOwner).getTeam(), kAttacker.GetNukeDamageLevel());
 				}
 			}
 		}

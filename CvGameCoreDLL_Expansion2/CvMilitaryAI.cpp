@@ -2240,40 +2240,90 @@ void CvMilitaryAI::DoNuke(PlayerTypes ePlayer)
 		}
 		else if (GET_PLAYER(ePlayer).isMajorCiv())
 		{
-			// if one of us has already nuked the other...well, I'll keep the trend going!
-			if (m_pPlayer->GetDiplomacyAI()->GetNumTimesNuked(ePlayer) > 0 || GET_PLAYER(ePlayer).GetDiplomacyAI()->GetNumTimesNuked(m_pPlayer->GetID()) > 0)
+			bool bNuclearExchangeUnderway = (m_pPlayer->GetDiplomacyAI()->GetNumTimesNuked(ePlayer) > 0 || GET_PLAYER(ePlayer).GetDiplomacyAI()->GetNumTimesNuked(m_pPlayer->GetID()) > 0);
+			bool bRollForNuke = false;
+			CivOpinionTypes eCivOpinion = m_pPlayer->GetDiplomacyAI()->GetCivOpinion(ePlayer);
+			if (bNuclearExchangeUnderway)
 			{
-				bLaunchNuke = true;
+				// Ongoing nuclear exchanges should strongly bias toward retaliation, not force it.
+				bRollForNuke = true;
 			}
-			else
+			else if (eMilitaryStrength == STRENGTH_POWERFUL || eCurrentWarState <= WAR_STATE_TROUBLED)
 			{
-				bool bRollForNuke = false;
-				CivOpinionTypes eCivOpinion = m_pPlayer->GetDiplomacyAI()->GetCivOpinion(ePlayer);
-				if (eMilitaryStrength == STRENGTH_POWERFUL || eCurrentWarState <= WAR_STATE_TROUBLED)
+				// roll every turn
+				bRollForNuke = true;
+			}
+			else if (eCivOpinion <= CIV_OPINION_ENEMY)
+			{
+				bRollForNuke = true;
+			}
+			else if (m_pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest() || m_pPlayer->GetDiplomacyAI()->IsCloseToWorldConquest())
+			{
+				bRollForNuke = true;
+			}
+			else if (GET_PLAYER(ePlayer).GetDiplomacyAI()->IsCloseToAnyVictoryCondition())
+			{
+				bRollForNuke = true;
+			}
+			if (bRollForNuke)
+			{
+				int iFlavorNuke = m_pPlayer->GetFlavorManager()->GetPersonalityFlavorForDiplomacy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_USE_NUKE"));
+
+				if (bNuclearExchangeUnderway)
 				{
-					// roll every turn
-					bRollForNuke = true;
+					iFlavorNuke = min(10, iFlavorNuke + 3);
 				}
-				else if (eCivOpinion <= CIV_OPINION_ENEMY)
+					
+				// Consider warmonger penalty impact on allies before deciding to nuke
+				// Check if anyone has nuked yet to estimate penalty severity
+				bool bIsFirstNukeEver = true;
+				for (int iPlayerCheck = 0; iPlayerCheck < MAX_MAJOR_CIVS; iPlayerCheck++)
 				{
-					bRollForNuke = true;
-				}
-				else if (m_pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest() || m_pPlayer->GetDiplomacyAI()->IsCloseToWorldConquest())
-				{
-					bRollForNuke = true;
-				}
-				else if (GET_PLAYER(ePlayer).GetDiplomacyAI()->IsCloseToAnyVictoryCondition())
-				{
-					bRollForNuke = true;
-				}
-				if (bRollForNuke)
-				{
-					int iFlavorNuke = m_pPlayer->GetFlavorManager()->GetPersonalityFlavorForDiplomacy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_USE_NUKE"));
-					int iRoll = GC.getGame().randRangeExclusive(0, 10, m_pPlayer->GetPseudoRandomSeed().mix(GET_PLAYER(ePlayer).GetPseudoRandomSeed()));
-					if (iRoll <= iFlavorNuke)
+					PlayerTypes ePlayerCheck = (PlayerTypes)iPlayerCheck;
+					if (GET_PLAYER(ePlayerCheck).isAlive() && GET_PLAYER(ePlayerCheck).isMajorCiv())
 					{
-						bLaunchNuke = true;
+						if (m_pPlayer->GetDiplomacyAI()->GetOtherPlayerNumPlayersNuked(ePlayerCheck) > 0)
+						{
+							bIsFirstNukeEver = false;
+							break;
+						}
 					}
+				}
+					
+				// Estimate penalty using a conservative first-use assumption (missile scale).
+				int iExpectedPenalty = bIsFirstNukeEver ? GD_INT_GET(WARMONGER_THREAT_FIRST_NUCLEAR_MISSILE_WEIGHT) : GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_NUCLEAR_MISSILE_WEIGHT);
+					
+				// Count DoF allies that would likely see a large warmonger jump.
+				// Use a dampened heuristic to avoid fully blocking nukes in normal diplomacy states.
+				int iCriticalAllies = 0;
+				for (int iLoopPlayer = 0; iLoopPlayer < MAX_MAJOR_CIVS; iLoopPlayer++)
+				{
+					PlayerTypes eAlly = (PlayerTypes)iLoopPlayer;
+					if (GET_PLAYER(eAlly).isAlive() && eAlly != m_pPlayer->GetID() && eAlly != ePlayer)
+					{
+						if (m_pPlayer->GetDiplomacyAI()->IsDoFAccepted(eAlly))
+						{
+							int iAllyWarmongerHate = GET_PLAYER(eAlly).GetDiplomacyAI()->GetWarmongerHate();
+							int iScoreHeuristic = (iExpectedPenalty * iAllyWarmongerHate) / 100;
+							if (iScoreHeuristic >= GD_INT_GET(WARMONGER_THREAT_CRITICAL_THRESHOLD))
+							{
+								iCriticalAllies++;
+							}
+						}
+					}
+				}
+					
+				// Reduce nuke flavor by ally reaction: -15% per critical ally, never below 40%.
+				if (iCriticalAllies > 0)
+				{
+					int iPenaltyFactor = max(40, 100 - (iCriticalAllies * 15));
+					iFlavorNuke = iFlavorNuke * iPenaltyFactor / 100;
+				}
+					
+				int iRoll = GC.getGame().randRangeExclusive(0, 10, m_pPlayer->GetPseudoRandomSeed().mix(GET_PLAYER(ePlayer).GetPseudoRandomSeed()));
+				if (iRoll <= iFlavorNuke)
+				{
+					bLaunchNuke = true;
 				}
 			}
 		}

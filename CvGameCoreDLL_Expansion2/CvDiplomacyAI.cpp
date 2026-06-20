@@ -5610,7 +5610,7 @@ void CvDiplomacyAI::SetOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iValu
 	m_aiNumPlayersNuked[ePlayer] = min(iValue, UCHAR_MAX);
 }
 
-void CvDiplomacyAI::ChangeOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iChange, TeamTypes eAttackedTeam)
+void CvDiplomacyAI::ChangeOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iChange, TeamTypes eAttackedTeam, int iNukeLevel /*-1*/)
 {
 	if (!GetPlayer()->isAlive())
 		return;
@@ -5631,7 +5631,116 @@ void CvDiplomacyAI::ChangeOtherPlayerNumPlayersNuked(PlayerTypes ePlayer, int iC
 	if (IsVassal(ePlayer))
 		return;
 
-	int iWarmongerValueTimes100 = CvDiplomacyAIHelpers::GetWarmongerTriggerPenalty(ePlayer, eAttackedTeam, GetID(), WARMONGER_NUKED_PLAYER);
+	// Calculate nuke-specific penalty
+	int iWarmongerValueTimes100 = 0;
+	
+	if (iNukeLevel > 0)  // This is a nuke attack
+	{
+		// Determine if target (attacked team) has used nukes before
+		bool bTargetHasNuked = false;
+		for (int iPlayerCheck = 0; iPlayerCheck < MAX_MAJOR_CIVS; iPlayerCheck++)
+		{
+			CvPlayer& kCheckPlayer = GET_PLAYER((PlayerTypes)iPlayerCheck);
+			if (kCheckPlayer.isAlive() && kCheckPlayer.getTeam() == eAttackedTeam && GetOtherPlayerNumPlayersNuked((PlayerTypes)iPlayerCheck) > 0)
+			{
+				bTargetHasNuked = true;
+				break;
+			}
+		}
+		
+		// Determine if attacker is first nuke user known to this observer.
+		bool bAttackerIsFirstNukeUser = true;
+		for (int iPlayerCheck = 0; iPlayerCheck < MAX_MAJOR_CIVS; iPlayerCheck++)
+		{
+			if (GetOtherPlayerNumPlayersNuked((PlayerTypes)iPlayerCheck) > 0)
+			{
+				bAttackerIsFirstNukeUser = false;
+				break;
+			}
+		}
+		
+		// Determine nuke type: 1 = atomic, 2+ = missile
+		bool bIsMissile = (iNukeLevel > 1);
+		
+		// Base penalty for this attack
+		int iBasePenalty = 0;
+		if (bAttackerIsFirstNukeUser)
+		{
+			// First nuke user gets full penalty
+			iBasePenalty = bIsMissile ? GD_INT_GET(WARMONGER_THREAT_FIRST_NUCLEAR_MISSILE_WEIGHT) : GD_INT_GET(WARMONGER_THREAT_FIRST_ATOMIC_BOMB_WEIGHT);
+		}
+		else
+		{
+			// Subsequent users get 50% of base
+			iBasePenalty = bIsMissile ? GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_NUCLEAR_MISSILE_WEIGHT) : GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_ATOMIC_BOMB_WEIGHT);
+		}
+		
+		// Apply 80% reduction if target has nuked before (is a nuke user)
+		if (bTargetHasNuked)
+		{
+			iBasePenalty = iBasePenalty * GD_INT_GET(WARMONGER_THREAT_COUNTER_ATTACK_NUKE_USER_MULTIPLIER) / 100;
+		}
+		
+		iWarmongerValueTimes100 = iBasePenalty * 100;
+		
+		// Add penalty for subsequent attacks (50% of initial penalty each time)
+		int iNumPreviousNukes = GetOtherPlayerNumPlayersNuked(ePlayer);
+		if (iNumPreviousNukes > 0)
+		{
+			int iSubsequentPenalty = 0;
+			if (bAttackerIsFirstNukeUser)
+			{
+				iSubsequentPenalty = bIsMissile ? GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_NUCLEAR_MISSILE_WEIGHT) : GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_ATOMIC_BOMB_WEIGHT);
+			}
+			else
+			{
+				iSubsequentPenalty = (bIsMissile ? GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_NUCLEAR_MISSILE_WEIGHT) : GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_ATOMIC_BOMB_WEIGHT))
+					* GD_INT_GET(WARMONGER_THREAT_SUBSEQUENT_ATTACKER_MULTIPLIER) / 100;
+			}
+			
+			// Apply 80% reduction if target has nuked before
+			if (bTargetHasNuked)
+			{
+				iSubsequentPenalty = iSubsequentPenalty * GD_INT_GET(WARMONGER_THREAT_COUNTER_ATTACK_NUKE_USER_MULTIPLIER) / 100;
+			}
+			
+			iWarmongerValueTimes100 += iNumPreviousNukes * iSubsequentPenalty * 100;
+		}
+		
+		// Apply warscore modifier: negative warscore reduces penalty linearly (up to 60% reduction at -100)
+		if (iWarmongerValueTimes100 > 0)
+		{
+			// Get a player from the attacked team to retrieve warscore
+			PlayerTypes eAttackedPlayer = NO_PLAYER;
+			for (int iPlayerCheck = 0; iPlayerCheck < MAX_MAJOR_CIVS; iPlayerCheck++)
+			{
+				CvPlayer& kCheckPlayer = GET_PLAYER((PlayerTypes)iPlayerCheck);
+				if (kCheckPlayer.isAlive() && kCheckPlayer.getTeam() == eAttackedTeam)
+				{
+					eAttackedPlayer = (PlayerTypes)iPlayerCheck;
+					break;
+				}
+			}
+			
+			if (eAttackedPlayer != NO_PLAYER)
+			{
+				int iAttackerWarscore = GET_PLAYER(ePlayer).GetWarScore(eAttackedPlayer);
+				if (iAttackerWarscore < 0)
+				{
+					// Linear reduction: -100 warscore = 60% reduction (40% of penalty remains)
+					// At -50 warscore: 30% reduction (70% of penalty remains)
+					int iWarscoreReduction = ((-iAttackerWarscore) * 60) / 100;  // Range 0 to 60
+					iWarmongerValueTimes100 = iWarmongerValueTimes100 * (100 - iWarscoreReduction) / 100;
+				}
+			}
+		}
+	}
+	else
+	{
+		// Legacy code path for non-nuke warmonger events (shouldn't happen but keep for safety)
+		iWarmongerValueTimes100 = CvDiplomacyAIHelpers::GetWarmongerTriggerPenalty(ePlayer, eAttackedTeam, GetID(), WARMONGER_NUKED_PLAYER);
+	}
+
 	ChangeOtherPlayerWarmongerAmountTimes100(ePlayer, iWarmongerValueTimes100);
 	SetOtherPlayerNumPlayersNuked(ePlayer, GetOtherPlayerNumPlayersNuked(ePlayer) + iChange);
 	DoUpdateWarmongerThreats(true);
@@ -8169,7 +8278,7 @@ void CvDiplomacyAI::SetNumTimesNuked(PlayerTypes ePlayer, int iValue)
 	m_aiNumTimesNuked[ePlayer] = min(iValue, UCHAR_MAX);
 }
 
-void CvDiplomacyAI::ChangeNumTimesNuked(PlayerTypes ePlayer, int iChange)
+void CvDiplomacyAI::ChangeNumTimesNuked(PlayerTypes ePlayer, int iChange, int iNukeLevel /*-1*/)
 {
 	SetNumTimesNuked(ePlayer, GetNumTimesNuked(ePlayer) + iChange);
 
@@ -8182,7 +8291,7 @@ void CvDiplomacyAI::ChangeNumTimesNuked(PlayerTypes ePlayer, int iChange)
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 		{
 			CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iPlayerLoop);
-			kLoopPlayer.GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(ePlayer, iChange, GetTeam());
+			kLoopPlayer.GetDiplomacyAI()->ChangeOtherPlayerNumPlayersNuked(ePlayer, iChange, GetTeam(), iNukeLevel);
 		}
 	}
 }
