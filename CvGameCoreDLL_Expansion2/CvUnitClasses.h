@@ -100,6 +100,7 @@ public:
 	int GetUnitCaptureClassType() const;
 	int GetUnitCombatType() const;
 	int GetUnitPromotionType() const;
+	const char* GetPromotionDisplayClass() const;
 	bool IsSendCanMoveIntoEvent() const;
 	inline DomainTypes GetDomainType() const { return (DomainTypes)m_iDomainType; } //this is used very often
 	int GetCivilianAttackPriority() const;
@@ -301,6 +302,7 @@ private:
 	int m_iUnitCaptureClassType;
 	int m_iUnitCombatType;
 	int m_iUnitPromotionType;
+	CvString m_strPromotionDisplayClass;
 	bool m_bSendCanMoveIntoEvent;
 	int m_iDomainType;
 	int m_iCivilianAttackPriority;

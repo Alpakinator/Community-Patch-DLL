@@ -821,6 +821,7 @@ public:
 	UnitCombatTypes getUnitCombatType() const;
 	void setUnitCombatType(UnitCombatTypes eCombat);
 	UnitCombatTypes getUnitPromotionType() const;
+	const char* getPromotionDisplayClass() const;
 	DomainTypes getDomainType() const;
 	//check if plot type matches the (primary) domain type
 	bool isNativeDomain(const CvPlot* pPlot) const;

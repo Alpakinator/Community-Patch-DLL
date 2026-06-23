@@ -175,6 +175,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetCaptureUnitType);
 	Method(GetUnitCombatType);
 	Method(GetUnitPromotionType);
+	Method(GetPromotionDisplayClass);
 	Method(GetUnitAIType);
 	Method(SetUnitAIType);
 	Method(GetDomainType);
@@ -2416,6 +2417,23 @@ int CvLuaUnit::lGetUnitPromotionType(lua_State* L)
 
 	const UnitCombatTypes eResult = pkUnit->getUnitPromotionType();
 	lua_pushinteger(L, eResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//string getPromotionDisplayClass();
+int CvLuaUnit::lGetPromotionDisplayClass(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const char* szResult = pkUnit->getPromotionDisplayClass();
+	if (szResult != NULL)
+	{
+		lua_pushstring(L, szResult);
+	}
+	else
+	{
+		lua_pushnil(L);
+	}
 	return 1;
 }
 //------------------------------------------------------------------------------

@@ -1,6 +1,11 @@
 -- Unfortunately, the <Replace> command isn't smart enough to only replace specified values instead of whole rows,
 -- so we need to redefine all existing and new promotions here.
 
+-- Migrate vanilla PromotionPrereq to PromotionPrereqOr1 so that the Promotion Tree can traverse prerequisites
+-- via the PrereqOr columns uniformly. The DLL reads both, so gameplay is unaffected.
+UPDATE UnitPromotions SET PromotionPrereqOr1 = PromotionPrereq, PromotionPrereq = NULL 
+WHERE PromotionPrereq IS NOT NULL AND PromotionPrereqOr1 IS NULL;
+
 -- If a promotion should grant blanket immunity to all Plagues added by VP, insert it into this helper table
 -- If you also want compatibility with Plagues added by modmods, modify the associated trigger in (2) Vox Populi\Database Changes\Triggers.sql
 CREATE TEMP TABLE PlagueImmunePromotions (

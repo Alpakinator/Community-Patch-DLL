@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GameData>
+	<Table name="UnitCombatInfosEx">
+		<Column name="CombatClass" type="text" default="NULL"/>
+		<Column name="Description" type="text" reference="Language_en_US(Tag)"/>
+		<Column name="DefaultUnitType" type="text" reference="Units(Type)"/>
+		<Column name="IsDefault" type="boolean" default="false"/>
+	</Table>
+
+	<UnitCombatInfosEx>
+		<Row>
+			<CombatClass>UNITCOMBAT_MELEE</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_MELEE</Description>
+			<DefaultUnitType>UNIT_SWORDSMAN</DefaultUnitType>
+			<IsDefault>true</IsDefault>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_GUN</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_GUN</Description>
+			<DefaultUnitType>UNIT_RIFLEMAN</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_MOUNTED</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_MOUNTED</Description>
+			<DefaultUnitType>UNIT_HORSEMAN</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_ARMOR</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_ARMOR</Description>
+			<DefaultUnitType>UNIT_TANK</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_RECON</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_RECON</Description>
+			<DefaultUnitType>UNIT_SCOUT</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_ARCHER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_ARCHER</Description>
+			<DefaultUnitType>UNIT_ARCHER</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>MOUNTED_ARCHER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_MOUNTED_ARCHER</Description>
+			<DefaultUnitType>UNIT_MONGOLIAN_KESHIK</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>HELICOPTER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_HELICOPTER</Description>
+			<DefaultUnitType>UNIT_HELICOPTER_GUNSHIP</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_SIEGE</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_SIEGE</Description>
+			<DefaultUnitType>UNIT_CANNON</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>AA</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_AA</Description>
+			<DefaultUnitType>UNIT_ANTI_AIRCRAFT_GUN</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_FIGHTER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_FIGHTER</Description>
+			<DefaultUnitType>UNIT_JET_FIGHTER</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_BOMBER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_BOMBER</Description>
+			<DefaultUnitType>UNIT_BOMBER</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_NAVALMELEE</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_NAVALMELEE</Description>
+			<DefaultUnitType>UNIT_TRIREME</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_NAVALRANGED</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_NAVALRANGED</Description>
+			<DefaultUnitType>UNIT_GALLEASS</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_CARRIER</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_CARRIER</Description>
+			<DefaultUnitType>UNIT_CARRIER</DefaultUnitType>
+		</Row>
+		<Row>
+			<CombatClass>UNITCOMBAT_SUBMARINE</CombatClass>
+			<Description>TXT_KEY_PROMO_MOD_DESC_SUBMARINE</Description>
+			<DefaultUnitType>UNIT_SUBMARINE</DefaultUnitType>
+		</Row>
+	</UnitCombatInfosEx>
+
+	<Language_en_US>
+		<Row Tag="TXT_KEY_PROMO_INTERCEPTION_TOOL_TIP">
+			<Text>Available only for late game units with AirInterceptRange ability.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PROMO_EVASION_TOOL_TIP">
+			<Text>Cannot be chosen for Stealth Bombers.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PROMO_RANGE_LIMITATION_TOOL_TIP">
+			<Text>Available only for units with Range above 1.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_MELEE"><Text>Melee Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_GUN"><Text>Gunpowder Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_MOUNTED"><Text>Mounted Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_ARMOR"><Text>Armored Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_RECON"><Text>Recon Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_ARCHER"><Text>Infantry Ranged Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_MOUNTED_ARCHER"><Text>Mounted Ranged Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_HELICOPTER"><Text>Helicopter Gunship</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_SIEGE"><Text>Siege Weapons</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_AA"><Text>Anti-Aircraft Weapons</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_FIGHTER"><Text>Fighter Aircraft</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_BOMBER"><Text>Bomber Aircraft</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_NAVALMELEE"><Text>Naval Melee Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_NAVALRANGED"><Text>Naval Ranged Units</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_CARRIER"><Text>Carriers</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_MOD_DESC_SUBMARINE"><Text>Submarines</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_SWITCH_MODE"><Text>Switch Mode</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_DIPLO_CORNER_HOOK"><Text>Promotion Tree</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_DIPLO_CORNER_HOOK_TT"><Text>Display the Promotion Tree to easily see which promotions are available for a combat class (recon, naval, melee, siege, etc)</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_OPEN_TREE_FOR_UNIT_TT"><Text>Display the Promotion Tree to easily see which promotions this unit has and are available</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_SIZE"><Text>Small (key: 'D')</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_EARNT"><Text>Earnt</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_EARNT_TT"><Text>Promotions already earnt by the unit (excludes those from special abilities and wonders)</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_AVAILABLE"><Text>Available</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_AVAILABLE_TT"><Text>Promotions which may be chosen for the unit</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_NOT_AVAILABLE"><Text>Not Yet Available</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_NOT_AVAILABLE_TT"><Text>Promotions which are not yet available to the unit</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_GROUP_UNIT"><Text>Unit</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_GROUP_CLASS"><Text>Combat Class</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_GROUP_BASE"><Text>Promotion Tree</Text></Row>
+		<Row Tag="TXT_KEY_PROMO_GROUP_BASE_TT"><Text>Use the button at the top left or the shortcut key 'S' to switch between modes.</Text></Row>
+	</Language_en_US>
+</GameData>

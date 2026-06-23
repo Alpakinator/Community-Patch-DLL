@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Mod id="8411a7a8-dad3-4622-a18e-fcc18324c799" version="17">
+<Mod id="8411a7a8-dad3-4622-a18e-fcc18324c799" version="19">
   <Properties>
     <Name>(2) Vox Populi</Name>
     <Teaser>(5.3.3) Unofficial Expansion and Rebalancing Project for Civilization V: Brave New World</Teaser>
@@ -1061,6 +1061,13 @@
     <File md5="63B3FC73D1D8FFBF6CAEC7AA481AD2DA" import="1">Core Files/Core Changes/farm_types.xml</File>
     <File md5="5E37DC7960391AFF4F89851AC22A1192" import="0">Core Files/New Lua/CBP_IncaFunctions.lua</File>
     <File md5="CE52E119CFD1431AA48DD2E97F31B083" import="0">Core Files/New Lua/GlobalArchaeologistDigSites.lua</File>
+    <File md5="7639ED42D493F7831BD2E453EC1F9691" import="0">Core Files/PromotionTree/PromotionTree.xml</File>
+    <File md5="CBB983DD4762C2F168205993905EB509" import="0">Core Files/PromotionTree/PromotionTree.lua</File>
+    <File md5="3F2F06F79FB80833A9D6A808651E8CAA" import="1">Core Files/PromotionTree/ButtonManager.lua</File>
+    <File md5="ECBE2176759205C61713615D3832DA25" import="1">Core Files/PromotionTree/ControlUtils.lua</File>
+    <File md5="C9954CCB7909269AA7AE77308D5880F5" import="1">Core Files/PromotionTree/DebugPrint.lua</File>
+    <File md5="BEF7B5EC3FA2810262122DC5F24B8413" import="1">Core Files/PromotionTree/PipeManager.lua</File>
+    <File md5="1BCB1F3A22DC41E76D7936FEA310E4BF" import="1">Core Files/PromotionTree/PromotionUtils.lua</File>
     <File md5="216309B0B9233E74B23607770CF5A3C1" import="0">Core Files/New UI/CorporationsOverview.lua</File>
     <File md5="548D293873BE47A59BB278BA45710B6F" import="0">Core Files/New UI/CorporationsOverview.xml</File>
     <File md5="986930B9C8C4D967DBFAF8948EAB647D" import="1">Core Files/New UI/OverlayAntiquities.lua</File>
@@ -1257,6 +1264,7 @@
     <File md5="95AEF404ADBA83DFF275E42C9ABF36DC" import="0">Database Changes/Tech/TechChanges.sql</File>
     <File md5="20B14562E04E2AEA32D6135440939265" import="0">Database Changes/Tech/TechCostSweeps.sql</File>
     <File md5="FCA9584F87BCFBC70E67980D2909D246" import="0">Database Changes/Tech/TechTreeSweeps.sql</File>
+    <File md5="C078A8C986A3F7484382807DB88E3543" import="0">Database Changes/UI/UIPromotionTree.xml</File>
     <File md5="53E2D82FED33B77AC09D228814425A15" import="0">Database Changes/Text/en_US/GameOptionTextChanges.sql</File>
     <File md5="5F845A2FAAE68B85AAD18CBBA85D1568" import="0">Database Changes/Text/en_US/NewAutomateText.xml</File>
     <File md5="3596A7F5FD5D3DBA609D290DF56ECDB5" import="0">Database Changes/Text/en_US/NewGameOptionText.xml</File>
@@ -1334,6 +1342,7 @@
     <File md5="404A07C209ACDF05F2CBD4FBAD8EBBC3" import="0">Database Changes/Units/UnitChanges.sql</File>
     <File md5="29172E74A4062AE0B417B138E36C62A1" import="0">Database Changes/Units/UnitChanges2.sql</File>
     <File md5="047951A003CF172F38D858EEC308EE38" import="0">Database Changes/Units/UnitCostSweeps.sql</File>
+    <File md5="713911E35A5CDF188B79EA2C4DCFB924" import="0">Database Changes/Units/UnitPromotionDisplayClassAssignments.sql</File>
     <File md5="BC0B978618FCBB7B0F3220100551BA40" import="0">Database Changes/Units/UnitStatChanges.sql</File>
     <File md5="B749545562014603F01E01BB68AD661A" import="0">Database Changes/Units/UnitSweeps.sql</File>
     <File md5="3C54AAAFC2EAE4978FB82FBF86D7E689" import="0">Database Changes/WorldCongress/CongressChanges.sql</File>
@@ -1651,6 +1660,10 @@
       <UpdateDatabase>Database Changes/Text/en_US/WorldMap/RouteTextChanges.sql</UpdateDatabase>
       <UpdateDatabase>Database Changes/Text/en_US/WorldMap/TerrainTextChanges.sql</UpdateDatabase>
       <UpdateDatabase>Database Changes/Triggers.sql</UpdateDatabase>
+      <!-- Promotion Tree UI (VP-only) -->
+      <UpdateDatabase>Database Changes/UI/UIPromotionTree.xml</UpdateDatabase>
+      <!-- PromotionDisplayClass assignments for Promotion Tree UI -->
+      <UpdateDatabase>Database Changes/Units/UnitPromotionDisplayClassAssignments.sql</UpdateDatabase>
     </OnModActivated>
   </Actions>
   <EntryPoints>
@@ -1661,6 +1674,10 @@
     <EntryPoint type="InGameUIAddin" file="Core Files/New Lua/GlobalArchaeologistDigSites.lua">
       <Name>GlobalArchaeologistDigSites</Name>
       <Description>GlobalArchaeologistDigSites</Description>
+    </EntryPoint>
+    <EntryPoint type="InGameUIAddin" file="Core Files/PromotionTree/PromotionTree.xml">
+      <Name>PromotionTree</Name>
+      <Description>Promotion Tree</Description>
     </EntryPoint>
     <EntryPoint type="InGameUIAddin" file="Core Files/New UI/CorporationsOverview.xml">
       <Name>Corporations Overview</Name>

@@ -170,6 +170,7 @@ protected:
 	static int lGetCaptureUnitType(lua_State* L);
 	static int lGetUnitCombatType(lua_State* L);
 	LUAAPIEXTN(GetUnitPromotionType, int);
+	LUAAPIEXTN(GetPromotionDisplayClass, string);
 	static int lGetUnitAIType(lua_State* L);
 	static int lSetUnitAIType(lua_State* L);
 	static int lGetDomainType(lua_State* L);

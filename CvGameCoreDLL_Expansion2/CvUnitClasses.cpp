@@ -83,6 +83,7 @@ CvUnitEntry::CvUnitEntry(void) :
 	m_iUnitCaptureClassType(NO_UNITCLASS),
 	m_iUnitCombatType(NO_UNITCOMBAT),
 	m_iUnitPromotionType(NO_UNITCOMBAT),
+	m_strPromotionDisplayClass(),
 	m_bSendCanMoveIntoEvent(false),
 	m_iDomainType(NO_DOMAIN),
 	m_iCivilianAttackPriority(NO_CIVILIAN_ATTACK_PRIORITY),
@@ -351,6 +352,9 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	m_iUnitPromotionType = GC.getInfoTypeForString(szTextVal, true);
 	if (m_iUnitPromotionType == NO_UNITCOMBAT) 
 		m_iUnitPromotionType = m_iUnitCombatType;
+
+	// Display class for Promotion Tree UI (overrides combat class for display only)
+	m_strPromotionDisplayClass = kResults.GetText("PromotionDisplayClass");
 
 #if defined(MOD_CARGO_SHIPS)
 	szTextVal = kResults.GetText("SpecialUnitCargoLoad");
@@ -1045,6 +1049,14 @@ int CvUnitEntry::GetUnitCombatType() const
 int CvUnitEntry::GetUnitPromotionType() const
 {
 	return m_iUnitPromotionType;
+}
+
+/// Display class for the Promotion Tree UI - overrides combat class for display purposes
+const char* CvUnitEntry::GetPromotionDisplayClass() const
+{
+	if (m_strPromotionDisplayClass.IsEmpty())
+		return NULL;
+	return m_strPromotionDisplayClass.c_str();
 }
 
 /// Send CanMoveInto events for this unit type?

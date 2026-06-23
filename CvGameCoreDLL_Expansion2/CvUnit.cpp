@@ -14565,6 +14565,13 @@ UnitCombatTypes CvUnit::getUnitPromotionType() const
 	return ((UnitCombatTypes)(m_pUnitInfo->GetUnitPromotionType()));
 }
 
+//	--------------------------------------------------------------------------------
+const char* CvUnit::getPromotionDisplayClass() const
+{
+	VALIDATE_OBJECT();
+	return m_pUnitInfo->GetPromotionDisplayClass();
+}
+
 bool CvUnit::isNativeDomain(const CvPlot* pPlot) const
 {
 	if (!pPlot)

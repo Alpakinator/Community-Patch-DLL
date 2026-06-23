@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Mod id="d1b6328c-ff44-4b0d-aad7-c657f83610cd" version="150">
+<Mod id="d1b6328c-ff44-4b0d-aad7-c657f83610cd" version="151">
   <Properties>
     <Name>(1) Community Patch</Name>
     <Teaser>(5.3.3) Bugfixes, AI Improvements, Game Optimizations and API Extensions for Civ V</Teaser>
@@ -8,7 +8,7 @@
     <HideSetupGame>0</HideSetupGame>
     <Homepage>https://forums.civfanatics.com/forums/community-patch-project.497/</Homepage>
     <AffectsSavedGames>1</AffectsSavedGames>
-    <MinCompatibleSaveVersion>150</MinCompatibleSaveVersion>
+    <MinCompatibleSaveVersion>151</MinCompatibleSaveVersion>
     <SupportsSinglePlayer>1</SupportsSinglePlayer>
     <SupportsMultiplayer>1</SupportsMultiplayer>
     <SupportsHotSeat>1</SupportsHotSeat>
