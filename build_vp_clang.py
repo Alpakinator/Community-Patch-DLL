@@ -47,6 +47,8 @@ DEFAULT_LIBS = [
     'uuid.lib',
     'odbc32.lib',
     'odbccp32.lib',
+    'msvcrt.lib',
+    'oldnames.lib',
 ]
 DEF_FILE = 'CvGameCoreDLL_Expansion2\\CvGameCoreDLL.def'
 INCLUDE_DIRS = [
@@ -301,12 +303,11 @@ class TaskMan:
         return results
 
 def build_cl_config_args(config: Config) -> list[str]:
-    args = ['-m32', '-msse3', '/c', '/MD', '/GS', '/EHsc', '/fp:precise', '/Zc:wchar_t', '/Zi', '/FS']
+    args = ['-m32', '-msse3', '/c', '/MD', '/GS', '/EHsc', '/fp:precise', '/Zc:wchar_t', '/Zc:threadSafeInit-', '/Zi', '/FS']
     if config == Config.Release:
-        args.append('/Ox')
-        args.append('/Ob2')
-        args.append('/Zo')
-        args.append('-flto')
+        args.append('-Os')
+        args.append('/Ob0')  # clang inlining crashes Civ V
+        args.append('/Oy-')
     else:
         args.append('/Od')
         args.append('/Oy-')
@@ -319,7 +320,7 @@ def build_cl_config_args(config: Config) -> list[str]:
     return args
 
 def build_link_config_args(config: Config) -> list[str]:
-    args = ['/MACHINE:x86', '/DLL', '/DEBUG', '/LTCG', '/DYNAMICBASE', '/NXCOMPAT', '/SUBSYSTEM:WINDOWS', '/MANIFEST:EMBED', '/FORCE:MULTIPLE', f'/DEF:"{os.path.join(PROJECT_DIR, DEF_FILE)}"']
+    args = ['/MACHINE:x86', '/DLL', '/DEBUG', '/DYNAMICBASE', '/NXCOMPAT', '/SUBSYSTEM:WINDOWS', '/MANIFEST:EMBED', '/FORCE:MULTIPLE', '/NODEFAULTLIB:MSVCRT', '/NODEFAULTLIB:OLDNAMES', '/NODEFAULTLIB:VERSION', f'/DEF:"{os.path.join(PROJECT_DIR, DEF_FILE)}"']
     if config == Config.Release:
         args += ['/OPT:REF', '/OPT:ICF']
     return args

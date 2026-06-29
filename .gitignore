@@ -6,6 +6,7 @@
 !*.sql
 !*.xml
 !*.lua
+!*.bat
 
 !*.civ5mod
 !*.civ5pkg
@@ -43,6 +44,9 @@
 !*.txt
 !*.vcxproj
 !*.yml
+!*.json
+!Dockerfile
+!.dockerignore
 
 !docs/images/*
 
@@ -68,3 +72,6 @@ clang-output/
 #do not ignore lua-language-server configuration (LuaCATS)
 !.luacheckrc
 !.luarc.json
+
+#user-specific deploy config (template is tracked)
+scripts/deploy_config.local.json

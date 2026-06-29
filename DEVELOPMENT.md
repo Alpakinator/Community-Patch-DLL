@@ -23,6 +23,48 @@
 
 **Note for contributors:** Please verify your changes compile without new warnings in both MSVC and clang builds before submitting a PR. CI runs both compilers.
 
+## Building DLL with Docker (no Visual Studio or SDK required)
+
+Docker provides a reproducible build environment. Works on **Linux, Windows, and macOS** — no Visual Studio, no SDK downloads. First build downloads ~1.5 GB, subsequent builds take ~2 minutes.
+
+### One-time setup
+
+Install Docker:
+- **Windows**: [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (accept WSL 2 prompt)
+- **Linux**: [Docker Engine](https://docs.docker.com/engine/install/) for Ubuntu/Debian/Fedora/RHEL. Arch: `sudo pacman -S docker`. After install: `sudo usermod -aG docker $USER` then log out/in.
+- **macOS**: [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
+
+### Building the DLL
+
+**Linux/macOS:**
+```
+./docker-build.sh --config release    # Release (fast, 12.8 MB)
+./docker-build.sh --config debug      # Debug (for debugging)
+```
+
+**Windows:**
+```
+build.bat                 # Release (double-click or run in cmd)
+build.bat debug           # Debug
+```
+
+Output: `clang-output/Release/CvGameCore_Expansion2.dll`
+
+### Quick testing workflow
+
+`scripts/deploy_ingame.py` automates build + deploy to your Civ 5 MODS folder (all platforms):
+
+1. Create `scripts/deploy_config.local.json` with your paths (see `deploy_config.example.json`)
+2. Run `python scripts/deploy_ingame.py --profile vp-eui`
+3. It auto-builds the DLL when C++ source changes (uses `docker-build.sh` on Linux/macOS, `build.bat` on Windows)
+4. Copies mod files + fresh DLL to your Civ 5 installation
+
+```
+python scripts/deploy_ingame.py                     # Full deploy (auto-builds DLL, VP with EUI)
+python scripts/deploy_ingame.py --skip-build         # Deploy without rebuilding
+python scripts/deploy_ingame.py --dry-run            # Preview what would change
+```
+
 ## How do I debug this
 
 ### To enable logging (for bug reports)

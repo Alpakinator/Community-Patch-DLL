@@ -1,0 +1,39 @@
+# ============================================================================
+# .dockerignore - Exclude build artifacts and large files from Docker context
+# ============================================================================
+# These are never needed inside the Docker build environment.
+# Sending them to the Docker daemon wastes time and space.
+
+# Build outputs (both MSVC and clang)
+BuildOutput/
+BuildTemp/
+clang-build/
+clang-output/
+ipch/
+
+# IDE / editor
+.vs/
+.vscode/
+*.sdf
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+
+# Git
+.git/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Large binary packages (not needed for compilation)
+*.Civ5Pkg
+Packages/
+
+# Documentation images
+docs/images/
+
+# Python cache
+__pycache__/
+*.pyc
