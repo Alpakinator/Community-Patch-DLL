@@ -38,17 +38,21 @@ Install Docker:
 
 **Linux/macOS:**
 ```
-./docker-build.sh --config release    # Release (fast, 12.8 MB)
-./docker-build.sh --config debug      # Debug (for debugging)
+./docker-build.sh                     # Release (default, ~13 MB)
+./docker-build.sh --config debug      # Debug (with symbols)
+./docker-build.sh --build             # Rebuild Docker image first (its done by default id image is missing)
+./docker-build.sh --43-civs           # 43-civ version
 ```
 
 **Windows:**
 ```
-build.bat                 # Release (double-click or run in cmd)
-build.bat debug           # Debug
+docker-build.bat                      # Release (default, double-click or run in cmd)
+docker-build.bat --config debug       # Debug (with symbols)
+docker-build.bat --build              # Rebuild Docker image first (its done by default id image is missing)
+docker-build.bat --43-civs            # 43-civ version
 ```
 
-Output: `clang-output/Release/CvGameCore_Expansion2.dll`
+Output: `clang-output/Release/CvGameCore_Expansion2.dll` (or `Debug/` for debug builds)
 
 ### Quick testing workflow
 
@@ -56,13 +60,18 @@ Output: `clang-output/Release/CvGameCore_Expansion2.dll`
 
 1. Create `scripts/deploy_config.local.json` with your paths (see `deploy_config.example.json`)
 2. Run `python scripts/deploy_ingame.py --profile vp-eui`
-3. It auto-builds the DLL when C++ source changes (uses `docker-build.sh` on Linux/macOS, `build.bat` on Windows)
-4. Copies mod files + fresh DLL to your Civ 5 installation
+3. It auto-builds the DLL when C++ source changes (uses `docker-build.sh` on Linux/macOS, `docker-build.bat` on Windows)
+4. Copies mod files + fresh DLL (and `.pdb` if present) to your Civ 5 installation
 
 ```
-python scripts/deploy_ingame.py                     # Full deploy (auto-builds DLL, VP with EUI)
+python scripts/deploy_ingame.py                     # Full deploy (auto-builds release DLL, VP with EUI)
 python scripts/deploy_ingame.py --skip-build         # Deploy without rebuilding
 python scripts/deploy_ingame.py --dry-run            # Preview what would change
+python scripts/deploy_ingame.py --debug              # Build & deploy debug DLL
+python scripts/deploy_ingame.py --43-civs            # Build & deploy 43-civ version
+python scripts/deploy_ingame.py --profile cp-only    # Community Patch only (no EUI)
+python scripts/deploy_ingame.py --43-civs --profile vp-no-eui --debug   # 43-civ debug DLL + VP without EUI
+```
 ```
 
 ## How do I debug this

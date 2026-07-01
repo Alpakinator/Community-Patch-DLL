@@ -6,8 +6,8 @@
 # toolchain. Works on any OS with Docker installed.
 #
 # Usage:
-#   ./docker-build.sh                     # Debug build
-#   ./docker-build.sh --config release    # Release build
+#   ./docker-build.sh                     # Release build
+#   ./docker-build.sh --config debug      # Debug build
 #   ./docker-build.sh --build             # Rebuild Docker image, then compile
 #   ./docker-build.sh --shell             # Open shell inside the container
 #
@@ -21,7 +21,7 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE="vp-dll-builder"
-CONFIG="debug"
+CONFIG="release"
 DO_BUILD_IMAGE=false
 DO_SHELL=false
 DO_43_CIVS=false
@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             echo "Usage: $0 [--config release|debug] [--build] [--shell] [--43-civs]"
             echo ""
-            echo "  --config release|debug   Build configuration (default: debug)"
+            echo "  --config release|debug   Build configuration (default: release)"
             echo "  --build                  Rebuild Docker image first"
             echo "  --shell                  Open a shell in the build container"
             echo "  --43-civs                Build 43-civ version"
@@ -79,10 +79,12 @@ EXTRA_ARGS=""
 $DO_43_CIVS && EXTRA_ARGS="--43-civs"
 echo "=== Building VP DLL ($CONFIG)$($DO_43_CIVS && echo ' 43-civs') ==="
 docker run --rm \
+    -e PYTHONUNBUFFERED=1 \
     --user "$(id -u):$(id -g)" \
     -v "$SCRIPT_DIR:/workspace" \
     "$IMAGE" \
-    --config "$CONFIG" $EXTRA_ARGS
+    --config "$CONFIG" $EXTRA_ARGS \
+    || { echo ""; echo "BUILD FAILED. Is Docker running?"; exit 1; }
 
 echo ""
 echo "=== Done ==="

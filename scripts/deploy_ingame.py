@@ -454,10 +454,12 @@ def get_source_hash(is_43_civs: bool = False) -> str:
     return hasher.hexdigest()
 
 
-def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
-    hash_file = PROJECT_DIR / ".dll_source_hash"
+def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False,
+                        is_debug: bool = False) -> bool:
+    config = "Debug" if is_debug else "Release"
+    hash_file = PROJECT_DIR / f".dll_source_hash_{config.lower()}"
     current_hash = get_source_hash(is_43_civs)
-    dll_path = PROJECT_DIR / "clang-output" / "Release" / "CvGameCore_Expansion2.dll"
+    dll_path = PROJECT_DIR / "clang-output" / config / "CvGameCore_Expansion2.dll"
     
     need_build = False
     if not dll_path.exists():
@@ -480,18 +482,18 @@ def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
         return True
     
     if dry_run:
-        script_name = "build.bat" if sys.platform == "win32" else "./docker-build.sh"
-        print(f"[DRY RUN] Would run: {script_name} --config release" + (" --43-civs" if is_43_civs else ""))
+        script_name = "docker-build.bat" if sys.platform == "win32" else "./docker-build.sh"
+        print(f"[DRY RUN] Would run: {script_name} --config {config.lower()}" + (" --43-civs" if is_43_civs else ""))
         return False
     
     import subprocess as subproc
 
     if sys.platform == "win32":
-        build_script = PROJECT_DIR / "build.bat"
+        build_script = PROJECT_DIR / "docker-build.bat"
         if not build_script.is_file():
-            print("ERROR: build.bat not found", file=sys.stderr)
+            print("ERROR: docker-build.bat not found", file=sys.stderr)
             return False
-        cmd = [str(build_script), "--config", "release"]
+        cmd = [str(build_script), "--config", config.lower()]
         if is_43_civs:
             cmd.append("--43-civs")
     else:
@@ -499,7 +501,7 @@ def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
         if not build_script.is_file():
             print("ERROR: docker-build.sh not found", file=sys.stderr)
             return False
-        cmd = [str(build_script), "--config", "release"]
+        cmd = [str(build_script), "--config", config.lower()]
         if is_43_civs:
             cmd.append("--43-civs")
     print(f"Running: {' '.join(cmd)}")
@@ -512,7 +514,7 @@ def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
         output = (result.stderr or b"").decode(errors="replace")
         if "permission denied" in output.lower():
             print("  (retrying with sudo for Docker access)")
-            sudo_cmd = ["sudo", str(build_script), "--config", "release"]
+            sudo_cmd = ["sudo", str(build_script), "--config", config.lower()]
             if is_43_civs:
                 sudo_cmd.append("--43-civs")
             result = subproc.run(sudo_cmd, cwd=str(PROJECT_DIR), env=env)
@@ -539,32 +541,44 @@ def copy_dll_to_mod(src_dll: Path, mods_dir: Path, dry_run: bool) -> None:
     if dst.exists():
         if filecmp.cmp(src_dll, dst, shallow=False):
             print(f"DLL already up-to-date in MODS")
-            return
-        print(f"Updating DLL in MODS...")
+        else:
+            _do_copy(src_dll, dst, dry_run)
     else:
-        print(f"Copying DLL to MODS...")
-    
+        _do_copy(src_dll, dst, dry_run)
+
+    # Also copy .pdb if it exists (debug symbols for crash dumps)
+    src_pdb = src_dll.with_suffix(".pdb")
+    if src_pdb.exists():
+        dst_pdb = dst.with_suffix(".pdb")
+        if dst_pdb.exists() and filecmp.cmp(src_pdb, dst_pdb, shallow=False):
+            return
+        _do_copy(src_pdb, dst_pdb, dry_run)
+
+
+def _do_copy(src: Path, dst: Path, dry_run: bool) -> None:
     if dry_run:
-        print(f"  [DRY RUN] COPY {src_dll} -> {dst}")
+        print(f"  [DRY RUN] COPY {src} -> {dst}")
     else:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src_dll, dst)
-        print(f"  {src_dll} -> {dst}")
+        shutil.copy2(src, dst)
+        print(f"  {src} -> {dst}")
 
 
 def check_dll_present(mods_dir: Path | None = None, dry_run: bool = False,
-                     skip_build: bool = False, is_43_civs: bool = False) -> None:
+                     skip_build: bool = False, is_43_civs: bool = False,
+                     is_debug: bool = False) -> None:
     """Build DLL if source changed, then copy to (1) Community Patch."""
+    config = "Debug" if is_debug else "Release"
     if skip_build:
-        src_dll = PROJECT_DIR / "clang-output" / "Release" / "CvGameCore_Expansion2.dll"
+        src_dll = PROJECT_DIR / "clang-output" / config / "CvGameCore_Expansion2.dll"
         if not src_dll.exists():
             print(f"ERROR: DLL not found at {src_dll} (build with --skip-build omitted)", file=sys.stderr)
             sys.exit(1)
         print("\nSkipping DLL build (--skip-build)" + (" (43 Civs)" if is_43_civs else ""))
-    elif not build_dll_if_needed(dry_run, is_43_civs):
+    elif not build_dll_if_needed(dry_run, is_43_civs, is_debug):
         sys.exit(1)
     
-    src_dll = PROJECT_DIR / "clang-output" / "Release" / "CvGameCore_Expansion2.dll"
+    src_dll = PROJECT_DIR / "clang-output" / config / "CvGameCore_Expansion2.dll"
     if not src_dll.exists():
         print("ERROR: DLL not found after build", file=sys.stderr)
         sys.exit(1)
@@ -622,22 +636,28 @@ def main() -> None:
         action="store_true",
         help="Build and deploy the 43-civ version of the DLL",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Build debug DLL instead of release",
+    )
     args = parser.parse_args()
 
     profile = PROFILE_CONFIG[args.profile]
     mod_folders = profile["mods"]
     dlc_folders = profile["dlc"]
 
-    if not args.mods_dir.is_dir():
-        print(f"ERROR: MODS directory not found: {args.mods_dir}", file=sys.stderr)
-        sys.exit(1)
     needs_dlc_dir = bool(dlc_folders) or args.clean_unused
+
+    # Validate paths before creating anything
+    validate_paths(args.mods_dir, args.dlc_dir if needs_dlc_dir else None)
+
+    if not args.mods_dir.is_dir():
+        print(f"MODS directory not found, creating: {args.mods_dir}")
+        args.mods_dir.mkdir(parents=True, exist_ok=True)
     if needs_dlc_dir and not args.dlc_dir.is_dir():
         print(f"ERROR: DLC directory not found: {args.dlc_dir}", file=sys.stderr)
         sys.exit(1)
-
-    # Validate paths before proceeding
-    validate_paths(args.mods_dir, args.dlc_dir if needs_dlc_dir else None)
 
     if args.dry_run:
         print("*** DRY RUN -- no files will be written ***")
@@ -646,7 +666,9 @@ def main() -> None:
     if args.profile == "cp-only":
         print("  CP-only selected: only '(1) Community Patch' is deployed (LUA kept).")
 
-    check_dll_present(args.mods_dir, args.dry_run, args.skip_build, args.__dict__.get('43_civs', False))
+    check_dll_present(args.mods_dir, args.dry_run, args.skip_build,
+                      args.__dict__.get('43_civs', False),
+                      args.debug)
 
     active_mod_dests = {dst for _, dst, _ in mod_folders}
     active_dlc_dests = set(dlc_folders)
