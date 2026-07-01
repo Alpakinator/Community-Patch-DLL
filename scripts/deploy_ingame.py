@@ -503,7 +503,9 @@ def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
         if is_43_civs:
             cmd.append("--43-civs")
     print(f"Running: {' '.join(cmd)}")
-    result = subproc.run(cmd, cwd=str(PROJECT_DIR))
+    env = os.environ.copy()
+    env["VP_NO_PAUSE"] = "1"
+    result = subproc.run(cmd, cwd=str(PROJECT_DIR), env=env)
     
     # On Linux/macOS, retry with sudo if permission denied (Docker socket)
     if result.returncode != 0 and sys.platform != "win32":
@@ -513,7 +515,7 @@ def build_dll_if_needed(dry_run: bool, is_43_civs: bool = False) -> bool:
             sudo_cmd = ["sudo", str(build_script), "--config", "release"]
             if is_43_civs:
                 sudo_cmd.append("--43-civs")
-            result = subproc.run(sudo_cmd, cwd=str(PROJECT_DIR))
+            result = subproc.run(sudo_cmd, cwd=str(PROJECT_DIR), env=env)
             if result.returncode == 0:
                 subproc.run(
                     ["sudo", "chown", "-R", f"{os.getuid()}:{os.getgid()}",

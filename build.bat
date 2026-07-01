@@ -53,4 +53,5 @@ goto :end
 echo.
 echo BUILD FAILED. Is Docker Desktop running?
 :end
-pause
+if not "%VP_NO_PAUSE%"=="1" pause
+exit /b %errorlevel%
