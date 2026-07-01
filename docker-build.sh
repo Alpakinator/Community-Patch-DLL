@@ -53,7 +53,7 @@ done
 # ---------------------------------------------------------------------------
 if $DO_BUILD_IMAGE || ! docker image inspect "$IMAGE" &>/dev/null 2>&1; then
     echo "=== Building Docker image: $IMAGE ==="
-    DOCKER_BUILDKIT=1 docker build -t "$IMAGE" "$SCRIPT_DIR"
+    docker build -t "$IMAGE" "$SCRIPT_DIR"
     echo "=== Image ready ==="
 fi
 

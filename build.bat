@@ -31,15 +31,19 @@ exit /b 0
 
 :build
 docker image inspect %IMAGE% >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Building Docker image (first time only, ~15 min)...
+if errorlevel 1 (
+    echo Building Docker image (first time only, ~15 min^)...
     docker build -t %IMAGE% .
-    if %errorlevel% neq 0 goto :fail
+    if errorlevel 1 goto :fail
 )
 
-if "%DO_43_CIVS%"=="--43-civs" (echo Building VP DLL (%CONFIG% 43-civs)^) else (echo Building VP DLL (%CONFIG%^))
+if "%DO_43_CIVS%"=="--43-civs" (
+    echo Building VP DLL - %CONFIG% 43-civs
+) else (
+    echo Building VP DLL - %CONFIG%
+)
 docker run --rm -v "%cd%:/workspace" %IMAGE% --config %CONFIG% %DO_43_CIVS%
-if %errorlevel% neq 0 goto :fail
+if errorlevel 1 goto :fail
 
 echo.
 echo DLL: clang-output\%CONFIG:~0,1%%CONFIG:~1%\CvGameCore_Expansion2.dll

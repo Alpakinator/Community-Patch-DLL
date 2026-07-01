@@ -6,32 +6,41 @@
 #
 # Works on any OS with Docker: Linux, Windows (Docker Desktop), macOS.
 #
+# Base: Ubuntu 24.04 LTS (supported until April 2029) for reproducible builds.
+#
 # Quick start:
 #   docker build -t vp-dll-builder .
 #   ./docker-build.sh --config release
 # ============================================================================
 
-FROM archlinux:latest
+FROM ubuntu:24.04
 
 LABEL org.voxpopuli.image="vp-dll-builder"
 LABEL org.voxpopuli.description="Vox Populi CvGameCoreDLL build environment"
 LABEL org.voxpopuli.target="i386-pc-windows-msvc"
 
+# Avoid interactive prompts during package install
+ENV DEBIAN_FRONTEND=noninteractive
+
 # ---------------------------------------------------------------------------
 # Layer 1: System packages (cached until packages change)
+# Clang 18 from Ubuntu 24.04 default repos — stable, no external deps.
 # ---------------------------------------------------------------------------
-RUN pacman -Syu --noconfirm \
-    clang \
-    lld \
-    python \
-    git \
-    p7zip \
-    wget \
-    msitools \
-    cabextract \
-    && pacman -Scc --noconfirm \
-    && clang-cl --version \
-    && lld-link --version
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        clang \
+        lld \
+        python3 \
+        git \
+        p7zip-full \
+        wget \
+        msitools \
+        cabextract \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /usr/bin/clang /usr/bin/clang-cl && \
+    clang-cl --version && \
+    lld-link --version
 
 # ---------------------------------------------------------------------------
 # Layer 2a: Download Windows SDK 7.0 ISO (cached separately from extraction)
@@ -40,22 +49,21 @@ ARG SDK_URL="https://web.archive.org/web/20161230154527/http://download.microsof
 ARG WIN_SDK=/opt/win-sdk
 
 RUN echo "=== Downloading Windows SDK 7.0 ISO (580 MB) ===" && \
-    wget -q --show-progress -O /tmp/sdk.iso "${SDK_URL}" && \
+    wget -q --show-progress --no-check-certificate -O /tmp/sdk.iso "${SDK_URL}" && \
     echo "65739fb0874cc17ea6962d8ce7915364c7161fa106ed1bf1c917924c18ac63ca  /tmp/sdk.iso" | sha256sum -c -
 
 # ---------------------------------------------------------------------------
-# Layer 2b: Install Wine (for reliable MSI extraction via msiexec)
-# ---------------------------------------------------------------------------
-RUN pacman -Syu --noconfirm wine && pacman -Scc --noconfirm
-
-# ---------------------------------------------------------------------------
-# Layer 2c: Extract SDK (can change without re-downloading the ISO)
+# Layer 2b: Extract SDK (can change without re-downloading the ISO)
+# Uses msiextract from msitools — no Wine dependency.
 # ---------------------------------------------------------------------------
 COPY setup_sdk.sh /tmp/setup_sdk.sh
-RUN WIN_SDK="${WIN_SDK}" bash /tmp/setup_sdk.sh && rm -f /tmp/setup_sdk.sh /tmp/sdk.iso
+RUN WIN_SDK="${WIN_SDK}" bash /tmp/setup_sdk.sh && rm -f /tmp/setup_sdk.sh /tmp/sdk.iso && \
+    echo "=== Verifying SDK extraction ===" && \
+    ls "${WIN_SDK}/Include/windows.h" && \
+    echo "SDK extraction OK"
 
 # ---------------------------------------------------------------------------
-# Layer 2d: WDK header stubs — headers referenced by the Windows SDK that are
+# Layer 2c: WDK header stubs — headers referenced by the Windows SDK that are
 # only shipped with the Windows Driver Kit, not the base SDK.  User-mode code
 # doesn't need their actual content; empty files or minimal stubs satisfy the
 # #include chain.  Both uppercase and lowercase versions are created.
@@ -67,7 +75,7 @@ RUN for h in DriverSpecs.h SpecStrings.h driverspecs.h specstrings.h; do \
     ls -la "${WIN_SDK}"/Include/[Dd]river*Specs* "${WIN_SDK}"/Include/[Ss]pec[Ss]trings*
 
 # ---------------------------------------------------------------------------
-# Layer 2e: Case-insensitive lib symlinks — the Windows SDK and VC9 CRT contain
+# Layer 2d: Case-insensitive lib symlinks — the Windows SDK and VC9 CRT contain
 # .lib files with mixed case (GDI32.lib, Kernel32.Lib, etc.) but lld-link and
 # our DEFAULT_LIBS may reference either case.  Create both uppercase and
 # lowercase symlinks for every .lib file so resolution works on Linux.
@@ -82,5 +90,5 @@ ENV WIN_SDK_DIR=${WIN_SDK}
 WORKDIR /workspace
 
 # Default: debug build. Override with e.g. docker run ... --config release
-ENTRYPOINT ["python", "build_vp_clang_linux.py"]
+ENTRYPOINT ["python3", "build_vp_clang_linux.py"]
 CMD ["--config", "debug"]

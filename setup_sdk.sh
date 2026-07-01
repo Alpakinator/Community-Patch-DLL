@@ -44,26 +44,19 @@ mkdir -p "${WORK}"/winsdk_dest
 msiextract "${WORK}"/Setup/WinSDK/WinSDK_x86.msi -C "${WORK}"/winsdk_dest 2>&1 | tail -3 || true
 echo "  Files: $(find "${WORK}"/winsdk_dest -type f 2>/dev/null | wc -l)"
 
-echo "=== Win32Tools: wine msiexec /a ==="
+echo "=== Win32Tools: extract via msiextract ==="
 mkdir -p "${WORK}"/wintools_dest
-( cd "${WORK}"/Setup/WinSDKWin32Tools 2>/dev/null && wine msiexec /a WinSDKWin32Tools_x86.msi /qn TARGETDIR="Z:${WORK}/wintools_dest" 2>&1 | tail -2 ) || true
+msiextract "${WORK}"/Setup/WinSDKWin32Tools/WinSDKWin32Tools_x86.msi -C "${WORK}"/wintools_dest 2>&1 | tail -3 || true
 echo "  Files: $(find "${WORK}"/wintools_dest -type f 2>/dev/null | wc -l)"
 
-echo "=== WinSDKBuild: wine msiexec /a (likely contains headers + import libs) ==="
+echo "=== WinSDKBuild: extract via msiextract (contains headers + import libs) ==="
 mkdir -p "${WORK}"/winsdkbuild_dest
-( cd "${WORK}"/Setup/WinSDKBuild 2>/dev/null && wine msiexec /a WinSDKBuild_x86.msi /qn TARGETDIR="Z:${WORK}/winsdkbuild_dest" 2>&1 | tail -2 ) || true
+msiextract "${WORK}"/Setup/WinSDKBuild/WinSDKBuild_x86.msi -C "${WORK}"/winsdkbuild_dest 2>&1 | tail -3 || true
 echo "  Files: $(find "${WORK}"/winsdkbuild_dest -type f 2>/dev/null | wc -l)"
 
-echo "=== VC9: extract via wine msiexec /a ==="
+echo "=== VC9: extract via msiextract ==="
 mkdir -p "${WORK}"/vc9_dest
-WINE_OK=false
-if ( cd "${WORK}"/Setup/vc_stdx86 2>/dev/null && wine msiexec /a vc_stdx86.msi /qn TARGETDIR="Z:${WORK}/vc9_dest" 2>&1 | tail -3 ); then
-    WINE_OK=true
-fi
-if ! $WINE_OK || [ "$(find "${WORK}"/vc9_dest -type f 2>/dev/null | wc -l)" -eq 0 ]; then
-    echo "  Wine failed, trying msiextract..."
-    msiextract "${WORK}"/Setup/vc_stdx86/vc_stdx86.msi -C "${WORK}"/vc9_dest 2>&1 | tail -3 || true
-fi
+msiextract "${WORK}"/Setup/vc_stdx86/vc_stdx86.msi -C "${WORK}"/vc9_dest 2>&1 | tail -3 || true
 echo "  Files: $(find "${WORK}"/vc9_dest -type f 2>/dev/null | wc -l)"
 
 # ------------------------------------------------------------------
@@ -188,8 +181,8 @@ for f in windows.h stdio.h iostream kernel32.lib msvcrt.lib DriverSpecs.h; do
     found=$(find "${WIN_SDK}" -name "$f" 2>/dev/null | head -1)
     if [ -n "$found" ]; then echo "  OK: $f"; else echo "  MISSING: $f"; fi
 done
-echo "Headers: $(find ${WIN_SDK}/Include -name '*.h' 2>/dev/null | wc -l)"
-echo "Libs:    $(find ${WIN_SDK}/Lib     -name '*.lib' 2>/dev/null | wc -l)"
+echo "Headers: $(find -L ${WIN_SDK}/Include -name '*.h' 2>/dev/null | wc -l)"
+echo "Libs:    $(find -L ${WIN_SDK}/Lib     -name '*.lib' 2>/dev/null | wc -l)"
 
 rm -rf "${WORK}"
 echo "=== SDK setup complete ==="
