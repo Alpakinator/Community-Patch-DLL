@@ -2976,6 +2976,8 @@ function GetHelpTextForBuilding(eBuilding, bExcludeName, _, bNoMaintenance, pCit
 		local tUnitKillYieldsGlobalGoldenAgeEraScaling = {};
 		local tUnitKillYieldsGlobalPlayer = {};
 		for eYield, kYieldInfo in GameInfoCache("Yields") do
+			ExtractYieldTable(tUnitPromoteYields, "Building_YieldFromUnitLevelUp", kYieldInfo, "UnitCombatType");
+			ExtractYieldTable(tUnitPromoteYieldsGlobal, "Building_YieldFromUnitLevelUpGlobal", kYieldInfo, "UnitCombatType");
 			ExtractSimpleYieldTable(tGPExpendScalingYields, "Building_YieldFromGPExpend", kYieldInfo);
 			ExtractSimpleYieldTable(tWLTKDYields, "Building_InstantYieldFromWLTKDStart", kYieldInfo);
 			ExtractSimpleYieldTable(tBorderGrowthYields, "Building_YieldFromBorderGrowth", kYieldInfo);
@@ -2991,8 +2993,6 @@ function GetHelpTextForBuilding(eBuilding, bExcludeName, _, bNoMaintenance, pCit
 			ExtractSimpleYieldTable(tTechYields, "Building_YieldFromTech", kYieldInfo);
 			ExtractSimpleYieldTable(tPolicyYields, "Building_YieldFromPolicyUnlock", kYieldInfo);
 			ExtractSimpleYieldTable(tUnitGiftYields, "Building_YieldFromUnitGiftGlobal", kYieldInfo);
-			ExtractSimpleYieldTable(tUnitPromoteYields, "Building_YieldFromUnitLevelUp", kYieldInfo);
-			ExtractSimpleYieldTable(tUnitPromoteYieldsGlobal, "Building_YieldFromUnitLevelUpGlobal", kYieldInfo);
 			ExtractSimpleYieldTable(tUnitKillYieldsGlobalPlayer, "Building_YieldFromVictoryGlobalPlayer", kYieldInfo);
 			ExtractSimpleYieldTable(tSpyKillYields, "Building_YieldFromSpyDefense", kYieldInfo);
 			if MOD_BALANCE_VP then
@@ -3090,11 +3090,11 @@ function GetHelpTextForBuilding(eBuilding, bExcludeName, _, bNoMaintenance, pCit
 				GetYieldBoostString(GameInfo.Yields.YIELD_GOLD, kBuildingInfo.GreatPersonExpendGold));
 		end
 
+		AddTooltipYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_PROMOTION", tUnitPromoteYields, "UnitCombatInfos");
+		AddTooltipYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_PROMOTION_GLOBAL", tUnitPromoteYieldsGlobal, "UnitCombatInfos");
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_GROWTH", tGrowthYields);
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_GOLDEN_AGE_START", tGoldenAgeYields);
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_FROM_COMBAT_EXPERIENCE", tCombatExperienceYields);
-		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_PROMOTION", tUnitPromoteYields);
-		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_PROMOTION_GLOBAL", tUnitPromoteYieldsGlobal);
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_KILL", tUnitKillYields);
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_KILL_GLOBAL", tUnitKillYieldsGlobal);
 		AddTooltipSimpleYieldBoostTable(tLocalAbilityLines, "TXT_KEY_PRODUCTION_BUILDING_INSTANT_YIELD_ON_UNIT_KILL_GLOBAL_GOLDEN_AGE", tUnitKillYieldsGlobalGoldenAge);

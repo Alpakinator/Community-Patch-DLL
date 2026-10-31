@@ -1175,12 +1175,6 @@ public:
 	int GetYieldFromFaithPurchase(YieldTypes eIndex) const;
 	void ChangeYieldFromFaithPurchase(YieldTypes eIndex, int iChange);
 
-	int GetYieldFromUnitLevelUp(YieldTypes eIndex) const;
-	void ChangeYieldFromUnitLevelUp(YieldTypes eIndex, int iChange);
-
-	int GetYieldFromUnitLevelUpGlobal(YieldTypes eIndex) const;
-	void ChangeYieldFromUnitLevelUpGlobal(YieldTypes eIndex, int iChange);
-
 	int GetYieldFromCombatExperienceTimes100(YieldTypes eIndex) const;
 	void ChangeYieldFromCombatExperienceTimes100(YieldTypes eIndex, int iChange);
 
@@ -1227,6 +1221,12 @@ public:
 
 	int GetGreatPersonProgressFromConstruction(GreatPersonTypes eGreatPerson, EraTypes eEra) const;
 	void ChangeGreatPersonProgressFromConstruction(GreatPersonTypes eGreatPerson, EraTypes eEra, int iChange);
+
+	int GetYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2) const;
+	void ChangeYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange);
+
+	int GetYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2) const;
+	void ChangeYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange);
 
 	int GetEmpireSizeModifierReduction() const;
 	void ChangeEmpireSizeModifierReduction(int iChange);
@@ -2029,8 +2029,6 @@ protected:
 	std::vector<int> m_aiYieldFromPurchase;
 	std::vector<int> m_aiYieldFromPurchaseGlobal;
 	std::vector<int> m_aiYieldFromFaithPurchase;
-	std::vector<int> m_aiYieldFromUnitLevelUp;
-	std::vector<int> m_aiYieldFromUnitLevelUpGlobal;
 	std::vector<int> m_aiYieldFromCombatExperienceTimes100;
 	std::vector<int> m_aiYieldPerAllyTimes100;
 	std::vector<int> m_aiYieldPerFriendTimes100;
@@ -2184,6 +2182,8 @@ protected:
 
 	std::vector<int> m_aiYieldChangeFaithPurchasableBuildings;
 	std::map<std::pair<int, int>, short> m_ppiGreatPersonProgressFromConstruction;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_miiYieldFromUnitLevelUp;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_miiYieldFromUnitLevelUpGlobal;
 	std::vector<int> m_aiEventCooldown;
 	std::vector<bool> m_abEventActive;
 	std::vector<bool> m_abEventChoiceActive;
@@ -2442,8 +2442,6 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPolicyUnlock)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPurchase)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPurchaseGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromFaithPurchase)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromUnitLevelUp)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromUnitLevelUpGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromCombatExperienceTimes100)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerAllyTimes100)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerFriendTimes100)
@@ -2522,6 +2520,9 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiGreatWorkYieldChange)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiDamagePermyriad)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<int, std::map<int, int>>), m_miTechEnhancedYields)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<pair<GreatPersonTypes, EraTypes>, int>), m_miGreatPersonPointFromConstruction)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<std::pair<int, int>, short>), m_ppiGreatPersonProgressFromConstruction)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<std::pair<UnitCombatTypes, YieldTypes>, int>), m_miiYieldFromUnitLevelUp)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<std::pair<UnitCombatTypes, YieldTypes>, int>), m_miiYieldFromUnitLevelUpGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldRateModifier)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldModifierEraScaling)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiLuxuryExtraYield)

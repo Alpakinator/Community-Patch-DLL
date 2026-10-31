@@ -167,6 +167,7 @@ VALUES
 	('BUILDING_IZIKO', 'YIELD_FAITH', 2);
 
 INSERT INTO Building_YieldFromUnitLevelUpGlobal
-	(BuildingType, YieldType, Yield)
-VALUES
-	('BUILDING_IZIKO', 'YIELD_CULTURE', 1);
+	(BuildingType, UnitCombatType, YieldType, Yield)
+SELECT
+	'BUILDING_IZIKO', Type, 'YIELD_CULTURE', 1
+FROM UnitCombatInfos WHERE Type <> 'UNITCOMBAT_RECON';

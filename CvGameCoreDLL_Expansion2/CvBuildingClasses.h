@@ -510,9 +510,6 @@ public:
 	int GetYieldFromPolicyUnlock(int i) const;
 	int* GetYieldFromPolicyUnlockArray() const;
 
-	int GetYieldFromUnitLevelUp(int i) const;
-	int* GetYieldFromUnitLevelUpArray() const;
-
 	int GetYieldFromCombatExperienceTimes100(int i) const;
 	int* GetYieldFromCombatExperienceTimes100Array() const;
 
@@ -524,8 +521,6 @@ public:
 
 	int GetYieldFromFaithPurchase(int i) const;
 	int* GetYieldFromFaithPurchaseArray() const;
-
-	int GetYieldFromUnitLevelUpGlobal(int i) const;
 
 	int GetYieldFromInternationalTREnd(int i) const;
 
@@ -711,6 +706,8 @@ public:
 	int GetBuildingClassHappiness(int i) const;
 
 	std::multimap<int, std::pair<int, int>> GetGreatPersonProgressFromConstructionArray() const;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> GetYieldFromUnitLevelUpArray() const;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> GetYieldFromUnitLevelUpGlobalArray() const;
 
 	CvThemingBonusInfo *GetThemingBonusInfo(int i) const;
 	int GetNumThemingBonuses() const { return m_iNumThemingBonuses; }
@@ -1064,12 +1061,10 @@ private:
 	int* m_piYieldFromUnitProduction;
 	int* m_piYieldFromBorderGrowth;
 	int* m_piYieldFromPolicyUnlock;
-	int* m_piYieldFromUnitLevelUp;
 	int* m_piYieldFromCombatExperienceTimes100;
 	int* m_piYieldFromPurchase;
 	int* m_piYieldFromPurchaseGlobal;
 	int* m_piYieldFromFaithPurchase;
-	int* m_piYieldFromUnitLevelUpGlobal;
 	int* m_piYieldFromInternalTREnd;
 	int* m_piYieldFromInternationalTREnd;
 	int* m_piYieldFromInternal;
@@ -1169,6 +1164,8 @@ private:
 	int* m_piInstantYield;
 	
 	std::multimap<int, std::pair<int, int>> m_piiGreatPersonProgressFromConstruction;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_ppaiYieldFromUnitLevelUp;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_ppaiYieldFromUnitLevelUpGlobal;
 
 	CvThemingBonusInfo* m_paThemingBonusInfo;
 	int m_iNumThemingBonuses;

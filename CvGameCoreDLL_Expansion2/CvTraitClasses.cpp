@@ -239,7 +239,7 @@ CvTraitEntry::CvTraitEntry() :
 	m_pbiYieldFromBarbarianCampClear(),
 	m_ppiImprovementYieldChanges(NULL),
 	m_ppiPlotYieldChanges(NULL),
-	m_piYieldFromLevelUp(NULL),
+	m_ppiYieldFromLevelUp(NULL),
 	m_piYieldFromHistoricEvent(NULL),
 	m_piYieldFromOwnPantheon(NULL),
 	m_piYieldFromXMilitaryUnits(NULL),
@@ -331,7 +331,6 @@ CvTraitEntry::~CvTraitEntry()
 	
 	SAFE_DELETE_ARRAY(m_piMaintenanceModifierUnitCombats);
 
-	SAFE_DELETE_ARRAY(m_piYieldFromLevelUp);
 	SAFE_DELETE_ARRAY(m_piYieldFromHistoricEvent);
 	SAFE_DELETE_ARRAY(m_piYieldFromOwnPantheon);
 	SAFE_DELETE_ARRAY(m_piYieldFromXMilitaryUnits);
@@ -380,6 +379,7 @@ CvTraitEntry::~CvTraitEntry()
 
 	SAFE_DELETE_ARRAY(m_piGoldenAgeFromGreatPersonBirth);
 
+	CvDatabaseUtility::SafeDelete2DArray(m_ppiYieldFromLevelUp);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiImprovementYieldChanges);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiPlotYieldChanges);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassYieldChanges);
@@ -1607,9 +1607,9 @@ int CvTraitEntry::GetYieldFromXMilitaryUnits(int i) const
 {
 	return m_piYieldFromXMilitaryUnits ? m_piYieldFromXMilitaryUnits[i] : -1;
 }
-int CvTraitEntry::GetYieldFromLevelUp(int i) const
+int CvTraitEntry::GetYieldFromLevelUp(int i, int j) const
 {
-	return m_piYieldFromLevelUp ? m_piYieldFromLevelUp[i] : -1;
+	return m_ppiYieldFromLevelUp ? m_ppiYieldFromLevelUp[i][j] : -1;
 }
 int CvTraitEntry::GetYieldFromOwnPantheon(int i) const
 {
@@ -3255,7 +3255,6 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 		}
 	}
 
-	kUtility.SetYields(m_piYieldFromLevelUp, "Trait_YieldFromLevelUp", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromHistoricEvent, "Trait_YieldFromHistoricEvent", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromXMilitaryUnits, "Trait_YieldFromXMilitaryUnits", "TraitType", szTraitType);
 	kUtility.SetYields(m_piYieldFromOwnPantheon, "Trait_YieldFromOwnPantheon", "TraitType", szTraitType);
@@ -3565,6 +3564,29 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	kUtility.PopulateArrayByValue(m_piGoldenAgeGreatPersonRateModifier, "GreatPersons", "Trait_GoldenAgeGreatPersonRateModifier", "GreatPersonType", "TraitType", szTraitType, "Modifier");
 	kUtility.PopulateArrayByValue(m_piPerPuppetGreatPersonRateModifier, "GreatPersons", "Trait_PerPuppetGreatPersonRateModifier", "GreatPersonType", "TraitType", szTraitType, "Modifier");
 	kUtility.PopulateArrayByValue(m_piGreatPersonGWAM, "GreatPersons", "Trait_GreatPersonBirthGWAM", "GreatPersonType", "TraitType", szTraitType, "Value");
+
+	//YieldFromLevelUp
+	{
+		kUtility.Initialize2DArray(m_ppiYieldFromLevelUp, "UnitCombatInfos", "Yields");
+
+		std::string strKey("Trait_YieldFromLevelUp");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if(pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select UnitCombatInfos.ID as CombatID, Yields.ID as YieldID, Yield from Trait_YieldFromLevelUp inner join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType inner join Yields on Yields.Type = YieldType where TraitType = ?");
+		}
+
+		pResults->Bind(1, szTraitType);
+
+		while(pResults->Step())
+		{
+			const int CombatID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppiCityYieldFromUnimprovedFeature[CombatID][YieldID] = yield;
+		}	
+	}
 	
 	//CityYieldFromUnimprovedFeature
 	{
@@ -3946,8 +3968,7 @@ void CvPlayerTraits::SetIsWarmonger()
 	for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
 	{
 		YieldTypes eYield = (YieldTypes)iYield;
-		if (GetYieldFromLevelUp(eYield) > 0 ||
-			GetYieldFromConquest(eYield) > 0 ||
+		if (GetYieldFromConquest(eYield) > 0 ||
 			GetYieldFromCityDamageTimes100(eYield) > 0)
 		{
 			m_bIsWarmonger = true;
@@ -4019,6 +4040,16 @@ void CvPlayerTraits::SetIsWarmonger()
 		{
 			m_bIsWarmonger = true;
 			return;
+		}
+		
+		for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+		{
+			YieldTypes eYield = (YieldTypes)iYield;
+			if (GetYieldFromLevelUp(eUnitCombat, eYield) > 0)
+			{
+				m_bIsWarmonger = true;
+				return;
+			}
 		}
 	}
 
@@ -4321,7 +4352,6 @@ void CvPlayerTraits::SetIsReligious()
 {
 	if (GetYieldFromHistoricEvent(YIELD_FAITH) > 0 ||
 		GetReligionSpreadTourism() > 0 ||
-		GetYieldFromLevelUp(YIELD_FAITH) > 0 ||
 		GetYieldFromConquest(YIELD_FAITH) > 0 ||
 		GetYieldFromCityDamageTimes100(YIELD_FAITH) > 0 ||
 		GetYieldChangePerTradePartner(YIELD_FAITH) > 0 ||
@@ -4947,7 +4977,6 @@ void CvPlayerTraits::InitPlayerTraits()
 						m_ppiPlotYieldChange[iPlotLoop] = yields;
 					}
 				}
-				m_iYieldFromLevelUp[iYield] = trait->GetYieldFromLevelUp(iYield);
 				m_iYieldFromHistoricEvent[iYield] = trait->GetYieldFromHistoricEvent(iYield);
 				m_iYieldFromXMilitaryUnits[iYield] = trait->GetYieldFromXMilitaryUnits(iYield);
 				m_iYieldFromOwnPantheon[iYield] = trait->GetYieldFromOwnPantheon(iYield);
@@ -5192,6 +5221,10 @@ void CvPlayerTraits::InitPlayerTraits()
 				if (trait->GetUnitCombatProductionCostModifier(jJ).first != 0)
 				{
 					m_aibUnitCombatProductionCostModifier.insert(std::make_pair(jJ, trait->GetUnitCombatProductionCostModifier(jJ)));
+				}
+				for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+				{
+					m_ppiYieldFromLevelUp[jJ][iYield] = trait->GetYieldFromLevelUp(jJ, iYield);
 				}
 			}
 
@@ -5596,7 +5629,6 @@ void CvPlayerTraits::Reset()
 			m_ppiPlotYieldChange[iPlot] = yield;
 		}
 
-		m_iYieldFromLevelUp[iYield] = 0;
 		m_iYieldFromHistoricEvent[iYield] = 0;
 		m_iYieldFromXMilitaryUnits[iYield] = 0;
 		m_iYieldFromOwnPantheon[iYield] = 0;
@@ -5725,6 +5757,10 @@ void CvPlayerTraits::Reset()
 		m_paiMovesChangeUnitCombat[iI] = 0;
 		m_paiMaintenanceModifierUnitCombat[iI] = 0;
 		m_aibUnitCombatProductionCostModifier.erase(iI);
+		for(int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
+		{
+			m_ppiYieldFromLevelUp[iI][iYield] = 0;
+		}
 	}
 	m_aiGreatPersonCostReduction.clear();
 	m_aiPerPuppetGreatPersonRateModifier.clear();
@@ -7801,7 +7837,7 @@ void CvPlayerTraits::Serialize(PlayerTraits& playerTraits, Visitor& visitor)
 	visitor(playerTraits.m_paiMaintenanceModifierUnitCombat);
 	visitor(playerTraits.m_ppaaiImprovementYieldChange);
 	visitor(playerTraits.m_ppiPlotYieldChange);
-	visitor(playerTraits.m_iYieldFromLevelUp);
+	visitor(playerTraits.m_ppiYieldFromLevelUp);
 	visitor(playerTraits.m_iYieldFromHistoricEvent);
 	visitor(playerTraits.m_iYieldFromXMilitaryUnits);
 	visitor(playerTraits.m_iYieldFromOwnPantheon);
