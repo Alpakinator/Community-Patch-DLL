@@ -351,7 +351,7 @@ public:
 	int GetMaintenanceModifierUnitCombat(const int unitCombatID) const;
 	int GetImprovementYieldChanges(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
 	int GetPlotYieldChanges(PlotTypes eIndex1, YieldTypes eIndex2) const;
-	int GetYieldFromLevelUp(int i) const;
+	int GetYieldFromLevelUp(int i, int j) const;
 	int GetYieldFromHistoricEvent(int i) const;
 	int GetYieldFromXMilitaryUnits(int i) const;
 	int GetYieldFromOwnPantheon(int i) const;
@@ -689,7 +689,7 @@ protected:
 	int* m_piMaintenanceModifierUnitCombats;
 	int** m_ppiImprovementYieldChanges;
 	int** m_ppiPlotYieldChanges;
-	int* m_piYieldFromLevelUp;
+	int** m_ppiYieldFromLevelUp;
 	int* m_piYieldFromHistoricEvent;
 	int* m_piYieldFromOwnPantheon;
 	int* m_piYieldFromXMilitaryUnits;
@@ -1763,9 +1763,9 @@ public:
 	int GetMaintenanceModifierUnitCombat(const int unitCombatID) const;
 	int GetImprovementYieldChange(ImprovementTypes eImprovement, YieldTypes eYield) const;
 	int GetPlotYieldChange(PlotTypes ePlot, YieldTypes eYield) const;
-	int GetYieldFromLevelUp(YieldTypes eYield) const
+	int GetYieldFromLevelUp(UnitCombatTypes eCombat, YieldTypes eYield) const
 	{
-		return m_iYieldFromLevelUp[(int)eYield];
+		return m_ppiYieldFromLevelUp[(int)eCombat][(int)eYield];
 	};
 	int GetYieldFromHistoricEvent(YieldTypes eYield) const
 	{
@@ -2318,7 +2318,7 @@ private:
 
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiImprovementYieldChange;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiPlotYieldChange;
-	int m_iYieldFromLevelUp[NUM_YIELD_TYPES];
+	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldFromLevelUp;
 	int m_iYieldFromHistoricEvent[NUM_YIELD_TYPES];
 	int m_iYieldFromXMilitaryUnits[NUM_YIELD_TYPES];
 	int m_iYieldFromOwnPantheon[NUM_YIELD_TYPES];

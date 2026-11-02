@@ -26876,24 +26876,26 @@ void CvPlayer::doInstantYield(InstantYieldType iType, bool bCityFaith, GreatPers
 						continue;
 
 					if(eYield == YIELD_GREAT_ADMIRAL_POINTS && !bDomainSea)
-					{
 						continue;
-					}
+					
 					if(eYield == YIELD_GREAT_GENERAL_POINTS && bDomainSea)
-					{
 						continue;
-					}
+
+					UnitCombatTypes eCombat = pUnit->getUnitCombatType();
+					if (eCombat == NO_UNITCOMBAT)
+						continue;
 
 					int iLevelUpYield = 0;
+					
 					if (pCity == NULL)
 					{
 						// global yields
-						iLevelUpYield = pLoopCity->GetYieldFromUnitLevelUpGlobal(eYield) * iPassYield;
+						iLevelUpYield = pLoopCity->GetYieldFromUnitLevelUpGlobal(eCombat, eYield) * iPassYield;
 					}
 					else
 					{
 						// local yields
-						iLevelUpYield = pLoopCity->GetYieldFromUnitLevelUp(eYield) + GetPlayerTraits()->GetYieldFromLevelUp(eYield);
+						iLevelUpYield = pLoopCity->GetYieldFromUnitLevelUp(eCombat, eYield) + GetPlayerTraits()->GetYieldFromLevelUp(eCombat, eYield);
 						if (iPassYield != 0 && iLevelUpYield > 0)
 						{
 							iLevelUpYield *= (((iPassYield * iPassYield) - (2 * iPassYield) + 1));
@@ -43559,18 +43561,25 @@ void CvPlayer::LogBuildingInstantYields(InstantYieldType iType, CvCity* pLoopCit
 				break;
 
 			case INSTANT_YIELD_TYPE_LEVEL_UP:
+			{
+				UnitCombatTypes eCombat = pUnit->getUnitCombatType();
 				if (pCity == NULL)
 				{
-					iBaseT100 = (long long)pInfo->GetYieldFromUnitLevelUpGlobal(eYield) * iCount * iPassYield * 100;
+					std::map<std::pair<UnitCombatTypes, YieldTypes>, int> miiYieldFromUnitLevelUpGlobal = pInfo->GetYieldFromUnitLevelUpGlobalArray();
+					std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = miiYieldFromUnitLevelUpGlobal.find(std::make_pair(eCombat, eYield));
+					iBaseT100 = (long long)it->second * iCount * iPassYield * 100;
 				}
 				else
 				{
-					long long iNum = (long long)pInfo->GetYieldFromUnitLevelUp(eYield) * iCount;
+					std::map<std::pair<UnitCombatTypes, YieldTypes>, int> miiYieldFromUnitLevelUp = pInfo->GetYieldFromUnitLevelUpArray();
+					std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = miiYieldFromUnitLevelUp.find(std::make_pair(eCombat, eYield));
+					long long iNum = (long long)it->second * iCount;
 					if (iPassYield != 0 && iNum > 0)
 						iNum *= ((long long)iPassYield * iPassYield - 2 * iPassYield + 1);
 					iBaseT100 = iNum * 100;
 				}
 				break;
+			}
 
 			case INSTANT_YIELD_TYPE_BIRTH_RETROACTIVE:
 				// value precomputed for ePassBuilding; only the matching yield carries it

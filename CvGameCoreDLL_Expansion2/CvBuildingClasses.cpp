@@ -339,12 +339,10 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldFromUnitProduction(NULL),
 	m_piYieldFromBorderGrowth(NULL),
 	m_piYieldFromPolicyUnlock(NULL),
-	m_piYieldFromUnitLevelUp(NULL),
 	m_piYieldFromCombatExperienceTimes100(NULL),
 	m_piYieldFromPurchase(NULL),
 	m_piYieldFromPurchaseGlobal(NULL),
 	m_piYieldFromFaithPurchase(NULL),
-	m_piYieldFromUnitLevelUpGlobal(NULL),
 	m_piYieldFromInternalTREnd(NULL),
 	m_piYieldFromInternationalTREnd(NULL),
 	m_piYieldFromInternal(NULL),
@@ -441,6 +439,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_paiBuildingClassHappiness(NULL),
 	m_piInstantYield(NULL),
 	m_piiGreatPersonProgressFromConstruction(),
+	m_ppaiYieldFromUnitLevelUp(),
+	m_ppaiYieldFromUnitLevelUpGlobal(),
 	m_paThemingBonusInfo(NULL),
 	m_iNumThemingBonuses(0)
 {
@@ -509,12 +509,10 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldFromUnitProduction);
 	SAFE_DELETE_ARRAY(m_piYieldFromBorderGrowth);
 	SAFE_DELETE_ARRAY(m_piYieldFromPolicyUnlock);
-	SAFE_DELETE_ARRAY(m_piYieldFromUnitLevelUp);
 	SAFE_DELETE_ARRAY(m_piYieldFromCombatExperienceTimes100);
 	SAFE_DELETE_ARRAY(m_piYieldFromPurchase);
 	SAFE_DELETE_ARRAY(m_piYieldFromPurchaseGlobal);
 	SAFE_DELETE_ARRAY(m_piYieldFromFaithPurchase);
-	SAFE_DELETE_ARRAY(m_piYieldFromUnitLevelUpGlobal);
 	SAFE_DELETE_ARRAY(m_piYieldChange);
 	SAFE_DELETE_ARRAY(m_piYieldModifierEraScaling);
 	SAFE_DELETE_ARRAY(m_piYieldChangeEraScalingTimes100);
@@ -602,6 +600,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassLocalYieldChanges);
 	SAFE_DELETE_ARRAY(m_paiSpecificGreatPersonRateModifier);
 	m_piiGreatPersonProgressFromConstruction.clear();
+	m_ppaiYieldFromUnitLevelUp.clear();
+	m_ppaiYieldFromUnitLevelUpGlobal.clear();
 }
 
 /// Read from XML file
@@ -1067,12 +1067,10 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldFromUnitProduction, "Building_YieldFromUnitProduction", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromBorderGrowth, "Building_YieldFromBorderGrowth", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPolicyUnlock, "Building_YieldFromPolicyUnlock", "BuildingType", szBuildingType);
-	kUtility.SetYields(m_piYieldFromUnitLevelUp, "Building_YieldFromUnitLevelUp", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromCombatExperienceTimes100, "Building_YieldFromCombatExperienceTimes100", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPurchase, "Building_YieldFromPurchase", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromPurchaseGlobal, "Building_YieldFromPurchaseGlobal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromFaithPurchase, "Building_YieldFromFaithPurchase", "BuildingType", szBuildingType);
-	kUtility.SetYields(m_piYieldFromUnitLevelUpGlobal, "Building_YieldFromUnitLevelUpGlobal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChange, "Building_YieldChanges", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldModifierEraScaling, "Building_YieldModifiersEraScaling", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangeEraScalingTimes100, "Building_YieldChangesEraScalingTimes100", "BuildingType", szBuildingType);
@@ -1085,7 +1083,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piAreaYieldModifier, "Building_AreaYieldModifiers", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piGlobalYieldModifier, "Building_GlobalYieldModifiers", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piInstantYield, "Building_InstantYield", "BuildingType", szBuildingType);
-
+	
 	kUtility.PopulateArrayByValue(m_piResourceQuantityRequirements, "Resources", "Building_ResourceQuantityRequirements", "ResourceType", "BuildingType", szBuildingType, "Cost");
 	kUtility.PopulateArrayByValue(m_piResourceQuantity, "Resources", "Building_ResourceQuantity", "ResourceType", "BuildingType", szBuildingType, "Quantity");
 	kUtility.PopulateArrayByValue(m_piResourceCultureChanges, "Resources", "Building_ResourceCultureChanges", "ResourceType", "BuildingType", szBuildingType, "CultureChange");
@@ -1515,6 +1513,56 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 		pResults->Reset();
 	}
 
+	//YieldFromUnitLevelUp
+	{
+		std::string strKey("Building_YieldFromUnitLevelUp");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if(pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select UnitCombatInfos.ID as CombatID, Yields.ID as YieldID, Yield from Building_YieldFromUnitLevelUp inner join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while(pResults->Step())
+		{
+			const int CombatID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppaiYieldFromUnitLevelUp.insert(std::make_pair(std::make_pair((UnitCombatTypes)CombatID, (YieldTypes)YieldID), yield));
+		}
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int>(m_ppaiYieldFromUnitLevelUp).swap(m_ppaiYieldFromUnitLevelUp);
+	}
+	
+	//YieldFromUnitLevelUpGlobal (any unit, local yields)
+	{
+		std::string strKey("Building_YieldFromUnitLevelUpGlobal");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if(pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select UnitCombatInfos.ID as CombatID, Yields.ID as YieldID, Yield from Building_YieldFromUnitLevelUpGlobal inner join UnitCombatInfos on UnitCombatInfos.Type = UnitCombatType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while(pResults->Step())
+		{
+			const int CombatID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppaiYieldFromUnitLevelUpGlobal.insert(std::make_pair(std::make_pair((UnitCombatTypes)CombatID, (YieldTypes)YieldID), yield));
+		}
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int>(m_ppaiYieldFromUnitLevelUpGlobal).swap(m_ppaiYieldFromUnitLevelUpGlobal);
+	}
+	
 	//FeatureYieldChanges
 	{
 		kUtility.Initialize2DArray(m_ppaiFeatureYieldChange, "Features", "Yields");
@@ -3838,16 +3886,13 @@ int* CvBuildingEntry::GetYieldFromPolicyUnlockArray() const
 	return m_piYieldFromPolicyUnlock;
 }
 
-int CvBuildingEntry::GetYieldFromUnitLevelUp(int i) const
+std::map<std::pair<UnitCombatTypes, YieldTypes>, int> CvBuildingEntry::GetYieldFromUnitLevelUpArray() const
 {
-	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
-	return m_piYieldFromUnitLevelUp[i];
+	return m_ppaiYieldFromUnitLevelUp;
 }
-/// Array of yield changes
-int* CvBuildingEntry::GetYieldFromUnitLevelUpArray() const
+std::map<std::pair<UnitCombatTypes, YieldTypes>, int> CvBuildingEntry::GetYieldFromUnitLevelUpGlobalArray() const
 {
-	return m_piYieldFromUnitLevelUp;
+	return m_ppaiYieldFromUnitLevelUpGlobal;
 }
 
 int CvBuildingEntry::GetYieldFromCombatExperienceTimes100(int i) const
@@ -3897,13 +3942,6 @@ int CvBuildingEntry::GetYieldFromFaithPurchase(int i) const
 int* CvBuildingEntry::GetYieldFromFaithPurchaseArray() const
 {
 	return m_piYieldFromFaithPurchase;
-}
-
-int CvBuildingEntry::GetYieldFromUnitLevelUpGlobal(int i) const
-{
-	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
-	return m_piYieldFromUnitLevelUpGlobal[i];
 }
 
 /// Instant yield granted when an international trade route ends
