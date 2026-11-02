@@ -13952,7 +13952,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			{
 				if (it->first >= 0 && it->first < GC.getNumGreatPersonInfos() && it->second.first >= 0 && it->second.first < GC.getNumEraInfos())
 				{
-					ChangeGreatPersonProgressFromConstruction((GreatPersonTypes)it->first, (EraTypes)it->second.first, it->second.second);
+					ChangeGreatPersonProgressFromConstruction((GreatPersonTypes)it->first, (EraTypes)it->second.first, iChange * it->second.second);
 				}
 			}
 		}
@@ -13965,7 +13965,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		        if (it->first.first >= 0 && it->first.first < GC.getNumUnitCombatClassInfos() &&
 		            it->first.second >= 0 && it->first.second < NUM_YIELD_TYPES)
 		        {
-		            ChangeYieldFromUnitLevelUp(it->first.first, it->first.second, it->second);
+		            ChangeYieldFromUnitLevelUp(it->first.first, it->first.second, iChange * it->second);
 		        }
 		    }
 		}
@@ -13978,7 +13978,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		        if (it->first.first >= 0 && it->first.first < GC.getNumUnitCombatClassInfos() &&
 		            it->first.second >= 0 && it->first.second < NUM_YIELD_TYPES)
 		        {
-		            ChangeYieldFromUnitLevelUpGlobal(it->first.first, it->first.second, it->second);
+		            ChangeYieldFromUnitLevelUpGlobal(it->first.first, it->first.second, iChange * it->second);
 		        }
 		    }
 		}
