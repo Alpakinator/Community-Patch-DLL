@@ -1,0 +1,25 @@
+# exebuild/symbols/tools.tsv - EXE symbols read by the Python tools that look into a running game from outside
+# (perf/, shell/tools/, tools/, server/tests/units/live/). Epic 0590, ticket 0593, D202.
+# Columns (tab-separated): name, kind, anchor_va, consumer, note. The anchor VA is the symbol's VA in Steam build 4390913
+# (DX11 EXE, ImageBase 0x400000). Never write another build's VA here: those are in the local tables (exe_tables setting).
+# Format and kinds: research/02-exe-internals/exe-build-table.md section 3; the tools read them through
+# tools/exebuild/resolve.py (section 12). The tools also use these symbols of other areas by name: cam_app, cam_proj,
+# cam_view, cam_numviews, cam_viewport, cam_wrapx, cam_gridptr, cam_aabb, cam_period, cam_worldh, cam_w2h, cam_h2w,
+# cam_grid (shell.tsv) and ses_gvs_vtbl (proxy.tsv). A row here whose anchor another area adds later moves there: one
+# row per anchor and kind (table.py), the tools then use that row's name (each tool names its symbols in one place).
+name	kind	anchor_va	consumer	note
+pace_core_thread_ptr	data	0x2DD202C	perf/turnstudy/pacing/poller.py	pointer to the game-core thread object (game-core-thread.md 1)
+pace_core_thread_vtbl	vtable	0xA55BA0	perf/turnstudy/pacing/poller.py	game-core thread object vftable
+pace_tick_acc	data	0xCCF91C	perf/turnstudy/pacing/poller.py	float update-tick accumulator (GameViewState::Update)
+pace_turn_a	data	0x2DE0440	perf/turnstudy/pacing/poller.py	int: a game turn the frame remembers for its start-of-turn step
+pace_turn_b	data	0xC98DE4	perf/turnstudy/pacing/poller.py	int: the game turn the start-of-turn step compares with
+prof_core_thread_proc	code	0x82A360	perf/turnstudy/budget/stock/stockthreads.py, exeprofile.py	game-core thread procedure (its Win32 start address)
+prof_world_update	code	0x6FBA80	perf/turnstudy/budget/stock/exeprofile.py	GameViewState::UpdateWorldCamera (per-frame world update)
+prof_gvs_update	code	0x7253E0	perf/turnstudy/budget/stock/exeprofile.py	GameViewState::Update
+prof_queue_pumps	code	0x4B3F50	perf/turnstudy/budget/stock/exeprofile.py	frame function that pumps the four queues
+prof_core_thread_step	code	0x4D8BF0	perf/turnstudy/budget/stock/exeprofile.py	game-core thread step (calls ICvGame1::Update)
+prof_update_request	code	0x53AF10	perf/turnstudy/budget/stock/exeprofile.py	update request from the main thread's frame
+gtr_bb_h	data	0x3010568	shell/tools/gt_reader.py	int backbuffer height
+gtr_bb_w	data	0x301056C	shell/tools/gt_reader.py	int backbuffer width
+gtr_height_factor	rdata	0x9F9E34	shell/tools/gt_reader.py	float factor in HeightAtGrid (1/255)
+ar_unitsim	data	0x2D6F5F8	server/tests/units/live/art_records.py	UnitSimSystem static object

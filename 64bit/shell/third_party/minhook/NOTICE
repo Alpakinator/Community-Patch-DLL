@@ -1,0 +1,9 @@
+MinHook v1.3.4 - The Minimalistic API Hooking Library for x64/x86
+Origin: https://github.com/TsudaKageyu/minhook, tag v1.3.4, commit c3fcafdc10146beb5919319d0683e44e3c30d537,
+copied from a local clone (%USERPROFILE%/tools/minhook-v1.3.4) on 2026-11-10 (issue 3006).
+Files copied unchanged: LICENSE.txt, AUTHORS.txt, README.md, include/MinHook.h, src/*.c, src/*.h, src/hde/*.
+Not copied: build/ (prebuilt project files), dll_resources/, cmake/, CMakeLists.txt, .github/, .editorconfig.
+Licence: BSD-2-Clause (LICENSE.txt; HDE32/HDE64 portions under the same terms, see LICENSE.txt), compatible with
+this repository's GPL-3.0-or-later (decision D22). The licence notice must stay with the source and with binaries.
+Built from source by shell/build.cmd (x86 static library, only hde32.c of the disassemblers), linked into
+shell_composite.dll. Used only for inline hooks in system modules (d3d11.dll, dxgi.dll), never on the EXE image (D4).

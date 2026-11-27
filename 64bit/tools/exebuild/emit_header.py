@@ -1,0 +1,179 @@
+"""emit_header.py - write the build's EXE address header from the catalogue and the local tables (epic 0590, ticket 4960).
+
+    python -I tools/exebuild/emit_header.py --out <build output gen folder> [--tables DIR]
+
+Reads the committed symbol catalogue (exebuild/symbols/*.tsv) and the local table of every build in
+VPEXE_KNOWN_BUILDS (<exe_tables>/<steam build>/table.json, written by gen_table.py) and writes
+<out>/vp_exe_tables.gen.h, which exebuild/include/vp_exe_symbols.h includes:
+  enum VpExeSym { VPX_<name>, ..., kVpExeSymCount }       the catalogue's symbols in catalogue order
+  kVpExeSymNames[], kVpExeSymKinds[], kVpExeSymAnchor[]    names for logs, kinds, the anchor build's VAs
+  kVpExeSymVa[kVpExeBuildCount][]                          the VA per build (0 = not carried)
+  kVpExeBuildComplete[kVpExeBuildCount]                    1 when the build's table is complete
+  enum VpExeArr { VPXA_<name>, ..., kVpExeArrCount }, kVpExeArrays[]   the array symbols per build
+The header is build output and LOCAL ONLY (D202): never committed. It is rewritten only when its text changes (so a
+build tree does not recompile for nothing).
+
+Fails (exit 2, one line naming the setting `exe_tables`, the environment variable C5_EXE_TABLES and the gen_table.py
+command) when the setting is missing, a known build has no table, or a table is stale (generated from another
+catalogue). Build scripts call it before they compile (proxy/build_proxy.py, shell/build.cmd, server/build_server.py,
+render/build.py). Prints no address.
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import table  # noqa: E402
+from table import builds  # noqa: E402
+
+GEN_NAME = 'vp_exe_tables.gen.h'
+KIND_ENUM = {'code': 'kVpExeKindCode', 'data': 'kVpExeKindData', 'rdata': 'kVpExeKindRdata',
+             'shader': 'kVpExeKindShader', 'iat': 'kVpExeKindIat', 'vtable': 'kVpExeKindVtable',
+             'array': 'kVpExeKindArray'}
+
+
+class EmitError(Exception):
+    pass
+
+
+def _cmd(sb):
+    return table.gen_command(sb)
+
+
+def collect(tables=None, symbols_dir=None, environ=None):
+    """(symbols, {build id: table dict}) or EmitError naming the setting and the command."""
+    syms = table.symbols(symbols_dir)
+    try:
+        tdir = Path(tables) if tables else table.tables_dir(environ)
+    except table.TableError as e:
+        raise EmitError(str(e))
+    chash = table.catalogue_hash(symbols_dir)
+    out = {}
+    for b in builds.KNOWN:
+        try:
+            # this catalogue's own table first (table-<hash16>.json), else table.json (the last one generated);
+            # ticket 4960b: the exe_tables folder is shared by every checkout and branch on the machine
+            t = table.load(b.steam_build, tdir, chash=chash)
+        except table.TableError as e:
+            raise EmitError(f'{e} (setting `{table.SETTING}` / {table.SETTING_ENV} = {tdir})')
+        if t.get('stamp') != '0x%08X' % b.stamp or t.get('size_of_image') != '0x%08X' % b.size_of_image:
+            raise EmitError(f'{table.table_path(b.steam_build, tdir)} was generated from another EXE than build '
+                            f'{b.steam_build} (stamp/SizeOfImage differ); regenerate it with `{_cmd(b.steam_build)}`')
+        if t.get('catalogue_sha256') != chash:
+            known = set(t.get('symbols', {})) | set(t.get('unresolved', [])) | set(t.get('arrays', {}))
+            missing = [s.name for s in syms if s.name not in known]
+            raise EmitError(
+                f'no table of build {b.steam_build} for this checkout\'s catalogue (hash {chash[:16]}): '
+                f'{table.catalogue_table_path(b.steam_build, chash, tdir).name} is missing and table.json is stale, '
+                f'made from another catalogue (another branch, or this one before its last catalogue change)'
+                + (f'; not in it: {", ".join(missing[:8])}{" ..." if len(missing) > 8 else ""}' if missing else '')
+                + f'. Make this checkout\'s tables of both builds, from this checkout: '
+                f'`{"` then `".join(table.gen_commands())}` (setting `{table.SETTING}` / {table.SETTING_ENV} = {tdir})')
+        if b.id == builds.ANCHOR.id:
+            for s in syms:
+                e = t['symbols'].get(s.name)
+                if s.anchor is not None and (not e or int(e['va'], 16) != s.anchor):
+                    raise EmitError(f'the anchor build table disagrees with the catalogue at {s.name}; regenerate it '
+                                    f'with `{_cmd(b.steam_build)}`')
+        out[b.id] = t
+    return syms, out
+
+
+def _rows(lst, per=8, fmt='0x%08Xu'):
+    vals = [fmt % v for v in lst]
+    return ',\n'.join('\t' + ', '.join(vals[i:i + per]) for i in range(0, len(vals), per))
+
+
+def render(syms, tabs):
+    single = [s for s in syms if s.kind != 'array']
+    arrs = [s for s in syms if s.kind == 'array']
+    nb = len(builds.KNOWN)
+    L = ['// vp_exe_tables.gen.h - GENERATED by tools/exebuild/emit_header.py from exebuild/symbols/*.tsv and the local',
+         '// per-build tables (setting exe_tables). LOCAL ONLY (D202): build output, never committed, pushed or quoted.',
+         '// Include exebuild/include/vp_exe_symbols.h, not this file.',
+         '#pragma once',
+         '#include <stdint.h>',
+         '#include "vp_exe_build.h"',
+         '',
+         f'#define VPEXE_TABLES_BUILDS {nb}',
+         f'typedef char vpexe_tables_build_count_check[(kVpExeBuildCount == {nb}) ? 1 : -1];',
+         '',
+         'enum VpExeKind { ' + ', '.join(f'{v} = {i}' for i, v in enumerate(KIND_ENUM.values())) + ' };',
+         '',
+         'enum VpExeSym',
+         '{']
+    L += [f'\tVPX_{s.name} = {i},' for i, s in enumerate(single)]
+    L += [f'\tkVpExeSymCount = {len(single)}', '};', '']
+    L += ['enum VpExeArr', '{'] + [f'\tVPXA_{s.name} = {i},' for i, s in enumerate(arrs)] + \
+         [f'\tkVpExeArrCount = {len(arrs)}', '};', '']
+    # +1 everywhere: no zero-length arrays when a list is empty
+    L += ['static const char* const kVpExeSymNames[kVpExeSymCount + 1] = {'] + \
+         [f'\t"{s.name}",' for s in single] + ['\t0', '};']
+    L += ['static const unsigned char kVpExeSymKinds[kVpExeSymCount + 1] = {'] + \
+         [f'\t{KIND_ENUM[s.kind]},' for s in single] + ['\t0', '};']
+    L += ['static const uint32_t kVpExeSymAnchor[kVpExeSymCount + 1] = {',
+          _rows([s.anchor for s in single] + [0]), '};']
+    L += ['static const uint32_t kVpExeSymVa[kVpExeBuildCount][kVpExeSymCount + 1] = {']
+    for b in builds.KNOWN:
+        t = tabs[b.id]['symbols']
+        vals = [int(t[s.name]['va'], 16) if s.name in t else 0 for s in single] + [0]
+        L += [f'\t{{ // {b.steam_build}', _rows(vals), '\t},']
+    L += ['};']
+    L += ['static const unsigned char kVpExeBuildComplete[kVpExeBuildCount] = { ' +
+          ', '.join('1' if tabs[b.id].get('complete') else '0' for b in builds.KNOWN) + ' };', '']
+    L += ['struct VpExeArrayInfo { const char* name; int rows; int cols; const uint32_t* cells[kVpExeBuildCount]; };']
+    for s in arrs:
+        rows = None
+        for b in builds.KNOWN:
+            a = tabs[b.id].get('arrays', {}).get(s.name)
+            if a is None:
+                raise EmitError(f'the table of build {b.steam_build} has no array {s.name}; regenerate it')
+            cells = [int(c, 16) if isinstance(c, str) else int(c) for row in a['rows'] for c in row]
+            if rows is None:
+                rows = len(a['rows'])
+            elif rows != len(a['rows']):
+                raise EmitError(f'array {s.name}: {rows} rows in one build, {len(a["rows"])} in build {b.steam_build}')
+            L += [f'static const uint32_t kVpExeArr_{s.name}_{b.steam_build}[{len(cells)}] = {{', _rows(cells), '};']
+    L += ['static const VpExeArrayInfo kVpExeArrays[kVpExeArrCount + 1] = {']
+    for s in arrs:
+        L += [f'\t{{ "{s.name}", {len(tabs[builds.ANCHOR.id]["arrays"][s.name]["rows"])}, {len(s.array_cols)}, {{ ' +
+              ', '.join(f'kVpExeArr_{s.name}_{b.steam_build}' for b in builds.KNOWN) + ' } },']
+    L += ['\t{ 0, 0, 0, { ' + ', '.join('0' for _ in builds.KNOWN) + ' } }', '};', '']
+    return '\n'.join(L)
+
+
+def emit(out_dir, tables=None, symbols_dir=None, environ=None) -> Path:
+    """Write <out_dir>/vp_exe_tables.gen.h (only when its text changed). Returns its path; EmitError on failure."""
+    syms, tabs = collect(tables, symbols_dir, environ)
+    text = render(syms, tabs)
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    p = out / GEN_NAME
+    if not p.is_file() or p.read_text(encoding='utf-8') != text:
+        p.write_text(text, encoding='utf-8', newline='\n')
+    return p
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--out', type=Path, required=True, help='the build output gen folder')
+    ap.add_argument('--tables', type=Path, help='table folder (default: the setting exe_tables / C5_EXE_TABLES)')
+    ap.add_argument('--symbols', type=Path, help=argparse.SUPPRESS)   # tests: another catalogue folder
+    a = ap.parse_args(argv)
+    try:
+        p = emit(a.out, a.tables, a.symbols)
+    except (EmitError, table.CatalogueError, table.TableError) as e:
+        print(f'emit_header: FAILED: {e}')
+        return 2
+    syms = table.symbols(a.symbols)
+    print(f'emit_header: {p}: {sum(s.kind != "array" for s in syms)} symbols, '
+          f'{sum(s.kind == "array" for s in syms)} arrays, builds ' +
+          ', '.join(builds.KNOWN[i].steam_build for i in range(len(builds.KNOWN))))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

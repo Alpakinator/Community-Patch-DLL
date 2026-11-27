@@ -1,0 +1,19 @@
+### [Extras] FixMinimapUnexplored
+
+A fix for the game's minimap. When a mod or a script sets tiles back to unexplored during play (the main map covers them
+in cloud again), the game's minimap keeps showing them, with their edges, and keeps the wider view they made, until the
+next load. With this fix the patch marks those tiles unexplored in the minimap's own data within a few frames, so the
+minimap shows what the main map shows and zooms back to the tiles you know. Tiles that only go from visible to seen are
+not affected (the minimap draws both alike). Display only: the game's rules and saves are not touched. Vox Populi itself
+hides tiles again only in its debug mode, so without such a mod or script this line changes nothing.
+
+It works on the game's own minimap, with or without the patch's server renderer. If the patch does not recognise the
+game's version, or the minimap's data are not as expected, the fix switches itself off with one line in `vpproxy.log`
+(`minimap fog: OFF, ...`) and the minimap behaves as in the stock game.
+
+| Value | Meaning |
+|---|---|
+| `0` | Off: as the game does it; hidden tiles stay on the minimap until the next load. |
+| `1` | On (the default), when `EnableBugfixes = 1` as well (its default). |
+
+Default line, as the patch writes it: `FixMinimapUnexplored = 1`.

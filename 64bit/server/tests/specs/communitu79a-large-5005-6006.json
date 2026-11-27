@@ -1,0 +1,7 @@
+{
+  "map": {"script": "Assets/Maps/Communitu_79a.lua", "size": "WORLDSIZE_LARGE"},
+  "speed": "GAMESPEED_STANDARD",
+  "era": "ERA_ANCIENT",
+  "difficulty": "HANDICAP_EMPEROR",
+  "seeds": {"map": 5005, "sync": 6006}
+}

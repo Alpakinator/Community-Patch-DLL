@@ -1,0 +1,76 @@
+Ticket 0513 acceptance (impl-0513, account A, 2026-11-24). Branch task-0513-release-pgo.
+Research: research/08-performance/speedup-p1-pgo.md section 11, research/06-tooling-and-workflows/x64-dll-build-configurations.md 4b,
+runbook 1.7 and 1.8 ("PGO"). Evidence archive: F:/c5-64bit-work/0513/evidence/ and F:/c5-64bit-work/0513/profile/.
+
+1. A fifth configuration release-pgo (named in layout and manifest; .vppgo names the profile SHA-256). [C, L]
+   tools/x64-dll/build.py: CONFIGS debug, release, fast, pgo-instr, release-pgo; WHOLE_PROGRAM includes it (link place,
+   0373's DSE limit); compile = release's line + /clang:-fprofile-use + -pgo-warn-missing-function (4801's measured line);
+   link = release's + the .vppgo object. `build.py --config release --profile` is refused with a pointer to release-pgo.
+   Records: build-summary.json config release-pgo, for_timing true, profile {sha256, locked, lock_pin, functions, ...},
+   dll_profile, pgo_diagnostics, pgo_retrain; build_all.json config release-pgo, lib_config release, profile;
+   server/build_server.py bin/build.json deps_config release-pgo (MC #13094, separate commit abeb4c41b).
+   Layout name in the release take: x64-<commit8>[-mN]-p<tools7>-pgo; README and candidate lock name the profile.
+   Live: C:/c5-64bit-work/0513/pgo (build_all --config release-pgo + build_server --deps, 2026-11-24 16:16-16:43 EST):
+   every build_all step rc 0, DLL 56B609A8CC6D2417DDE5DDB911B65162972DF1F588E8726B168EA34833DFCF84 (24,822,272 B),
+   .vppgo = 718d3e58..., link 630.6 s, peak private 14,670 MB, narrowing 794 / 0 new / 4 gone.
+
+2. The profile retrained on the current pin x64-0.1b 1b87dd185, with a profile = line in deps/dll.lock (SHA-256, size,
+   training set, tool versions). [L, C]
+   pgo-instr build 5696D842... (link 571.6 s, 16,363 MB); train.py H 300-305, M 150-160, S 0-50 all passed
+   (2026-11-24 16:09:58-16:14:13 EST); merged vp64-1b87dd185.profdata, 13,529,528 B,
+   SHA-256 718d3e587aae4824b058136264a1bdf0820684a587722e845ace47f08d7d2eb5, 49,373 functions; check_profile.py OK.
+   deps/dll.lock: `profile = sha256 718d3e58... bytes 13529528 pin 1b87dd1857e2... name vp64-1b87dd185.profdata` with
+   the training set (each raw profile's SHA-256), the instrumented DLL and tool versions (LLVM 19.1.7, the profile
+   runtime's SHA-256); `profile-file = C:/c5-64bit-work/keep/pgo/vp64-1b87dd185.profdata` (README in that folder;
+   archived F:/c5-64bit-work/0513/profile/). The file itself is not committed (MC #4429 (2)).
+
+3. tools/release's build stage consumes it and refuses a SHA-256 mismatch; a build without a profile still works. [C]
+   tools/release/stages/build.py: x64_config = config x64_config, else deps/dll.lock release-config, else release (no
+   release-config line is written: the switch stays the MC's step at a pin batch). release-pgo: pgo_plan checks before
+   any build that the file exists, has the lock's SHA-256 (else stop "refused") and was trained on the commit built
+   (else stop: retrain); build_all --config release-pgo --profile, then build_server --config release --deps; checks
+   the summary's and the laid-out DLL's .vppgo and the retrain verdict. Plain release: the commands, inputs hash and
+   layout name are unchanged. Tests tools/release/tests/test_take_release_pgo.py 9 passed (plain take unchanged;
+   release-pgo commands; SHA-256 mismatch, missing file/line, other pin, retrain verdict, wrong .vppgo, unknown config
+   refused; layout -pgo). The export's clean build (0468) does not exist yet: noted in research 06 4b.
+
+4. The retrain rule in build.py (pgo_diagnostics over 1 % of functions, and before each release). [C, L]
+   retrain_verdict: needed when hash mismatches + missing functions > 1 % of the profile's functions, on a malformed
+   diagnostic, an unknown function count, or a profile trained on another commit than the source's; build.py warns,
+   the release take stops. Live on 11.2's build: 0 of 49,373 unmatched, pin = source: current.
+
+5. Identity M 150-160 and S 0-50 IDENTICAL against the pin's release (statscmp). [L, 2026-11-24 16:49-16:51 EST]
+   tools/x64-dll/pgo/identity.py, pin = keep/pins-0.1b/deps-x64-release DLL B84AA3E9..., pgo = 56B609A8...,
+   instr = 5696D842... (training runs reused):
+     M 150-160: 31,126 rows, 15 tables: pin = pgo IDENTICAL, pin = instr IDENTICAL, pgo = instr IDENTICAL
+     S 0-50:    19,016 rows, 15 tables: pin = pgo IDENTICAL, pin = instr IDENTICAL, pgo = instr IDENTICAL
+   (S differed on 4801's pin through bug 0508; the fix is in the pin.)
+
+6. Tests pass. [C]
+   2026-11-24 16:56-17:29 EST, each file alone under quietlock.py run, PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, 0 skipped, 0 failed:
+   tools/x64-dll/tests 168 passed (test_release_pgo.py 17 new, test_config.py updated for release-pgo);
+   tools/release/tests: test_take_release_pgo 9 (new), _major 14, _stages 47, _i2_compositor 11, _purity 6, _shell_config 20,
+   test_take_release 74, test_tier_build 47; tools/harness/tests/test_safety_static.py 55; server/tests/feed/
+   test_render_events_define.py 12. After merging main (17:29): test_runbook_paths 5, the two PGO files again, all pass.
+   Note: a first run of all files in one pytest process (16:25-16:55, beside the release-pgo link and the identity runs)
+   showed two F in the i2_compositor/purity range before I stopped it; each file passed alone afterwards (not traced).
+   Runbook 1.2's server build (build_server --deps keep/pins-0.1b/deps-x64-release, --no-proxy) ran OK with the
+   changed build_server.py at 16:06-16:09 (bin/build.json deps_config release).
+
+7. One whole-program link at a time (D107, D121): every link of this ticket (pgo-instr, release-pgo) went through
+   build.py's link place (the release-pgo link waited 330 s for another team's holder); no two heavy builds of this
+   ticket ran at once.
+
+8. Re-merge after the lapsed lease (impl-0513 r2, account A, 2026-11-24 22:29-23:00 EST). Branch head 33bf4794c merged with
+   main a2db7e1fe: one conflict, server/build_server.py's bin/build.json record (main's 5037 added `heap_type`, this
+   ticket `deps_config`): both fields kept. No other file of this ticket changed on main (runbook and research 08
+   README merged cleanly). No DLL, profile or lock change, so 1-5 above stand.
+   - build_server --config release --deps C:/c5-64bit-work/0513/pgo/deps (the release-pgo build of 16:16-16:43)
+     --no-proxy, out C:/c5-64bit-work/0513/srv-r2, under quietlock run: OK in 91 s; bin/build.json config release,
+     deps_config release-pgo, heap_type default.
+   - Tests, each file alone under quietlock run, PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, 22:33-22:57, 0 failed, 0 skipped:
+     tools/x64-dll/tests 168; tools/release/tests test_take_release_pgo 9, _major 14, _stages 47, _i2_compositor 11,
+     _purity 6, _shell_config 20, test_take_release 74, _new_tag 5 (new on main), test_tier_build 47;
+     tools/harness/tests test_safety_static 55, test_runbook_paths 5; server/tests/feed/test_render_events_define 12.
+   - Export check: `tools/export/check.py --rev HEAD --since main` and `--since fa399b71f` (the old base): PASS, 0 new
+     findings.

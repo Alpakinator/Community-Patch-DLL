@@ -1,0 +1,10 @@
+# 4453 DoD D: header row 0 of every captured skinned unit instance against its owner's PlayerColors
+# SecondaryColor with trunc(float32(v) x 255) x float32(1/255), alpha 1 (bit-equal; research unit-draws.md 5.1).
+# Capture: 2026-11-16, c5h-c stock path, Tiny new game, one frame. Types and counts only (D83).
+case	player	civilization	minor	colour_type	default_colour_type	set_at_setup	instances	meshes	bit_equal
+major, its default colour	0	CIVILIZATION_ROME	-	PLAYERCOLOR_ROME	PLAYERCOLOR_ROME	0	92	18	1
+one civilization twice: the first	1	CIVILIZATION_GREECE	-	PLAYERCOLOR_GREECE	PLAYERCOLOR_GREECE	0	24	3	1
+one civilization twice: the second	2	CIVILIZATION_GREECE	-	PLAYERCOLOR_BLACK	PLAYERCOLOR_GREECE	0	20	2	1
+colour set by PreGame.SetPlayerColor	3	CIVILIZATION_EGYPT	-	PLAYERCOLOR_DARK_PINK	PLAYERCOLOR_EGYPT	1	48	6	1
+city-state	22	CIVILIZATION_MINOR	MINOR_CIV_VELIGRAD	PLAYERCOLOR_MINOR_VELIGRAD	PLAYERCOLOR_MINOR_VELIGRAD	0	24	1	1
+barbarians	63	CIVILIZATION_BARBARIAN	-	PLAYERCOLOR_BARBARIAN	PLAYERCOLOR_BARBARIAN	0	20	1	1

@@ -1,0 +1,377 @@
+# exebuild/symbols/shell.tsv - EXE symbols used by shell/ (the composite DLL, the stand-in, shell/common). Epic 0590, D202.
+# Columns (tab-separated): name, kind, anchor_va, consumer, note. The anchor VA is the symbol's VA in Steam build 4390913
+# (DX11 EXE, ImageBase 0x400000). Never write another build's VA here: those are in the local tables (exe_tables setting).
+# Format and kinds: research/02-exe-internals/exe-build-table.md section 3. Pilot (ticket 4960): shell/common/exe_camera.h.
+name	kind	anchor_va	consumer	note
+cam_app	data	0xCC8E74	shell/common/exe_camera.h	Civ5App* g_Civ5App
+cam_numviews	data	0xD90FA4	shell/common/exe_camera.h	uint g_NumViews
+cam_wrapx	data	0xD90FBC	shell/common/exe_camera.h	int g_MapWrapsX
+cam_gridptr	data	0xD90FC4	shell/common/exe_camera.h	GridHeightmap* (0 before a map loads)
+cam_aabb	data	0xD90FCC	shell/common/exe_camera.h	float min xyz, max xyz
+cam_period	data	0xD90FE4	shell/common/exe_camera.h	float wrap period
+cam_worldh	data	0xD90FE8	shell/common/exe_camera.h	float world height
+cam_w2h	data	0xD90FF0	shell/common/exe_camera.h	D3DXMATRIX world to hex
+cam_h2w	data	0xD91030	shell/common/exe_camera.h	D3DXMATRIX hex to world
+cam_grid	data	0xD91270	shell/common/exe_camera.h	GridHeightmap object
+cam_proj	data	0xDA12D0	shell/common/exe_camera.h	D3DXMATRIX g_Proj
+cam_view	data	0xDA1310	shell/common/exe_camera.h	D3DXMATRIX g_View[4]
+cam_viewport	data	0x2DD1FB8	shell/common/exe_camera.h	D3DVIEWPORT9 g_Viewport
+cam_world_identity	data	0x2DD1FD0	shell/common/exe_camera.h	identity world matrix for D3DXVec3Project (WorldAnchor pattern operand)
+cam_fcamera_vtbl	vtable	0xA9A1B0	shell/common/exe_camera.h	FCamera vtable (.rdata), 3 entries
+cam_fcamera_dtor	code	0x8E5320	shell/common/exe_camera.h	FCamera vtable [0] (pattern operand)
+cam_fcamera_update	code	0x8E4D70	shell/common/exe_camera.h	FCamera::Update, vtable [1] (pattern operand)
+cam_fcamera_getviewproj	code	0x8E4A80	shell/common/exe_camera.h	FCamera::GetViewProj, vtable [2]
+cam_fn_setengineui	code	0x47BA70	shell/common/exe_camera.h	LoadCvGameCoreDLL_SetEngineUserInterface (g_Civ5App pattern)
+cam_fn_updateviews	code	0x51DF70	shell/common/exe_camera.h	UpdateViews head
+cam_updateviews_controller	code	0x51DFA0	shell/common/exe_camera.h	UpdateViews: camera controller GVS+0x44 (mid-function)
+cam_updateviews_getviewproj	code	0x51DFBD	shell/common/exe_camera.h	UpdateViews: GetViewProj call (mid-function)
+cam_updateviews_numviews	code	0x51DFFE	shell/common/exe_camera.h	UpdateViews: g_NumViews = 1, wrap test (mid-function)
+cam_updateviews_period	code	0x51E052	shell/common/exe_camera.h	UpdateViews: wrap period load (mid-function)
+cam_worldanchor_site	code	0x522B70	shell/common/exe_camera.h	WorldAnchor: D3DXVec3Project argument pushes (mid-function)
+cam_fn_hextoworld	code	0x6851C0	shell/common/exe_camera.h	HexToWorld
+cam_lua_hextoworld	code	0x50F370	shell/common/exe_camera.h	Lua HexToWorld: GridHeightmap pointer load
+# Shell carry A (ticket 4964): bake, water, ice, overlay, shadow taps and the lockstep probe of shell_composite.cpp.
+bake_ts	data	0xD165E0	shell/composite/bake_tap.cpp	TerrainSystem (static object); TR = [TS+0x75FA4]
+bake_viewtab_view2	data	0x414C34C	shell/composite/bake_tap.cpp	the view table's second column (view table + 4; pattern operand)
+bake_ts_site	code	0x4033FE	shell/composite/bake_tap.cpp	mov ecx, &TerrainSystem (pattern site)
+bake_tr_site	code	0x68EFE0	shell/composite/bake_tap.cpp	function head: TR = TS+0x75FA4, condition byte TS+0x75FDC (pattern site)
+bake_prebake_tiles	code	0x4AE81C	shell/composite/bake_tap.cpp	pre-bake (function 0x4AE6F0): tile list TR+0x1AE4 (pattern site)
+bake_prebake_flag	code	0x4AE839	shell/composite/bake_tap.cpp	pre-bake: tile+0x314 = 1 (pattern site)
+bake_copy_198	code	0x695EC3	shell/composite/bake_tap.cpp	bake (function 0x694A60): copy into tile+0x198 (pattern site)
+bake_copy_19c	code	0x695F9A	shell/composite/bake_tap.cpp	bake: copy into tile+0x19C (pattern site)
+bake_texcreate_viewtab	code	0x8BC0CA	shell/composite/bake_tap.cpp	texture creation: the view table write, 12 bytes per handle (pattern site; also overlay, shadow)
+water_river	data	0x1A0C694	shell/composite/water_tap.cpp	RiverVisSystem (static object)
+water_water	data	0xD3DD0C	shell/composite/water_tap.cpp	Water = TerrainSystem + 0x2772C (no direct reference expected: hand case)
+water_wave	data	0x1A0C6C8	shell/composite/water_tap.cpp	Wave_System (static object)
+water_vbtab	data	0x301A708	shell/composite/water_tap.cpp	VB handle -> ID3D11Buffer* (also ice)
+water_vbdesc	data	0x3020840	shell/composite/water_tap.cpp	VB handle -> description, 0x30 bytes (also ice)
+water_ibtab	data	0x306ECC8	shell/composite/water_tap.cpp	IB handle -> ID3D11Buffer* (also ice)
+water_ibdesc	data	0x3074E00	shell/composite/water_tap.cpp	IB handle -> description, 0x30 bytes, +0x2C DXGI format (also ice)
+water_stride	data	0x2E49F68	shell/composite/water_tap.cpp	vertex format id -> stride dword (also ice)
+water_passlevel	data	0xD90F68	shell/composite/water_tap.cpp	dword: the river render takes pass 1 when > 2, else pass 4
+water_vbpool	data	0x3014280	shell/composite/water_tap.cpp	VB handle pool (pattern operand)
+water_ibpool	data	0x3068840	shell/composite/water_tap.cpp	IB handle pool (pattern operand)
+water_river_build	code	0x6D52A4	shell/composite/water_tap.cpp	river build: mov ecx, &RiverVisSystem before a call (pattern site)
+water_river_upload_vb	code	0x6B1585	shell/composite/water_tap.cpp	river upload (function 0x6B1580): VB handle River+0x1C, VB pool (pattern site)
+water_river_upload_ib	code	0x6B1594	shell/composite/water_tap.cpp	river upload: IB handle River+0x20, IB pool (pattern site)
+water_river_upload_rec	code	0x6B15F1	shell/composite/water_tap.cpp	river upload: draw record River+0x18 (pattern site)
+water_river_upload_mat	code	0x6B160C	shell/composite/water_tap.cpp	river upload: material 91 WaterShader (pattern site)
+water_river_upload_tris	code	0x6B1796	shell/composite/water_tap.cpp	river upload: River+0x2C = 1, triangle count River+0x28 (pattern site)
+water_river_render_pass	code	0x4636EC	shell/composite/water_tap.cpp	river render (function 0x463640): pass from the pass-level dword (pattern site)
+water_vbcreate_desc	code	0x8C615A	shell/composite/water_tap.cpp	VB create (function 0x8C6140): description table (pattern site; also ice)
+water_vbcreate_stride	code	0x8C616D	shell/composite/water_tap.cpp	VB create: stride table (pattern site; also ice)
+water_vbcreate_buf	code	0x8C6186	shell/composite/water_tap.cpp	VB create: buffer table (pattern site; also ice)
+water_ibcreate_desc	code	0x8C6309	shell/composite/water_tap.cpp	IB create (function 0x8C62F0): description table (pattern site; also ice)
+water_ibcreate_buf	code	0x8C6346	shell/composite/water_tap.cpp	IB create: buffer table (pattern site; also ice)
+water_ibcreate_fmt	code	0x8C6351	shell/composite/water_tap.cpp	IB create: DXGI format at description+0x2C (pattern site; also ice)
+water_pool_cap	code	0x8C5BDA	shell/composite/water_tap.cpp	VB/IB handle pool: capacity 0x1800 (pattern site; also ice)
+water_reccreate	code	0x8C69BE	shell/composite/water_tap.cpp	draw record create (function 0x8C69B0): records table, 0x80 bytes each (pattern site; also ice)
+water_recpool_cap	code	0x8C5C8A	shell/composite/water_tap.cpp	draw record pool: capacity 0x20000 (pattern site; also ice)
+water_terrain_render	code	0x6570BA	shell/composite/water_tap.cpp	terrain render: Water = TerrainSystem+0x2772C (pattern site)
+water_ocean_cap	code	0x73A114	shell/composite/water_tap.cpp	ocean (function 0x739AE0): Water+0x5C quad capacity (pattern site)
+water_ocean_vb	code	0x73A14A	shell/composite/water_tap.cpp	ocean: Water+0x54 VB handle (pattern site)
+water_ocean_ib	code	0x73A165	shell/composite/water_tap.cpp	ocean: Water+0x58 IB handle (pattern site)
+water_passa_wave	code	0x589601	shell/composite/water_tap.cpp	pass A: mov ecx, &Wave_System before its render (pattern site)
+water_wave_render_count	code	0x643DE3	shell/composite/water_tap.cpp	wave render: chunk count Wave+0x58 (pattern site)
+water_wave_render_waves	code	0x643E61	shell/composite/water_tap.cpp	wave render: chunk +0x0C first wave, +0x10 waves (pattern site)
+water_wavechunk_array	code	0x6A64BF	shell/composite/water_tap.cpp	wave chunk build (function 0x6A6490): chunks at Wave+0x54 (pattern site)
+water_wavechunk_verts	code	0x6A64EE	shell/composite/water_tap.cpp	wave chunk build: 0x1170 vertices (pattern site)
+water_wavechunk_fmt	code	0x6A64FC	shell/composite/water_tap.cpp	wave chunk build: vertex format 0x19 (pattern site)
+water_wavechunk_idx	code	0x6A650D	shell/composite/water_tap.cpp	wave chunk build: 0x2E80 indices (pattern site)
+water_wave_update_count	code	0x6AB855	shell/composite/water_tap.cpp	wave update (function 0x6AB850): wave count Wave+0x60 (pattern site)
+water_wave_update_waves	code	0x6AB870	shell/composite/water_tap.cpp	wave update: waves at Wave+0x5C (pattern site)
+ice_ice	data	0xD68F9C	shell/composite/ice_tap.cpp	Ice = TerrainSystem + 0x529BC
+ice_createterrain	code	0x70AF16	shell/composite/ice_tap.cpp	CreateTerrain: Ice object TerrainSystem+0x529BC to the Ice step (pattern site)
+ice_reload	code	0x77CC42	shell/composite/ice_tap.cpp	Ice_Reload (function 0x77CC30): the Ice object and the grid (pattern site)
+ice_step_built	code	0x5A0C03	shell/composite/ice_tap.cpp	Ice step (function 0x5A0BC0): builder call, built flag Ice+0xFEA5 (pattern site)
+ice_builder_vb	code	0x495BDD	shell/composite/ice_tap.cpp	ice builder (function 0x4956F0): VB of vertex format 0x16 (pattern site)
+ice_builder_vbhandle	code	0x495BEA	shell/composite/ice_tap.cpp	ice builder: VB handle at Ice+0xFEE4 (pattern site)
+ice_builder_ib	code	0x495BFD	shell/composite/ice_tap.cpp	ice builder: IB, handle at Ice+0xFEE8 (pattern site)
+ice_builder_chunksize	code	0x495C10	shell/composite/ice_tap.cpp	ice builder: chunk entries of 0x14 bytes (pattern site)
+ice_builder_chunks	code	0x495C83	shell/composite/ice_tap.cpp	ice builder: chunk array Ice+0xFF2C, count Ice+0xFF30 (pattern site)
+ice_builder_record	code	0x495CD9	shell/composite/ice_tap.cpp	ice builder: draw record of material 0x3B per chunk (pattern site)
+ice_builder_rec_ibvb	code	0x495CF8	shell/composite/ice_tap.cpp	ice builder: record +0x04 IB, +0x08 VB (pattern site)
+ice_builder_rec_tris	code	0x495D16	shell/composite/ice_tap.cpp	ice builder: record +0x0C triangles (pattern site)
+ice_builder_rec_start	code	0x495D2C	shell/composite/ice_tap.cpp	ice builder: record +0x10 start index, +0x14 base vertex (pattern site)
+ovl_handle	data	0xDA12A4	shell/composite/overlay_tap.cpp	Terrain Overlay target handle
+ovl_proj	data	0xDA1690	shell/composite/overlay_tap.cpp	OverlayProj[v], 0x40 bytes each
+ovl_proj1	data	0xDA16D0	shell/composite/overlay_tap.cpp	OverlayProj[1] (pattern operand)
+ovl_startup	code	0x57D2AC	shell/composite/overlay_tap.cpp	Overlay start-up: 2048 x 2048 target, handle stored (pattern site)
+ovl_render_bind	code	0x6EAD96	shell/composite/overlay_tap.cpp	overlay render (function 0x6EAD50): the target bound (pattern site)
+ovl_render_views	code	0x6EADAE	shell/composite/overlay_tap.cpp	overlay render: one pass per view (pattern site)
+ovl_render_proj	code	0x6EAE36	shell/composite/overlay_tap.cpp	overlay render: OverlayProj copied into the constants (pattern site)
+ovl_ortho_proj0	code	0x51B6D4	shell/composite/overlay_tap.cpp	ortho block (function 0x51B450): OverlayProj[0] built (pattern site)
+ovl_ortho_projv	code	0x51B738	shell/composite/overlay_tap.cpp	ortho block: OverlayProj[v] (pattern site)
+ovl_ortho_bound	code	0x51B74B	shell/composite/overlay_tap.cpp	ortho block: stride 0x40, bound g_NumViews (pattern site)
+shadow_raw	data	0xDA12B8	shell/composite/shadow_tap.cpp	ShadowRaw handle
+shadow_blur	data	0xDA12BC	shell/composite/shadow_tap.cpp	ShadowBlur handle
+shadow_quality	data	0xD90F9C	shell/composite/shadow_tap.cpp	shadow quality 0..3
+shadow_factor	data	0xD90FA8	shell/composite/shadow_tap.cpp	the shadow factor (TerrainFrame.Arg6, WaterFrame 0x220)
+shadow_sm0	data	0xDA1790	shell/composite/shadow_tap.cpp	ShadowMatrix0[v], 0x40 bytes each
+shadow_sm0_1	data	0xDA17D0	shell/composite/shadow_tap.cpp	ShadowMatrix0[1] (pattern operand)
+shadow_blur_name	rdata	0xA28A7C	shell/composite/shadow_tap.cpp	the name string of the Shadow Texture Blur target (pattern operand)
+shadow_pass_raw	code	0x523CA6	shell/composite/shadow_tap.cpp	shadow pass: returns when ShadowRaw is 0 (pattern site)
+shadow_pass_quality	code	0x523CB4	shell/composite/shadow_tap.cpp	shadow pass: reads the quality (pattern site)
+shadow_pass_factor	code	0x523D97	shell/composite/shadow_tap.cpp	shadow pass: stores the factor (pattern site)
+shadow_pass_blurclear	code	0x523DD9	shell/composite/shadow_tap.cpp	shadow pass: ShadowBlur cleared below 0.001 (pattern site)
+shadow_pass_rawopen	code	0x523E2D	shell/composite/shadow_tap.cpp	shadow pass: ShadowRaw opened as the target (pattern site)
+shadow_pass_unitmask	code	0x523E51	shell/composite/shadow_tap.cpp	shadow pass: Unit casters gated by view-mask bit 0x40 (pattern site)
+shadow_pass_tail	code	0x523ED5	shell/composite/shadow_tap.cpp	shadow pass: tail call to the resample (pattern site)
+shadow_resample	code	0x5580B0	shell/composite/shadow_tap.cpp	resample: only at quality >= 2 (function head, pattern site)
+shadow_resample_blur	code	0x5580F4	shell/composite/shadow_tap.cpp	resample: ShadowBlur as its target (pattern site)
+shadow_setup_blur	code	0x52FC4C	shell/composite/shadow_tap.cpp	setup: Shadow Texture Blur made, stored to ShadowBlur (pattern site)
+shadow_setup_q1	code	0x52FC98	shell/composite/shadow_tap.cpp	setup at quality 1: ShadowBlur := ShadowRaw's handle (pattern site)
+shadow_writer_sm0	code	0x615B86	shell/composite/shadow_tap.cpp	writer: ShadowMatrix0[0], bound g_NumViews (pattern site)
+shadow_writer_smv	code	0x615BE2	shell/composite/shadow_tap.cpp	writer: ShadowMatrix0[v] (pattern site)
+shadow_writer_bound	code	0x615BFA	shell/composite/shadow_tap.cpp	writer: the loop bound v < g_NumViews (pattern site)
+shadow_tframe_views	code	0x4241E6	shell/composite/shadow_tap.cpp	TerrainFrame build: g_NumViews and the factor (pattern site)
+shadow_tframe_sm	code	0x42456A	shell/composite/shadow_tap.cpp	TerrainFrame build: ShadowMatrix0[v] read (pattern site)
+shadow_wframe_sm	code	0x73AB06	shell/composite/shadow_tap.cpp	WaterFrame build: ShadowMatrix0 read (pattern site)
+shadow_wframe_factor	code	0x73AB1B	shell/composite/shadow_tap.cpp	WaterFrame build: the factor read (pattern site)
+shadow_render_call	code	0x589524	shell/composite/shadow_tap.cpp	3D render: the shadow pass called before the frame builds (pattern site)
+shadow_pass	code	0x523CA0	shell/composite/shadow_tap.cpp	the shadow pass function head: the target of shadow_render_call's call (checked in code; the generator frees a rel32)
+ls_loop	code	0x51E1BC	shell/composite/shell_composite.cpp	UpdateViews: lea eax,[esi+&g_InvView]; push eax; call the D3DXMatrixInverse thunk
+ls_ret	code	0x51E1C8	shell/composite/shell_composite.cpp	UpdateViews: the return address of that call (ls_loop + 12)
+ls_thunk	code	0x8A86B6	shell/composite/shell_composite.cpp	jmp dword ptr [the D3DXMatrixInverse import slot]
+ls_iat_matinv	iat	0x9D6B74	shell/composite/shell_composite.cpp	d3dx9_42.dll!D3DXMatrixInverse
+ls_invview0	data	0xDA1410	shell/composite/shell_composite.cpp	g_InvView[0]
+# ---- ticket 4965 (shell carry B, epic 0590): decal_tap, cut_tap, forest_tap, fow_models, unit_filter, farm_guard.
+# One name per address: the camera names above (cam_gridptr, cam_numviews, cam_h2w, cam_aabb) and the proxy carry's
+# (proxy.tsv, 4963: pxw_fow_mask, pxw_fow_base, pxw_tex_views, pxw_builder_read, pxw_base_building_read, pxw_renderer,
+# pxw_device, pac_qb_index) are used as they are. Rows marked "copy of 4964" repeat rows of ticket 4964 (branch
+# task-0590-c5a-carry-shell-a, not merged when these were written) for addresses these files share; when 4964 merges,
+# the catalogue refuses the second row, and the copy here goes (same name, kind and anchor).
+# decal_tap.cpp (terrain-decals.md 1, 5, 6, 8, 14, 18)
+decal_resmgr	data	0xCC7330	shell/composite/decal_tap.cpp	the resource manager's FSingleton pointer
+decal_farm_owner	data	0x2D70310	shell/composite/decal_tap.cpp	the farm system's owner; the farm-type table at +0x24
+decal_k_cell	rdata	0x9E0A00	shell/composite/decal_tap.cpp	float constant of the index cell computation (operand of the cell pattern)
+decal_k_256	rdata	0xA039B0	shell/composite/decal_tap.cpp	float 256.0: the large-decal threshold and the draw's tile growth
+decal_s_blank_spec	rdata	0xA272D4	shell/composite/decal_tap.cpp	string blank_texture_spec_decal.dds
+decal_s_blank	rdata	0xA3DDC8	shell/composite/decal_tap.cpp	string blank_texture.dds
+decal_s_farm_types	rdata	0xA3DDDC	shell/composite/decal_tap.cpp	string farm_types.xml
+decal_farm_cats	rdata	0xA3DCC8	shell/composite/decal_tap.cpp	the 8 farm category names, 32 bytes apart (Crops_Half_Built first)
+decal_rm_tds_site	code	0x44B723	shell/composite/decal_tap.cpp	mov ecx, TDS before a call of RemoveDecal (mid-function)
+decal_add_batchvec	code	0x49B5F0	shell/composite/decal_tap.cpp	AddDecal: batch vector TDS+0xB4, vertices used batch+0x24 (mid-function)
+decal_add_batches	code	0x49B618	shell/composite/decal_tap.cpp	AddDecal: 0x34-byte batches, count TDS+0xB8 (mid-function)
+decal_add_chunk	code	0x49B659	shell/composite/decal_tap.cpp	AddDecal: vertex chunk of 0x7FFF8 bytes (mid-function)
+decal_add_blank	code	0x49B8F6	shell/composite/decal_tap.cpp	AddDecal: the blank spec TDS+0x4F0 (mid-function)
+decal_rm_records	code	0x68F212	shell/composite/decal_tap.cpp	RemoveDecal: 0x34-byte records in the pool batch+0x08 (mid-function)
+decal_draw_flags	code	0x742FB0	shell/composite/decal_tap.cpp	decal draw: record flags +0x08 bit 0 (mid-function)
+decal_draw_rect	code	0x74329B	shell/composite/decal_tap.cpp	decal draw: rectangle record+0x24..+0x30, priority +0x20 (mid-function)
+decal_draw_tex	code	0x7432FF	shell/composite/decal_tap.cpp	decal draw: texture handles record+0x14, +0x18 (mid-function)
+decal_draw_tex2	code	0x743316	shell/composite/decal_tap.cpp	decal draw: texture handle record+0x1C (mid-function)
+decal_draw_verts	code	0x74334F	shell/composite/decal_tap.cpp	decal draw: first vertex, triangles, vertex buffer (mid-function)
+decal_texunload_mgr	code	0x8E1B6D	shell/composite/decal_tap.cpp	texture unload: the resource manager, the map of type 8 (mid-function)
+decal_texunload_node	code	0x8E1B90	shell/composite/decal_tap.cpp	texture unload: node -> resource -> handle (mid-function)
+decal_resmaps	code	0x8DE773	shell/composite/decal_tap.cpp	resource maps: type map at manager+0x40 (mid-function)
+decal_mapfind	code	0x426BC5	shell/composite/decal_tap.cpp	map find: node layout (mid-function)
+decal_startup_blank	code	0x714B8A	shell/composite/decal_tap.cpp	TDS Startup: blank spec into TDS+0x4F0 (mid-function)
+decal_farminit	code	0x74CE86	shell/composite/decal_tap.cpp	farm init: blank texture, then farm_types.xml (mid-function)
+decal_farmsys_at24	code	0x47347B	shell/composite/decal_tap.cpp	the farm system at +0x24 of its owner (mid-function)
+decal_farm_owner_ctor	code	0x9C7470	shell/composite/decal_tap.cpp	static constructor of the farm system's owner: mov ecx, owner
+decal_farmread_cats	code	0x797278	shell/composite/decal_tap.cpp	farm reader: 8 category names, ranges at +0x24 (mid-function)
+decal_farmread_variants	code	0x79741E	shell/composite/decal_tap.cpp	farm reader: 16-byte variants at +0x44 (mid-function)
+decal_area_tx	code	0x4387D8	shell/composite/decal_tap.cpp	area invalidation: tiles in x TR+0x2310 (mid-function)
+decal_area_grid	code	0x4388E0	shell/composite/decal_tap.cpp	area invalidation: tile pointers TR+0x1AE0 (mid-function)
+decal_area_set	code	0x438911	shell/composite/decal_tap.cpp	area invalidation: tile+0x300 = 1 (mid-function)
+decal_add_index	code	0x49B8B0	shell/composite/decal_tap.cpp	AddDecal: the spatial index TDS+0x6C (mid-function)
+decal_add_large	code	0x49BBDE	shell/composite/decal_tap.cpp	AddDecal: large when a side exceeds 256 (mid-function)
+decal_add_item	code	0x49BC09	shell/composite/decal_tap.cpp	AddDecal: a small decal's item from the pool (mid-function)
+decal_pool_items	code	0x798A13	shell/composite/decal_tap.cpp	index item pool: items used +0x0C (mid-function)
+decal_ins_items	code	0x69CD38	shell/composite/decal_tap.cpp	index insert: 24-byte items (mid-function)
+decal_ins_head	code	0x69CD5D	shell/composite/decal_tap.cpp	index insert: at the head of its cell (mid-function)
+decal_cell	code	0x53F0C9	shell/composite/decal_tap.cpp	index cell: (p - min) x inverse (mid-function)
+decal_walk	code	0x645E7C	shell/composite/decal_tap.cpp	index walk: columns inner, rows outer (mid-function)
+decal_query_end	code	0x724DD0	shell/composite/decal_tap.cpp	index query: cell range end (mid-function)
+decal_query_take	code	0x724E5F	shell/composite/decal_tap.cpp	index query: min <= point < max (mid-function)
+decal_draw_grow	code	0x742F0D	shell/composite/decal_tap.cpp	decal draw: tile rectangle grown by 256 (mid-function)
+decal_draw_query	code	0x742F3D	shell/composite/decal_tap.cpp	decal draw: the query on the index TDS+0x6C (mid-function)
+decal_draw_large	code	0x74305B	shell/composite/decal_tap.cpp	decal draw: the large list from its head TDS+0xAC (mid-function)
+decal_draw_next	code	0x743182	shell/composite/decal_tap.cpp	decal draw: the large list's next (mid-function)
+decal_sort	code	0x6488A3	shell/composite/decal_tap.cpp	the draw's sort: insertion sort at 32 entries or fewer (mid-function)
+decal_bake_rect	code	0x694C9E	shell/composite/decal_tap.cpp	tile bake: the decal tile rectangle (mid-function)
+# cut_tap.cpp (trees.md 14): cam_gridptr is the GridHeightmap pointer
+cut_grid	data	0xBA392C	shell/composite/cut_tap.cpp	the plot mask grid, a static object of the Terrain system
+cut_k_row	rdata	0x9F3498	shell/composite/cut_tap.cpp	float 1.1547344 (the lookup's row scale)
+cut_forest_lookup	code	0x6D77B4	shell/composite/cut_tap.cpp	the forest's blocks: ECX = the grid for the lookup (mid-function)
+cut_shadow_lookup	code	0x7711C4	shell/composite/cut_tap.cpp	the tree shadow quads: ECX = the grid for the lookup (mid-function)
+cut_lookup	code	0x4365E6	shell/composite/cut_tap.cpp	the lookup: origin, row scale, bounds (mid-function)
+cut_cell	code	0x4A0A5C	shell/composite/cut_tap.cpp	a cell: tile, directory, pool (mid-function)
+cut_size	code	0x60DADC	shell/composite/cut_tap.cpp	the grid's size: rounded up to 16 (mid-function)
+cut_write_state	code	0x49F2E9	shell/composite/cut_tap.cpp	a cell write: the directory entry's state (mid-function)
+cut_write_pool	code	0x49F32D	shell/composite/cut_tap.cpp	a cell write: a block from the pool (mid-function)
+cut_write_block	code	0x49F355	shell/composite/cut_tap.cpp	a cell write: a pooled tile's block (mid-function)
+cut_pool_block	code	0x4CD584	shell/composite/cut_tap.cpp	a pool block: free head, blocks, capacity (mid-function)
+cut_freed	code	0x710404	shell/composite/cut_tap.cpp	the grid freed: fields cleared (mid-function)
+cut_made	code	0x6F73A3	shell/composite/cut_tap.cpp	the grid made: the GridHeightmap's samples halved (mid-function)
+cut_create_call	code	0x70A049	shell/composite/cut_tap.cpp	CreateTerrain: ECX = the grid, call of the grid's make (mid-function)
+cut_shutdown_call	code	0x668599	shell/composite/cut_tap.cpp	TerrainSystem::ShutdownGame: ECX = the grid, call of the grid's free (mid-function)
+# forest_tap.cpp (trees.md)
+forest_system	data	0xDA91C8	shell/composite/forest_tap.cpp	Forest_System, a static object
+forest_k_one	rdata	0x9F72F4	shell/composite/forest_tap.cpp	float 1.0 (a tree's +0x0C in the layout builder)
+forest_update_call	code	0x6FBD06	shell/composite/forest_tap.cpp	UpdateWorldCamera: ECX = Forest_System for the per-frame update (mid-function)
+forest_ready	code	0x439E06	shell/composite/forest_tap.cpp	per-frame update: the ready flag +0x13C (mid-function)
+forest_first	code	0x439E14	shell/composite/forest_tap.cpp	per-frame update: the record list's first index +0x90 (mid-function)
+forest_records	code	0x439E34	shell/composite/forest_tap.cpp	per-frame update: records at +0x80, 0x8C bytes each (mid-function)
+forest_built	code	0x439F03	shell/composite/forest_tap.cpp	per-frame update: the built flag record+0x08 (mid-function)
+forest_kind	code	0x439FC8	shell/composite/forest_tap.cpp	per-frame update: the kind record+0x88 (mid-function)
+forest_trees	code	0x439FDC	shell/composite/forest_tap.cpp	per-frame update: trees per plot +0x12C, +0x128 (mid-function)
+forest_layout_idx	code	0x439FFF	shell/composite/forest_tap.cpp	per-frame update: the layout index record+0x78 (mid-function)
+forest_next	code	0x43A0F2	shell/composite/forest_tap.cpp	per-frame update: a record's next index (mid-function)
+forest_layout_count	code	0x45DF36	shell/composite/forest_tap.cpp	layouts at game start: the count +0x9C (mid-function)
+forest_layout	code	0x45E00C	shell/composite/forest_tap.cpp	layouts at game start: a layout of 28-byte trees (mid-function)
+forest_tree	code	0x5A3E8D	shell/composite/forest_tap.cpp	one layout: a tree is 7 floats (mid-function)
+# fow_models.cpp: pxw_fow_mask, pxw_fow_base, pxw_tex_views, cam_numviews
+fow_anim	data	0xDA1C40	shell/composite/fow_models.cpp	FOWAnim (4 floats), copied by the model passes into their cb row 12
+fow_anim_y	data	0xDA1C44	shell/composite/fow_models.cpp	FOWAnim + 4 (pattern operand)
+fow_anim_z	data	0xDA1C48	shell/composite/fow_models.cpp	FOWAnim + 8 (pattern operand)
+fow_anim_w	data	0xDA1C4C	shell/composite/fow_models.cpp	FOWAnim + 12 (pattern operand)
+fow_pass1_proj	code	0x4FB62D	shell/composite/fow_models.cpp	model pass 1: OverlayProj[v] copied to rows 8-11 (mid-function)
+fow_pass1_anim	code	0x4FB640	shell/composite/fow_models.cpp	model pass 1: FOWAnim copied to row 12 (mid-function)
+fow_pass2_proj	code	0x674DDE	shell/composite/fow_models.cpp	model pass 2: OverlayProj[v] copied to rows 8-11 (mid-function)
+fow_pass2_anim	code	0x674DF1	shell/composite/fow_models.cpp	model pass 2: FOWAnim copied to row 12 (mid-function)
+# farm_guard.cpp (farm-builder-guard.md 1-3; farm-fields-layout.md 1.3): pac_qb_index, cam_h2w, cam_aabb
+fg_lockinit	data	0xCBC56C	shell/composite/farm_guard.cpp	bit 0: the registration lock word was set to 0 once
+fg_lock	data	0xCBFC70	shell/composite/farm_guard.cpp	the registration lock of the "B" manager's listener lists
+fg_lists	data	0x2A103E4	shell/composite/farm_guard.cpp	type 59's listener list of channel 0 (pac_qb_index + 0x1E4; pattern operand)
+fg_builder_obj	data	0xBA20D0	shell/composite/farm_guard.cpp	the farm builder's object; the layout graph at +0x158
+fg_viewflag	data	0xB9DDA0	shell/composite/farm_guard.cpp	1 from the city-field init to the GameView shutdown
+fg_vtxvec	data	0xD16AD4	shell/composite/farm_guard.cpp	the farm-track strip's vertex vector (begin; +4 size, +8 capacity)
+fg_iat_interlockedcompareexchange	iat	0x9D646C	shell/composite/farm_guard.cpp	KERNEL32.dll!InterlockedCompareExchange
+fg_startup_group	code	0x62326C	shell/composite/farm_guard.cpp	GameView Startup: the listener group on the builder's object (mid-function)
+fg_listener_reg	code	0x46560B	shell/composite/farm_guard.cpp	the group: listener {object, builder} given to the type-59 register (mid-function)
+fg_register	code	0x8478A0	shell/composite/farm_guard.cpp	the type-59 register: lock, list, add, unlock
+fg_list_add	code	0x861785	shell/composite/farm_guard.cpp	list add: count +0x14, head +0x18, tail +0x1C (mid-function)
+fg_type_handler	code	0x63E530	shell/composite/farm_guard.cpp	every type's handler: jmp to the listener walk
+fg_listener_walk	code	0x8668E5	shell/composite/farm_guard.cpp	listener walk: 20-byte nodes (mid-function)
+fg_builder	code	0x748FC0	shell/composite/farm_guard.cpp	the farm-field builder (thiscall, one stack argument, ret 4)
+fg_builder_layout	code	0x7490A3	shell/composite/farm_guard.cpp	farm builder: the layout call on this+0x154 (mid-function)
+fg_builder_ret	code	0x749111	shell/composite/farm_guard.cpp	farm builder: its one return (mid-function)
+fg_cityinit_flag	code	0x432397	shell/composite/farm_guard.cpp	city-field init: fg_viewflag = 1 (mid-function)
+fg_shutdown_flag	code	0x490A14	shell/composite/farm_guard.cpp	GameView shutdown: unregister, then fg_viewflag = 0 (mid-function)
+fg_node_delete	code	0x7274E2	shell/composite/farm_guard.cpp	node delete: frees endpoints on this+0x94 (mid-function)
+fg_freelist_free	code	0x5855A0	shell/composite/farm_guard.cpp	free-list free: 20-byte entries, bit 31 of +0x10 = freed
+# ticket 0655: the farm-end post (cities-and-landmarks.md 2.6.1); the queue object is qg_channels + [qg_channel_index] * 0x800180 (proxy.tsv)
+fg_builder_tests	code	0x748FD3	shell/composite/farm_guard.cpp	farm builder: its three tests (flag byte, plot on the map, the farm's art id) (mid-function)
+fg_builder_post	code	0x7490F3	shell/composite/farm_guard.cpp	farm builder: its last step, the farm-end post on the 4 MB queue (mid-function)
+fg_post_farm_end	code	0x48E810	shell/composite/farm_guard.cpp	the poster of the farm-end record (type 5; thiscall on the queue object, no argument, returns the payload)
+fg_plot_on_map	code	0x42B440	shell/composite/farm_guard.cpp	the builder's plot test (thiscall on fg_plot_grid, one argument: the cube coordinates; returns al)
+fg_plot_grid	data	0xD91130	shell/composite/farm_guard.cpp	the object the builder's plot test runs on
+fg_art_id	code	0x61AA50	shell/composite/farm_guard.cpp	the builder's art id of a name (thiscall on fg_art_db, one argument: the name)
+fg_art_db	data	0xBA3458	shell/composite/farm_guard.cpp	the object the builder's art id call runs on
+fg_farm_art_name	rdata	0xA390A4	shell/composite/farm_guard.cpp	the name the builder's art test passes (ART_DEF_IMPROVEMENT_FARM)
+# ticket 0655 (P1 of the Architect): the diagnostic area probe on the builder object's A33 listener (farm_area_probe=1 only)
+fg_area_listener	code	0x79D040	shell/composite/farm_guard.cpp	the builder object's area (type 33) listener of the 4 MB A manager (thiscall, one argument, ret 4)
+fg_area_reg	code	0x46564C	shell/composite/farm_guard.cpp	the listener group: {object, area listener} given to the type-33 register (mid-function)
+fg_a_register	code	0x847960	shell/composite/farm_guard.cpp	the type-33 register of the A manager: lock, list [lists + [index] * 0x600], add, unlock
+fg_a_lockinit	data	0xCC733C	shell/composite/farm_guard.cpp	bit 0: the A manager's registration lock word was set to 0 once
+fg_a_lock	data	0xCBA9F0	shell/composite/farm_guard.cpp	the registration lock of the A manager's listener lists
+fg_a_lists	data	0x1A0E514	shell/composite/farm_guard.cpp	type 33's listener list of channel 0 (qg_channel_index + 0x114; pattern operand)
+# ticket 0657: the edge placement (the farm manager's farm-end and era listeners, the placer and its curve reads)
+fg_farm_group	code	0x5829B2	shell/composite/farm_guard.cpp	the farm manager's listener group: era listener to B48, farm-end listener to A5 (mid-function)
+fg_a5_register	code	0x870380	shell/composite/farm_guard.cpp	the type-5 register of the A manager: lock, list [lists + [index] * 0x600], add, unlock
+fg_b48_register	code	0x867370	shell/composite/farm_guard.cpp	the type-48 register of the B manager: lock, list [lists + [index] * 0x600], add, unlock
+fg_a5_lists	data	0x1A0E434	shell/composite/farm_guard.cpp	type 5's listener list of channel 0 (qg_channel_index + 0x34; pattern operand)
+fg_b48_lists	data	0x2A1038C	shell/composite/farm_guard.cpp	type 48's listener list of channel 0 (pac_qb_index + 0x18C; pattern operand)
+fg_farm_end_listener	code	0x603000	shell/composite/farm_guard.cpp	the farm manager's farm-end listener (A5; thiscall on the manager, one argument, ret 4)
+fg_farm_end_place	code	0x603178	shell/composite/farm_guard.cpp	the farm-end listener: its call of the placer (mid-function)
+fg_farm_era_listener	code	0x5307A0	shell/composite/farm_guard.cpp	the farm manager's era listener (B48; thiscall on the manager, one argument, ret 4)
+fg_farm_era_place	code	0x5308B0	shell/composite/farm_guard.cpp	the era listener: its call of the placer (mid-function)
+fg_farm_placer	code	0x4BE160	shell/composite/farm_guard.cpp	the farm placer (thiscall on the manager: the record, the instance description)
+fg_farm_placer_curves	code	0x4BE238	shell/composite/farm_guard.cpp	the farm placer: its curve loop up to the centroid call (mid-function)
+fg_farm_placer_f	code	0x4BE390	shell/composite/farm_guard.cpp	the farm placer: the call of F and the compare with the threshold (mid-function)
+fg_curve_centroid	code	0x86F940	shell/composite/farm_guard.cpp	a curve's area-weighted centroid (two iterators)
+fg_curve_prev	code	0x867CB0	shell/composite/farm_guard.cpp	a curve iterator's step back (the last segment from the store's +0xC)
+fg_curve_f	code	0x867D20	shell/composite/farm_guard.cpp	a curve's value 0.5 x sum x_prev (y - y_prev) (two iterators)
+fg_placer_min_f	rdata	0x9E7230	shell/composite/farm_guard.cpp	the placer's threshold of |F| (100.0)
+# ticket 0784 (D268): the tread filter on the main Particle object's type-0x28 listener of the 4 MB A manager
+tf_particle_start	code	0x4767C3	shell/composite/farm_guard.cpp	the engine's start-up: the main Particle object and its effect system to the Particle start-up (mid-function)
+tf_particle_startup	code	0x67B360	shell/composite/farm_guard.cpp	the Particle start-up: the effect system into +0x9C, then the listener group on the same object (thiscall, one argument)
+tf_particle_obj	data	0xC8EB50	shell/composite/farm_guard.cpp	the main Particle object (the listeners' object of the world's effects)
+tf_l28_reg	code	0x6A1CDC	shell/composite/farm_guard.cpp	the Particle object's listener group: {object, type-0x28 listener} given to the type-0x28 register (mid-function)
+tf_l28_register	code	0x86DD60	shell/composite/farm_guard.cpp	the type-0x28 register of the A manager: lock, list [lists + [index] * 0x600], add, unlock
+tf_l28_listener	code	0x77DC60	shell/composite/farm_guard.cpp	the Particle object's type-0x28 listener (an owned one-shot effect's start or move; thiscall, one argument: the payload, ret 4)
+tf_a28_lists	data	0x1A0E54C	shell/composite/farm_guard.cpp	type 0x28's listener list of channel 0 (qg_channel_index + 0x14C; pattern operand)
+# unit_filter.cpp path 2 (unit-draw-filter.md 3.2): pxw_renderer, pxw_device
+uf_create_vs	code	0x8BBC40	shell/composite/unit_filter.cpp	D3D11Renderer::CreateVertexShader (blob, size, mask)
+uf_create_ps	code	0x8BBBF0	shell/composite/unit_filter.cpp	D3D11Renderer::CreatePixelShader (blob, size)
+uf_ps_count	code	0x8BBC11	shell/composite/unit_filter.cpp	CreatePixelShader: mov ecx, [esi+0x45c] (mid-function)
+uf_ps_store	code	0x8BBC1B	shell/composite/unit_filter.cpp	CreatePixelShader: store into the PS objects (mid-function)
+uf_vs_count	code	0x8BBC67	shell/composite/unit_filter.cpp	CreateVertexShader: mov ecx, [esi+0x458] (mid-function)
+uf_vs_store	code	0x8BBC73	shell/composite/unit_filter.cpp	CreateVertexShader: store into the VS objects (mid-function)
+uf_vs_bc_store	code	0x8BBC8F	shell/composite/unit_filter.cpp	CreateVertexShader: store of the bytecode pointer (mid-function)
+uf_vs_size_store	code	0x8BBC9C	shell/composite/unit_filter.cpp	CreateVertexShader: store of the bytecode size (mid-function)
+uf_shader_init	code	0x4E5C20	shell/composite/unit_filter.cpp	the shader init: mov ecx, [renderer]
+uf_shader_level_read	code	0x4E6099	shell/composite/unit_filter.cpp	the shader init: mov eax, [shader level] (mid-function)
+uf_level	data	0x2E49EDC	shell/composite/unit_filter.cpp	shader level: <= 8 set 4_0, 9 set 4_1, 10 set 5_0
+uf_ps_obj	data	0x300DF68	shell/composite/unit_filter.cpp	ID3D11PixelShader* [handle]
+uf_vs_obj	data	0x300EF68	shell/composite/unit_filter.cpp	ID3D11VertexShader* [handle]
+uf_vs_bc	data	0x3006F68	shell/composite/unit_filter.cpp	const void* bytecode [handle] (VS only)
+uf_vs_size	data	0x3005F68	shell/composite/unit_filter.cpp	SIZE_T bytecode size [handle] (VS only)
+# unit_filter.cpp path 2: per program its blob (shader), the push of the blob at its create site, its handle global (unit-draw-filter.md 3.2; city-renderer.md 10.1)
+uf_vs_29a0b061_blob	shader	0x6803140	shell/composite/unit_filter.cpp	VS 29a0b061 blob (5_0 set) (89, 90)
+uf_vs_29a0b061_push	code	0x4EE8E2	shell/composite/unit_filter.cpp	VS 29a0b061: push of its blob before the create call (mid-function)
+uf_vs_29a0b061_handle	data	0x2DE1D5C	shell/composite/unit_filter.cpp	VS 29a0b061: 16-bit handle global the create site stores
+uf_vs_82e59838_blob	shader	0x68005D0	shell/composite/unit_filter.cpp	VS 82e59838 blob (5_0 set) (87)
+uf_vs_82e59838_push	code	0x4EE885	shell/composite/unit_filter.cpp	VS 82e59838: push of its blob before the create call (mid-function)
+uf_vs_82e59838_handle	data	0x2DE1D50	shell/composite/unit_filter.cpp	VS 82e59838: 16-bit handle global the create site stores
+uf_ps_60d270e1_blob	shader	0x6813630	shell/composite/unit_filter.cpp	PS 60d270e1 blob (5_0 set) (90)
+uf_ps_60d270e1_push	code	0x4EEA2B	shell/composite/unit_filter.cpp	PS 60d270e1: push of its blob before the create call (mid-function)
+uf_ps_60d270e1_handle	data	0x2DE1D8C	shell/composite/unit_filter.cpp	PS 60d270e1: 16-bit handle global the create site stores
+uf_ps_5def4f99_blob	shader	0x6811108	shell/composite/unit_filter.cpp	PS 5def4f99 blob (5_0 set) (89)
+uf_ps_5def4f99_push	code	0x4EE9F5	shell/composite/unit_filter.cpp	PS 5def4f99: push of its blob before the create call (mid-function)
+uf_ps_5def4f99_handle	data	0x2DE1D84	shell/composite/unit_filter.cpp	PS 5def4f99: 16-bit handle global the create site stores
+uf_ps_0e7a3566_blob	shader	0x680CC38	shell/composite/unit_filter.cpp	PS 0e7a3566 blob (5_0 set) (87)
+uf_ps_0e7a3566_push	code	0x4EE989	shell/composite/unit_filter.cpp	PS 0e7a3566: push of its blob before the create call (mid-function)
+uf_ps_0e7a3566_handle	data	0x2DE1D74	shell/composite/unit_filter.cpp	PS 0e7a3566: 16-bit handle global the create site stores
+uf_vs_8cb52b96_blob	shader	0x6804E48	shell/composite/unit_filter.cpp	VS 8cb52b96 blob (5_0 set) mask (89, 90)
+uf_vs_8cb52b96_push	code	0x4EE902	shell/composite/unit_filter.cpp	VS 8cb52b96: push of its blob before the create call (mid-function)
+uf_vs_8cb52b96_handle	data	0x2DE1D60	shell/composite/unit_filter.cpp	VS 8cb52b96: 16-bit handle global the create site stores
+uf_ps_72c27aea_blob	shader	0x6815328	shell/composite/unit_filter.cpp	PS 72c27aea blob (5_0 set) mask (90)
+uf_ps_72c27aea_push	code	0x4EEA46	shell/composite/unit_filter.cpp	PS 72c27aea: push of its blob before the create call (mid-function)
+uf_ps_72c27aea_handle	data	0x2DE1D90	shell/composite/unit_filter.cpp	PS 72c27aea: 16-bit handle global the create site stores
+uf_ps_246527ed_blob	shader	0x6812DA0	shell/composite/unit_filter.cpp	PS 246527ed blob (5_0 set) mask (89)
+uf_ps_246527ed_push	code	0x4EEA10	shell/composite/unit_filter.cpp	PS 246527ed: push of its blob before the create call (mid-function)
+uf_ps_246527ed_handle	data	0x2DE1D88	shell/composite/unit_filter.cpp	PS 246527ed: 16-bit handle global the create site stores
+uf_vs_59af33ff_blob	shader	0x6802938	shell/composite/unit_filter.cpp	VS 59af33ff blob (5_0 set) mask (87)
+uf_vs_59af33ff_push	code	0x4EE8C2	shell/composite/unit_filter.cpp	VS 59af33ff: push of its blob before the create call (mid-function)
+uf_vs_59af33ff_handle	data	0x2DE1D58	shell/composite/unit_filter.cpp	VS 59af33ff: 16-bit handle global the create site stores
+uf_ps_9a5991d7_blob	shader	0x680E7F0	shell/composite/unit_filter.cpp	PS 9a5991d7 blob (5_0 set) mask (87)
+uf_ps_9a5991d7_push	code	0x4EE9A4	shell/composite/unit_filter.cpp	PS 9a5991d7: push of its blob before the create call (mid-function)
+uf_ps_9a5991d7_handle	data	0x2DE1D78	shell/composite/unit_filter.cpp	PS 9a5991d7: 16-bit handle global the create site stores
+uf_vs_da2382af_blob	shader	0x677F838	shell/composite/unit_filter.cpp	VS da2382af blob (5_0 set) selection
+uf_vs_da2382af_push	code	0x4EDB5C	shell/composite/unit_filter.cpp	VS da2382af: push of its blob before the create call (mid-function)
+uf_vs_da2382af_handle	data	0x2DE1A94	shell/composite/unit_filter.cpp	VS da2382af: 16-bit handle global the create site stores
+uf_ps_8d853988_blob	shader	0x678A7E0	shell/composite/unit_filter.cpp	PS 8d853988 blob (5_0 set) selection
+uf_ps_8d853988_push	code	0x4EDC03	shell/composite/unit_filter.cpp	PS 8d853988: push of its blob before the create call (mid-function)
+uf_ps_8d853988_handle	data	0x2DE1AAC	shell/composite/unit_filter.cpp	PS 8d853988: 16-bit handle global the create site stores
+uf_vs_7ec4e9a5_blob	shader	0x619F1E8	shell/composite/unit_filter.cpp	VS 7ec4e9a5 blob (5_0 set) (4, 5)
+uf_vs_7ec4e9a5_push	code	0x4EBBEB	shell/composite/unit_filter.cpp	VS 7ec4e9a5: push of its blob before the create call (mid-function)
+uf_vs_7ec4e9a5_handle	data	0x2DE158C	shell/composite/unit_filter.cpp	VS 7ec4e9a5: 16-bit handle global the create site stores
+uf_ps_c704c80b_blob	shader	0x61A7D00	shell/composite/unit_filter.cpp	PS c704c80b blob (5_0 set) (5)
+uf_ps_c704c80b_push	code	0x4EBCB4	shell/composite/unit_filter.cpp	PS c704c80b: push of its blob before the create call (mid-function)
+uf_ps_c704c80b_handle	data	0x2DE15A8	shell/composite/unit_filter.cpp	PS c704c80b: 16-bit handle global the create site stores
+uf_ps_f0e1f0a6_blob	shader	0x61A56E8	shell/composite/unit_filter.cpp	PS f0e1f0a6 blob (5_0 set) (3, 4, 6)
+uf_ps_f0e1f0a6_push	code	0x4EBC7E	shell/composite/unit_filter.cpp	PS f0e1f0a6: push of its blob before the create call (mid-function)
+uf_ps_f0e1f0a6_handle	data	0x2DE15A0	shell/composite/unit_filter.cpp	PS f0e1f0a6: 16-bit handle global the create site stores
+uf_vs_c4bb25da_blob	shader	0x619BE88	shell/composite/unit_filter.cpp	VS c4bb25da blob (5_0 set) (1, 3)
+uf_vs_c4bb25da_push	code	0x4EBB91	shell/composite/unit_filter.cpp	VS c4bb25da: push of its blob before the create call (mid-function)
+uf_vs_c4bb25da_handle	data	0x2DE1580	shell/composite/unit_filter.cpp	VS c4bb25da: 16-bit handle global the create site stores
+uf_vs_7a9e17f6_blob	shader	0x61A0CB0	shell/composite/unit_filter.cpp	VS 7a9e17f6 blob (5_0 set) (6)
+uf_vs_7a9e17f6_push	code	0x4EBC28	shell/composite/unit_filter.cpp	VS 7a9e17f6: push of its blob before the create call (mid-function)
+uf_vs_7a9e17f6_handle	data	0x2DE1594	shell/composite/unit_filter.cpp	VS 7a9e17f6: 16-bit handle global the create site stores
+uf_vs_88c2b7d4_blob	shader	0x61A0320	shell/composite/unit_filter.cpp	VS 88c2b7d4 blob (5_0 set) mask (4, 5)
+uf_vs_88c2b7d4_push	code	0x4EBC08	shell/composite/unit_filter.cpp	VS 88c2b7d4: push of its blob before the create call (mid-function)
+uf_vs_88c2b7d4_handle	data	0x2DE1590	shell/composite/unit_filter.cpp	VS 88c2b7d4: 16-bit handle global the create site stores
+uf_ps_73daa800_blob	shader	0x61A9C98	shell/composite/unit_filter.cpp	PS 73daa800 blob (5_0 set) mask (5)
+uf_ps_73daa800_push	code	0x4EBCCF	shell/composite/unit_filter.cpp	PS 73daa800: push of its blob before the create call (mid-function)
+uf_ps_73daa800_handle	data	0x2DE15AC	shell/composite/unit_filter.cpp	PS 73daa800: 16-bit handle global the create site stores
+uf_ps_e12e9eaf_blob	shader	0x61A76F8	shell/composite/unit_filter.cpp	PS e12e9eaf blob (5_0 set) mask (3, 4, 6)
+uf_ps_e12e9eaf_push	code	0x4EBC99	shell/composite/unit_filter.cpp	PS e12e9eaf: push of its blob before the create call (mid-function)
+uf_ps_e12e9eaf_handle	data	0x2DE15A4	shell/composite/unit_filter.cpp	PS e12e9eaf: 16-bit handle global the create site stores
+uf_vs_0a3f2230_blob	shader	0x619E9B0	shell/composite/unit_filter.cpp	VS 0a3f2230 blob (5_0 set) mask (3)
+uf_vs_0a3f2230_push	code	0x4EBBCE	shell/composite/unit_filter.cpp	VS 0a3f2230: push of its blob before the create call (mid-function)
+uf_vs_0a3f2230_handle	data	0x2DE1588	shell/composite/unit_filter.cpp	VS 0a3f2230: 16-bit handle global the create site stores
+uf_vs_34b98e63_blob	shader	0x61A2BB8	shell/composite/unit_filter.cpp	VS 34b98e63 blob (5_0 set) mask (6)
+uf_vs_34b98e63_push	code	0x4EBC48	shell/composite/unit_filter.cpp	VS 34b98e63: push of its blob before the create call (mid-function)
+uf_vs_34b98e63_handle	data	0x2DE1598	shell/composite/unit_filter.cpp	VS 34b98e63: 16-bit handle global the create site stores

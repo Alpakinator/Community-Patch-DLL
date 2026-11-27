@@ -1,0 +1,23 @@
+# exebuild/patterns.txt - the source files whose X(addr, "name", "bytes") pattern tables gen_table.py checks on every
+# build it generates (epic 0590, ticket 4960). One repository path per line; `#` starts a comment. A carrier that
+# converts a file's pattern table to symbol names adds the file here. Syntax of a table: exe-build-table.md section 4.
+shell/common/exe_camera.h
+shell/composite/bake_tap.cpp
+shell/composite/water_tap.cpp
+shell/composite/ice_tap.cpp
+shell/composite/overlay_tap.cpp
+shell/composite/shadow_tap.cpp
+shell/composite/shell_composite.cpp
+# ticket 4965 (shell carry B)
+shell/composite/cut_tap.cpp
+shell/composite/decal_tap.cpp
+shell/composite/forest_tap.cpp
+shell/composite/fow_models.cpp
+shell/composite/farm_guard.cpp
+shell/composite/unit_filter.cpp
+proxy/src/proxy_uidraw.cpp
+proxy/src/proxy_shell.cpp
+proxy/src/proxy_sound_exec.cpp
+proxy/src/proxy_effect_player.cpp
+# ticket 4783 (route S arms as one): rts_combat_gate, lead-0590 #8642
+proxy/src/proxy_route_s.cpp

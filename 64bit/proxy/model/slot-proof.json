@@ -1,0 +1,25 @@
+{
+ "generated_by": "proxy/gen/verify_slots.py",
+ "generated_at": "2026-11-25T19:06:33",
+ "method": "MSVC 14.4x cl.exe /FAs listing, vcall-thunk offsets of pointers to members",
+ "checked": {
+  "x86": {
+   "pointers_to_member": 3460,
+   "agree": 3460,
+   "differ": 0,
+   "missing": 0
+  },
+  "x64": {
+   "pointers_to_member": 3460,
+   "agree": 3460,
+   "differ": 0,
+   "missing": 0
+  }
+ },
+ "mismatches": [],
+ "smoke_x64": {
+  "rows": 458,
+  "agree": 458,
+  "differ": 0
+ }
+}

@@ -1,0 +1,160 @@
+key	verdict	condition	evidence	note
+ICvBuildingInfo1::GetArtDefineTag() const	pure		CvDllBuildingInfo.cpp:99-102 -> CvBuildingClasses.cpp:3335-3338	returns m_strArtDefineTag.c_str(); pointer valid until the info array is rebuilt (see Findings)
+ICvColorInfo1::GetColor()	pure		CvDllColorInfo.cpp:85-88 -> CvInfos.cpp:9095-9098	returns const CvColorA& of member m_Color
+ICvEraInfo1::GetArtPrefix()	pure		CvDllEraInfo.cpp:100-103 -> CvInfos.cpp:8951-8954	
+ICvFeatureInfo1::GetArtDefineTag()	pure		CvDllFeatureInfo.cpp:120-123 -> CvInfos.cpp:6965-6968	
+ICvFeatureInfo1::GetWorldSoundscapeScriptId()	pure		CvDllFeatureInfo.cpp:125-128 -> CvInfos.cpp:6975-6978	
+ICvFeatureInfo1::IsNaturalWonder()	pure		CvDllFeatureInfo.cpp:115-118 -> CvInfos.cpp:6955-6958 (orPseudoNatural defaults false, CvInfos.h:1990)	
+ICvImprovementInfo1::GetArtDefineTag() const	pure		CvDllImprovementInfo.cpp:99-102 -> CvImprovementClasses.cpp:1396-1399	
+ICvImprovementInfo1::IsGoody() const	pure		CvDllImprovementInfo.cpp:94-97 -> CvImprovementClasses.cpp:1282-1285	
+ICvPlayerColorInfo1::GetColorTypePrimary()	pure		CvDllPlayerColorInfo.cpp:90-93 -> CvInfos.cpp:9121-9124	
+ICvPlayerColorInfo1::GetColorTypeSecondary()	pure		CvDllPlayerColorInfo.cpp:95-98 -> CvInfos.cpp:9126-9129	
+ICvResourceInfo1::GetArtDefineTag()	pure		CvDllResourceInfo.cpp:105-108 -> CvInfos.cpp:6086-6089	
+ICvResourceInfo1::GetResourceUsage()	pure		CvDllResourceInfo.cpp:95-98 -> CvInfos.cpp:6004-6007	value comes from the database (PerformDatabasePostProcessing rewrites Resources.ResourceUsage, CvDllDatabaseUtility.cpp:253-260) and is fixed once cached
+ICvTerrainInfo1::GetArtDefineTag()	pure		CvDllTerrainInfo.cpp:95-98 -> CvInfos.cpp:7474-7477	
+ICvTerrainInfo1::GetWorldSoundscapeScriptId()	pure		CvDllTerrainInfo.cpp:100-103 -> CvInfos.cpp:7484-7487	
+ICvUnitInfo1::GetUnitArtInfoCulturalVariation() const	pure		CvDllUnitInfo.cpp:104-107 -> CvUnitClasses.cpp:1642-1645	
+ICvUnitInfo1::GetUnitArtInfoEraVariation() const	pure		CvDllUnitInfo.cpp:109-112 -> CvUnitClasses.cpp:1649-1652	
+ICvUnitInfo1::GetUnitArtInfoTag() const	pure		CvDllUnitInfo.cpp:99-102 -> CvUnitClasses.cpp:1636-1639	
+ICvUnitInfo1::GetUnitFlagIconOffset() const	pure		CvDllUnitInfo.cpp:114-117 -> CvUnitClasses.cpp:1731-1734	
+ICvCity1::GetID() const	pure		CvDllCity.cpp:81-84 -> CvCity.h:541-544	
+ICvCity1::GetIDInfo() const	pure		CvDllCity.cpp:181-184 -> CvCity.cpp:16177-16181 (VALIDATE_OBJECT: null check only, CvGameCoreDLLUtil/include/CvAssert.h:96-112)	
+ICvCity1::GetOwner() const	pure		CvDllCity.cpp:86-89 -> CvCity.h:956-959	
+ICvGame1::CountNumHumanGameTurnActive()	pure		CvDllGame.cpp:127-130 -> CvGame.cpp:5170-5189 -> CvPlayer.cpp:9776 isHuman -> CvPreGame.cpp:1119-1138 isHuman (3505 slotStatus, 1108 isHotSeat, 1172-1177 isPitBoss/GetGameOption 955, 1216 isPlayByEmail, 3498 slotClaim); CvPlayer.cpp:33694 isTurnActive	reads CvPreGame statics and gCustomMods flags (CustomMods.h:1511 inline getters)
+ICvGame1::GetActivePlayer()	pure		CvDllGame.cpp:98-101 -> CvGame.cpp:6278-6281 -> CvPreGame.cpp:644-647	
+ICvGame1::GetActiveTeam()	pure		CvDllGame.cpp:103-106 -> CvGame.cpp:4674-4685 -> CvPlayer.h:1732-1735 -> CvPreGame.h:311	
+ICvGame1::GetFOW()	pure		CvDllGame.cpp:186-189 -> CvGame.cpp:6089-6092	
+ICvGame1::GetGameDeals()	pure		CvDllGame.cpp:191-194 -> CvGame.cpp:11599-11602 (member m_kGameDeals); CvDllGameDeals.cpp:14-22 (ctor/dtor empty, no lock)	allocates a CvDllGameDeals wrapper; the wrapped object is a CvGame member, stable while CvGame lives
+ICvGame1::GetGameState()	pure		CvDllGame.cpp:201-204 -> CvGame.cpp:7811-7814	
+ICvGame1::GetGameTurn() const	pure		CvDllGame.cpp:108-111 -> CvGame.cpp:4825-4828 -> CvPreGame.cpp:1069-1072	
+ICvGame1::GetNumGameTurnActive()	pure		CvDllGame.cpp:226-229 -> CvGame.cpp:5155-5166 -> CvPlayer.h:1657 isAlive, CvPlayer.cpp:33694 isTurnActive	
+ICvGame1::GetPlayer(const PlayerTypes)	pure		CvDllGame.cpp:88-91 -> CvPlayerAI.cpp:49-55 (PRECONDITIONs then s_players[ePlayer]) ; CvDllPlayer.cpp:21-27 ctor takes the game-core lock	allocates a CvDllPlayer wrapper and takes the game-core lock (released by its Destroy, CvDllPlayer.cpp:29-33); wrapped CvPlayerAI is stable between ICvGameContext1::Init and Uninit
+ICvGame1::IsDebugMode() const	pure		CvDllGame.cpp:331-334 -> CvGame.cpp:6077-6080	
+ICvGame1::IsFinalInitialized() const	pure		CvDllGame.cpp:336-339 -> CvGame.cpp:6197-6200	
+ICvGame1::IsNetworkMultiPlayer() const	pure		CvDllGame.cpp:356-359 -> CvGame.cpp:4709-4712 -> CvPreGame.cpp:1166-1170	
+ICvGame1::IsPaused()	pure		CvDllGame.cpp:366-369 -> CvGame.cpp:6400-6403 -> CvGame.cpp:6394-6397	
+ICvGame1::UnitIsMoving()	conditional	safe to treat as pure iff the mirror does not hold ICvPlayer2::HasTurnTimerExpired() across it, i.e. iff HasTurnTimerExpired is itself in its pure condition (GAMEOPTION_END_TURN_TIMER_ENABLED off, or paused, or game state != GAMESTATE_ON); otherwise impure	CvDllGame.cpp:490-493 -> CvGame.cpp:12991-12994 writes static s_unitMoveTurnSlice (CvGame.cpp:2061); its only readers: CvGame.cpp:2105-2109 (hasTurnTimerExpired timer branch) and CvGame.cpp:2321-2322 (updateTestEndTurn, impure)	writes DLL state (a static); strictly impure, harmless for every other mirrored getter
+ICvGame1::Update()	impure		CvDllGame.cpp:495-498 -> CvGame.cpp:1621 CvGame::update	the game loop: turn processing, AI, RNG, everything
+ICvGame1::UpdateTestEndTurn()	neutral	impure, but none of its own writes reaches an input of a mirrored getter (team-2700 coordinator, 2026-11-10)	CvDllGame.cpp:505-508 -> CvGame.cpp:2199 updateTestEndTurn (e.g. m_endTurnTimer.Start CvGame.cpp:2306, SetEndTurnBlocking CvGame.cpp:2315)	coordinator 2026-11-10 [C]: direct writes are CvPlayer::SetEndTurnBlocking (m_eEndTurnBlockingType, m_iEndTurnBlockingNotificationIndex; CvPlayer.cpp:34370-34390), m_sentAutoMoves and m_endTurnTimer (multiplayer branches), achievements (ENABLE_ACHIEVEMENTS=0 in CP NewCustomModOptions.xml:40); the helpers it reads are const (CvPlayer.h:292-302, CvUnit.h:590) or read-only (CvNotifications.cpp:472); engine calls (setCanEndTurn, sendTurnComplete, ...) and the TurnComplete Lua hook re-enter the DLL only through crossings, which the mirror classifies on their own
+ICvGameAsynch1::GetActiveTeam()	pure		CvDllGameAsynch.cpp:82-85 -> CvGame.cpp:4674-4685	wrapper ctor/dtor take no lock (CvDllGameAsynch.cpp:12-22)
+ICvGameAsynch1::IsDebugMode() const	pure		CvDllGameAsynch.cpp:112-115 -> CvGame.cpp:6077-6080	
+ICvGameAsynch1::IsFinalInitialized() const	pure		CvDllGameAsynch.cpp:117-120 -> CvGame.cpp:6197-6200	
+ICvGameContext1::GetBuildingInfo(BuildingTypes)	pure		CvDllContext.cpp:502-506 -> CvGlobals.cpp:4467-4475	allocates CvDllBuildingInfo; NULL for out-of-range
+ICvGameContext1::GetCivilizationInfo(CivilizationTypes)	pure		CvDllContext.cpp:508-512 -> CvGlobals.cpp:3840-3846	
+ICvGameContext1::GetColorInfo(ColorTypes)	pure		CvDllContext.cpp:514-518 -> CvGlobals.cpp:3628-3636	
+ICvGameContext1::GetEraInfo(EraTypes)	pure		CvDllContext.cpp:520-524 -> CvGlobals.cpp:5350-5355	no bounds check beyond PRECONDITION (traps on bad index)
+ICvGameContext1::GetFeatureInfo(FeatureTypes)	pure		CvDllContext.cpp:526-530 -> CvGlobals.cpp:3810-3818	
+ICvGameContext1::GetGame()	pure		CvDllContext.cpp:311-317 -> CvGlobals.h getGamePointer (m_game, CvGlobals.cpp:3218) ; CvDllGame.cpp:21-27 ctor takes the game-core lock	allocates CvDllGame and takes the game-core lock until its Destroy (CvDllGame.cpp:29-33); see Findings for stability
+ICvGameContext1::GetGameAsynch()	pure		CvDllContext.cpp:319-325 ; CvDllGameAsynch.cpp:12-22 (no lock)	
+ICvGameContext1::GetImprovementInfo(ImprovementTypes)	pure		CvDllContext.cpp:556-560 -> CvGlobals.cpp:4277-4285	
+ICvGameContext1::GetMap()	pure		CvDllContext.cpp:327-333 -> CvGlobals.h:202-205 (m_map, CvGlobals.cpp:3219)	allocates CvDllMap (no lock)
+ICvGameContext1::GetNumImprovementInfos()	pure		CvDllContext.cpp:426-429 -> CvGlobals.cpp:4267-4270	
+ICvGameContext1::GetNumResourceInfos()	pure		CvDllContext.cpp:456-459 -> CvGlobals.cpp:3780-3783	
+ICvGameContext1::GetPlayerColorInfo(PlayerColorTypes)	pure		CvDllContext.cpp:580-584 -> CvGlobals.cpp:3649-3657	
+ICvGameContext1::GetPreGame()	pure		CvDllContext.cpp:306-309 ; CvDllPreGame.cpp:15-21 (empty ctor/dtor), 35-38 Destroy = delete this	stateless wrapper over CvPreGame statics
+ICvGameContext1::GetResourceInfo(ResourceTypes)	pure		CvDllContext.cpp:604-608 -> CvGlobals.cpp:3790-3798	
+ICvGameContext1::GetScriptSystemUtility()	pure		CvDllContext.cpp:809-812 (member m_pScriptSystemUtility, created CvDllContext.cpp:65, no AddRef) ; CvDllScriptSystemUtility.cpp:46-49 Destroy is a no-op	same object for the life of the game context
+ICvGameContext1::GetTeam(TeamTypes)	pure		CvDllContext.cpp:335-344 -> CvTeam.cpp:44 getTeam (m_aTeams, CvTeam.cpp:56-64)	allocates CvDllTeam (no lock)
+ICvGameContext1::GetTerrainInfo(TerrainTypes)	pure		CvDllContext.cpp:616-620 -> CvGlobals.cpp:3749-3757	
+ICvGameContext1::GetUnitInfo(UnitTypes)	pure		CvDllContext.cpp:622-626 -> CvGlobals.cpp:3929-3937	
+ICvGameContext1::IsGraphicsInitialized() const	pure		CvDllContext.cpp:972-975 -> CvGlobals.cpp:7752-7755	changed only by ICvGameContext1::SetGraphicsInitialized (CvDllContext.cpp:977-980), itself a crossing
+ICvGameDeals1::HasMadeProposal(PlayerTypes)	pure		CvDllGameDeals.cpp:113-116 -> CvDealClasses.cpp:5393-5403 -> CvGame.cpp:4703-4706 -> CvPreGame.cpp:1153-1164 isReallyNetworkMultiPlayer	
+ICvMap1::GetPlot(int, int) const	pure		CvDllMap.cpp:167-175 -> CvMap.h:242 numPlots, 315-324 plot (coordRange, isPlot) 	allocates CvDllPlot (no lock); returned plot address stable until the plot array is reallocated (see Findings)
+ICvMap1::PlotNum(int, int) const	pure		CvDllMap.cpp:132-135 -> CvMap.h:247-252	arithmetic on grid width
+ICvMap1::UpdateDeferredFog()	impure		CvDllMap.cpp:102-105 -> CvMap.cpp:988-994 (CvPlot::updateFog per deferred plot, then m_vDeferredFogPlots.clear())	
+ICvPlayer1::GetCivilizationType() const	pure		CvDllPlayer.cpp:223-226 -> CvPlayer.cpp:34605-34608 -> CvPreGame.cpp:705-710	
+ICvPlayer1::GetCurrentEra() const	pure		CvDllPlayer.cpp:238-241 -> CvPlayer.cpp:34673-34676 -> CvTeam.cpp:8622-8625	
+ICvPlayer1::GetID() const	pure		CvDllPlayer.cpp:213-216 -> CvPlayer.h:1727-1730	
+ICvPlayer1::GetPlayerColor() const	pure		CvDllPlayer.cpp:248-251 -> CvPlayer.cpp:34746-34749 -> CvPreGame.cpp:1670-1675	
+ICvPlayer1::GetTeam() const	pure		CvDllPlayer.cpp:243-246 -> CvPlayer.h:1732-1735 -> CvPreGame.h:311	
+ICvPlayer1::GetUnit(int)	pure		[cited at a2627c8ac] CvDllPlayer.cpp:286-295 -> CvPlayer.cpp:42593-42598 -> TContainer.h:129-154 (the game-core thread's 64-slot id cache first, then unordered_map find; m_units is TContainer<CvUnit>, CvPlayer.h:3779) ; CvDllUnit.cpp:15-24 (no lock)	re-audited by hand at the pin x64-vp55 a2627c8ac (Vox Populi 5.5), ticket 0765, 2026-11-25 (research vp55-patch-side.md 7): TContainer::Get gained a per-container cache of the last id per slot (upstream #13643's TContainer.h), written only on the game-core thread (TContainerUseCache) and only with the item m_items holds for that id, so the result is still the map's item and no game state changes; was re-audited at 1b87dd185, ticket 0628, 2026-11-24 (research proxy-design.md 17.5b); was pure at 76992d235, not-audited 2026-11-20 to 2026-11-24 (ticket 0616). the danger package's two new definitions of the name Get (VP64Danger::(anonymous)::Get(), VP64SpeedDanger.inl:165, internal to CvDangerPlots.cpp; vp64speed::Log::Get(), VP64SpeedVerify.h:74, a static member of another class; both take no argument) cannot be reached from a member call on a TContainer. allocates CvDllUnit; the CvUnit is NOT stable (units are created and destroyed in play)
+ICvPlayer1::IsAlive() const	pure		CvDllPlayer.cpp:188-191 -> CvPlayer.h:1657-1660	
+ICvPlayer1::IsEverAlive() const	pure		CvDllPlayer.cpp:193-196 -> CvPlayer.h:1662-1665	
+ICvPlayer1::IsHuman() const	pure		CvDllPlayer.cpp:114-117 -> CvPlayer.cpp:9776-9830 -> CvPreGame.cpp:1119-1138	reads CvPreGame statics and gCustomMods flags
+ICvPlayer1::IsMinorCiv() const	pure		CvDllPlayer.cpp:183-186 -> CvPlayer.cpp:33286-33289 -> CvTeam.cpp:2951-2954	
+ICvPlayer1::IsTurnActive() const	pure		CvDllPlayer.cpp:198-201 -> CvPlayer.cpp:33694-33697	
+ICvPlayer1::Write(FDataStream &) const	impure		CvDllPlayer.cpp:351-354 -> CvPlayer.cpp:46010-46015 -> CvPlayer::Serialize CvPlayer.cpp:45156-	NOT PROVEN pure: serializes the whole CvPlayer tree through dozens of sub-object serializers. The top-level save path writes nothing (const object; the const_casts at CvPlayer.cpp:45835 are used only under bLoading, 45837-45858) but the sub-serializers were not all audited, so unknown = impure. Rare (1,344 calls) and its result is a stream, not a mirrored value
+ICvPlayer2::HasTurnTimerExpired()	conditional	pure iff NOT (GAMEOPTION_END_TURN_TIMER_ENABLED on AND !isPaused() AND getGameState() == GAMESTATE_ON) (CvGame.cpp:2070); otherwise impure	CvDllPlayer.cpp:456-459 -> CvPlayer.cpp:49274-49277 -> CvGame.cpp:2063-2181; timer branch writes: resetTurnTimer (2077), CvPreGame::setEndTurnTimerLength (2080, 2145, 2159), iface->updateEndTurnTimer (engine, 2081/2146/2177), Lua hook TurnComplete when MOD_EVENTS_RED_TURN (2162-2173)	condition values are themselves mirrored getters (IsPaused, GetGameState) plus the game option (CvPreGame::GetGameOption, CvGame.cpp:8102-8108)
+ICvPlayer2::IsOptionKey(PlayerOptionTypes) const	pure		CvDllPlayer.cpp:258-261 -> CvPlayer.cpp:38189-38197	
+ICvPlot1::GetActiveFogOfWarMode() const	pure		CvDllPlot.cpp:88-91 -> CvPlot.cpp:479-497 -> CvGame.cpp:4674 getActiveTeam, 6077 isDebugMode; CvPlot.h:638-645 isRevealed; CvPlot.cpp:4673-4687 isVisible -> CvPlot.h:610-617 getVisibilityCount	PRECONDITION(activeTeam != NO_TEAM) traps (CvGameCoreUtils.cpp:436-445), no write
+ICvPlot1::GetContinentType() const	pure		CvDllPlot.cpp:359-362 -> CvPlot.cpp:14397-14400	
+ICvPlot1::GetFeatureType() const	pure		CvDllPlot.cpp:228-231 -> CvPlot.h:466-469	
+ICvPlot1::GetImprovementType() const	pure		CvDllPlot.cpp:243-246 -> CvPlot.cpp:7989-7992	
+ICvPlot1::GetOwner() const	pure		CvDllPlot.cpp:193-196 -> CvPlot.h:418-421	
+ICvPlot1::GetPlotIndex() const	pure		CvDllPlot.cpp:354-357 -> CvPlot.cpp:14391-14394	
+ICvPlot1::GetPlotType() const	pure		CvDllPlot.cpp:198-201 -> CvPlot.h:427-430	
+ICvPlot1::GetPosition(int &, int &) const	pure		CvDllPlot.cpp:157-161 -> CvPlot.h:324-332	
+ICvPlot1::GetTeam() const	pure		CvDllPlot.cpp:83-86 -> CvPlot.h:269-280 -> CvPreGame.h:311-322	
+ICvPlot1::GetTerrainType() const	pure		CvDllPlot.cpp:223-226 -> CvPlot.h:462-465	
+ICvPlot1::GetWorldAnchor() const	pure		CvDllPlot.cpp:253-256 -> CvPlot.cpp:9294-9297	
+ICvPlot1::IsHills() const	pure		CvDllPlot.cpp:208-211 -> CvPlot.h:435-438	
+ICvPlot1::IsMountain() const	pure		CvDllPlot.cpp:218-221 -> CvPlot.h:447-451	
+ICvPlot1::IsNEOfRiver() const	pure		CvDllPlot.cpp:163-166 -> CvPlot.cpp:6283-6286	ticket 0631 (2026-11-23): returns the bit-field member m_bNEOfRiver; the feed's PlotRecord::riverEdges bit 2
+ICvPlot1::IsNWOfRiver() const	pure		CvDllPlot.cpp:173-176 -> CvPlot.cpp:6379-6382	ticket 0631 (2026-11-23): returns the bit-field member m_bNWOfRiver; the feed's PlotRecord::riverEdges bit 1
+ICvPlot1::IsRevealed(TeamTypes, bool) const	pure		CvDllPlot.cpp:285-288 -> CvPlot.h:638-645 -> CvGame.cpp:6077	
+ICvPlot1::IsRiver() const	pure		CvDllPlot.cpp:104-107 -> CvPlot.h:452-455	
+ICvPlot1::IsWOfRiver() const	pure		CvDllPlot.cpp:168-171 -> CvPlot.cpp:6331-6334	ticket 0631 (2026-11-23): returns the bit-field member m_bWOfRiver; the feed's PlotRecord::riverEdges bit 0
+ICvPlot1::UpdateLayout(bool)	conditional	pure for DLL state; condition: every engine->dll call the engine makes while handling the dll->engine callback gDLL->GameplayPlotStateChange is classified as its own crossing (nested crossings invalidate on their own)	CvDllPlot.cpp:305-308 -> CvPlot.cpp:13911-14052: reads only (getActiveTeam, GetActiveFogOfWarMode 479, getResourceType 7709-7729 -> CvTeam.cpp:8572-8604/8475/2956, CvPlot.cpp:11916, getRevealedImprovementType 12501, getRevealedRouteType 12559, getAnyBuildProgress/getBuildProgress 12731-12745, IsImprovementPillaged 9099, IsRoutePillaged 9396, IsCityConnection 5604 -> CvCityConnections.cpp:251-257); then allocates a CvDllPlot and calls gDLL->GameplayPlotStateChange (engine, void) at 14043-14051	does not clear the layout-dirty flag (CvMap::updateLayout does that); the engine callback changes renderer state only
+ICvPreGame1::autorun()	pure		CvDllPreGame.cpp:60-63 -> CvPreGame.cpp:666-669	
+ICvPreGame1::civilization(PlayerTypes)	pure		CvDllPreGame.cpp:105-108 -> CvPreGame.cpp:705-710	
+ICvPreGame1::isNetworkMultiplayerGame()	pure		CvDllPreGame.cpp:330-333 -> CvPreGame.cpp:1166-1170	
+ICvPreGame1::playerColor(PlayerTypes)	pure		CvDllPreGame.cpp:475-478 -> CvPreGame.cpp:1670-1675	
+ICvPreGame1::slotStatus(PlayerTypes)	pure		CvDllPreGame.cpp:1025-1028 -> CvPreGame.cpp:3505-3510	
+ICvScriptSystemUtility1::GetCvUnitInstance(lua_State *, int, bool)	conditional	pure for DLL game state iff the mirror caches nothing read from the server's scratch Lua state (kRt_LuaCall is impure anyway)	CvDllScriptSystemUtility.cpp:136-140 -> Lua/CvLuaScopedInstance.h:185-240 (reads __instance of a table) ; server: srv_remote_lua.cpp:888-914 HookGet (decodes the value into the server scratch state, registers the new CvDllUnit handle)	allocates CvDllUnit; luaL_error on a bad value is caught by the server's pcall
+ICvScriptSystemUtility1::PushCvUnitInstance(lua_State *, ICvUnit1 *)	conditional	pure for DLL game state iff the mirror caches nothing read from the server's scratch Lua state	CvDllScriptSystemUtility.cpp:123-134 -> Lua/CvLuaScopedInstance.h:125-180 (creates LuaTypes.Unit.__instances[pUnit] on first push) ; server: srv_remote_lua.cpp:861-885 HookPush	writes the server scratch Lua state's instance cache (same table content each time), not game state
+ICvTeam1::GetCurrentEra() const	pure		CvDllTeam.cpp:89-92 -> CvTeam.cpp:8622-8625	
+ICvTeam1::GetTechs(TechTypes *, uint) const	pure		CvDllTeam.cpp:169-185 -> CvTeam.cpp:2925-2928, CvTechClasses.cpp:2322-2335 HasTech, 2394-2397 GetTechCount	writes only the caller's out array
+ICvTeam1::Write(FDataStream &) const	impure		CvDllTeam.cpp:154-157 -> CvTeam.cpp:9324-9328 -> CvTeam::Serialize	NOT PROVEN pure (sub-serializers not audited), unknown = impure; rare and returns a stream
+ICvUnit1::CanMoveImpassable() const	pure		CvDllUnit.cpp:149-152 -> CvUnit.cpp:19115-19126	
+ICvUnit1::GetCivilizationType() const	pure		CvDllUnit.cpp:114-117 -> CvUnit.cpp:14478-14482 -> CvPlayer.cpp:34605 -> CvPreGame.cpp:705	
+ICvUnit1::GetDomainType() const	pure		CvDllUnit.cpp:124-127 -> CvUnit.cpp:14652-14656	
+ICvUnit1::GetFacingDirection(bool) const	pure		[cited at 1b87dd185] CvDllUnit.cpp:154-163 (VP64_HIDDEN_EMBARK, given by tools/x64-dll/build.py) -> CvUnit.cpp:25362-25373 ; VP64HiddenEmbark.inl:404-418 (VisualFacing) -> VP64HiddenEmbark.inl:40-44 (Guard: the tables' critical section) -> VP64HiddenEmbark.inl:70-70 (Key) -> CvUnit.h:644-647 (isEmbarked) 1314-1317 (GetID) 1848-1851 (getOwner) ; VP64HiddenEmbark.inl:155-162 (Trace)	re-audited by hand at the pin x64-0.1b 1b87dd185, ticket 0628, 2026-11-24 (research proxy-design.md 17.5b); was pure at 76992d235, not-audited 2026-11-20 to 2026-11-24 (ticket 0616). 0573's facing hook: (false) answers VisualFacing, the override of a unit's last held-back embark call, read from s_facing under a re-entrant critical section; it writes nothing unless the diagnostic VP64_HIDDEN_EMBARK_TRACE=1 with VP64_HIDDEN_EMBARK_DIR is set on the server, and then only the trace's own map and CSV line (no game state, no input of a mirrored getter: neutral at worst); no DLL -> engine call. The override changes only inside the hidden-embark hooks, which run inside impure game-state crossings
+ICvUnit1::GetID() const	pure		CvDllUnit.cpp:84-87 -> CvUnit.h:1314	
+ICvUnit1::GetOwner() const	pure		CvDllUnit.cpp:89-92 -> CvUnit.h:1848	
+ICvUnit1::GetPlot() const	pure		CvDllUnit.cpp:159-163 -> CvUnit.cpp:21300-21304 -> CvMap.h:325 plotCheckInvalid	allocates CvDllPlot
+ICvUnit1::GetPosition(int &, int &) const	pure		CvDllUnit.cpp:201-205	
+ICvUnit1::GetUnitCombatType()	pure		CvDllUnit.cpp:186-189 -> CvUnit.cpp:14545-14549	
+ICvUnit1::GetUnitInfo() const	pure		CvDllUnit.cpp:165-168 -> CvUnit.cpp:25753-25757	allocates CvDllUnitInfo over m_pUnitInfo (an info entry, stable until the info arrays are rebuilt)
+ICvUnit1::GetUnitType() const	pure		CvDllUnit.cpp:247-250 -> CvUnit.cpp:25746-25750	
+ICvUnit1::IsBusy() const	pure		CvDllUnit.cpp:257-260 -> CvUnit.cpp:30047-30061 -> 31192 GetMissionTimer, 16108 isInCombat	
+ICvUnit1::IsCombatUnit() const	pure		CvDllUnit.cpp:129-132 -> CvUnit.cpp:31425-31428	
+ICvUnit1::IsDelayedDeathExported() const	pure		CvDllUnit.cpp:252-255 -> CvUnit.cpp:25558-25562	
+ICvUnit1::IsGarrisoned() const	pure		CvDllUnit.cpp:175-178 -> CvUnit.cpp:22179-22184	reads m_iGarrisonCityID only (does NOT reach CvCity::HasGarrison, whose const_cast self-repair at CvCity.cpp:16398-16402 would be a write)
+ICvUnit1::IsHoveringUnit() const	pure		CvDllUnit.cpp:139-142 -> CvUnit.cpp:19068-19078	
+ICvUnit1::IsInvisible(TeamTypes, bool) const	pure		CvDllUnit.cpp:144-147 -> CvUnit.cpp:19395-19431 -> 23956-23993 IsHiddenByNearbyUnit; CvPlot.cpp:12992-13006, 13069-13088	
+ICvUnknown::Destroy()	pure		every wrapper: Destroy -> DecrementReference -> delete this (e.g. CvDllGame.cpp:55-77, CvDllPlot.cpp:44-56); CvDllGame/CvDllPlayer dtors release the game-core lock (CvDllGame.cpp:29-33, CvDllPlayer.cpp:29-33); CvDllPreGame.cpp:35-38 delete this; CvDllScriptSystemUtility.cpp:46-49 no-op; operator delete -> CvDllGameContext::Free = HeapFree (CvDllContext.cpp:286-289)	frees the wrapper only; the wrapped game object is untouched. Interfaces seen with >=1000 calls: BuildingInfo, CivilizationInfo, ColorInfo, EraInfo, FeatureInfo, Game, GameAsynch, GameDeals, ImprovementInfo, Map, Player, PlayerColorInfo, Plot, PreGame, ResourceInfo, ScriptSystemUtility, Team, TerrainInfo, Unit, UnitInfo
+ICvUnknown::QueryInterface(GUID)	pure		CvDllPlot.cpp:26-37, CvDllUnit.cpp:26-37: IncrementReference on the wrapper or NULL	seen with >=1000 calls on Plot (0x0036) and Unit (0x0042)
+kRt_LuaCall	impure		proxy/include/vp_wire.h:44-46; server/src/remote/srv_remote_lua.cpp kRt_LuaCall	impure by definition: runs an arbitrary DLL Lua function (any game write)
+kRt_Boot	impure		vp_wire.h:34-36; server/src/remote/srv_remote_main.cpp:249-300	loads the DLL and creates the game context
+kRt_LuaRegister	impure		vp_wire.h:40-41; srv_remote_lua.cpp:1107-1156	runs the DLL's RegisterScriptLibraries
+kRt_LuaDescribeType	pure		vp_wire.h:42-43; srv_remote_lua.cpp:1158-1195	reads LuaTypes[name] in the server Lua state; no DLL code runs (functions encode as kLCFunc)
+kRt_LuaRelease	pure		vp_wire.h:48; srv_remote_lua.cpp:1270-1283 (luaL_unref only)	frees server registry refs; luaL_unref does not allocate, so no GC step and no DLL finalizer runs
+kRt_StreamOpen	pure		vp_wire.h:49; srv_remote_main.cpp:319-327	server bookkeeping (copies the stream bytes); no DLL code. The Read* call that consumes the session is the impure one
+kRt_StreamOpenPull	pure		vp_wire.h:58; srv_remote_main.cpp:328-334	server bookkeeping; no DLL code
+kRt_CoreLockYield	impure		vp_wire.h:50-53; srv_remote_main.cpp:305-307	releases the game-core lock so the harness Lua chunk runs DLL code on the core thread until kRt_CoreLockResume: DLL state may change inside the window
+kRt_CoreLockResume	impure		vp_wire.h:54; srv_remote_main.cpp:308-315	closes the yield window; invalidate (the DLL may have changed while yielded)
+ICvGame1::IsOption(GameOptionTypes) const	pure		CvDllGame.cpp:361-364 -> CvGame.cpp:8102-8108 -> CvPreGame.cpp:955-985 (GetGameOption: reads s_EnumBasedGameOptions / s_GameOptionsHash / s_GameOptions, GC.getInfoTypeForHash, GC.getGameOptionInfo)	added by the team-2700 coordinator 2026-11-10 (used by the HasTurnTimerExpired local answer)
+ICvUnit1::GetDamage() const	pure		CvDllUnit.cpp:94-97 -> CvUnit.h:1370-1374	issue 4452 (4459's DLL-fork read, tracker/issues/4459-premise-reads.md F2): returns m_iDamage
+ICvUnit1::GetMaxHitPoints() const	pure		CvDllUnit.cpp:109-112 -> CvUnit.h:931-939	issue 4452 (4459 F2): arithmetic on m_iMaxHitPointsBase, m_iMaxHitPointsModifier, m_iMaxHitPointsChange
+ICvUnit1::IsEmbarked() const	pure		CvDllUnit.cpp:170-173 -> CvUnit.h:644-647	issue 4452 (4459 F2): returns m_bEmbarked
+ICvPlayer1::GetArtStyleType() const	pure		CvDllPlayer.cpp:134-137 -> CvPlayer.cpp:10096-10106 -> CvPreGame.cpp:659-664	issue 4452 (4459 F2): CvPreGame::artStyle or the civilization info's art style; getCivilizationInfo logs and asserts only for an invalid civilization type (CvPlayer.cpp:34588-34600), not reached in a valid game
+ICvPlayer1::IsBarbarian() const	pure		CvDllPlayer.cpp:119-122 -> CvPlayer.cpp:9878-9881	issue 4452: GetID() == BARBARIAN_PLAYER
+ICvPlayer1::GetMinorCivType() const	pure		CvDllPlayer.cpp:376-386 -> CvPlayer.cpp:44992-44995 -> CvMinorCivAI.cpp:4723-4726 -> CvPreGame.cpp:1588-1593	issue 4460 (epic 0375, A1; granted to 0375 by the lead brief): m_pPlayer->GetMinorCivAI() (member read; NULL gives NO_MINORCIV), CvMinorCivAI::GetMinorCivType -> CvPreGame::minorCivType(GetID()): a bounds-checked read of the static s_minorCivTypes; same lines at the x64 pin 04b1211b8
+ICvCombatInfo1::GetUnit(BattleUnitTypes) const	pure		CvDllCombatInfo.cpp:77-88 -> CvGameCoreStructs.cpp:234-238	issue 4452: m_pUnits[unitType] (checkBattleUnitType is an ASSERT only, CvGameCoreStructs.cpp:158-162); allocates CvDllUnit
+ICvCombatInfo1::GetCity(BattleUnitTypes) const	pure		CvDllCombatInfo.cpp:90-94 -> CvGameCoreStructs.cpp:246-257	issue 4452: m_pCities[unitType], else for the defender the target plot's city (CvPlot::isCity / getPlotCity, reads); allocates CvDllCity
+ICvCombatInfo1::GetPlot() const	pure		CvDllCombatInfo.cpp:96-100 -> CvGameCoreStructs.cpp:266-269	issue 4452: m_pTargetPlot; allocates CvDllPlot
+ICvCombatInfo1::GetAttackerAdvances() const	pure		CvDllCombatInfo.cpp:102-105 -> CvGameCoreStructs.cpp:275-278	issue 4452: member read
+ICvCombatInfo1::GetVisualizeCombat() const	pure		CvDllCombatInfo.cpp:107-110 -> CvGameCoreStructs.cpp:462-465	issue 4452: member read
+ICvCombatInfo1::GetDefenderRetaliates() const	pure		CvDllCombatInfo.cpp:144-147 -> CvGameCoreStructs.cpp:295-298	issue 4452: member read
+ICvCombatInfo1::GetNuclearDamageLevel() const	pure		CvDllCombatInfo.cpp:149-152 -> CvGameCoreStructs.cpp:487-490	issue 4452: member read
+ICvCombatInfo1::GetAttackIsRanged() const	pure		CvDllCombatInfo.cpp:154-157 -> CvGameCoreStructs.cpp:310-313	issue 4452: member read
+ICvCombatInfo1::GetAttackIsBombingMission() const	pure		CvDllCombatInfo.cpp:159-162 -> CvGameCoreStructs.cpp:320-323	issue 4452: member read
+ICvCombatInfo1::GetAttackIsAirSweep() const	pure		CvDllCombatInfo.cpp:164-167 -> CvGameCoreStructs.cpp:330-333	issue 4452: member read
+ICvCombatInfo1::GetDefenderCaptured() const	pure		CvDllCombatInfo.cpp:169-172 -> CvGameCoreStructs.cpp:340-343	issue 4452: member read
+ICvCombatInfo1::GetFinalDamage(BattleUnitTypes) const	pure		CvDllCombatInfo.cpp:117-120 -> CvGameCoreStructs.cpp:396-400	issue 4452: member read
+ICvCombatInfo1::GetDamageMemberCount() const	pure		CvDllCombatInfo.cpp:134-137 -> CvGameCoreStructs.cpp:514-517	issue 4452: member read
+ICvCombatInfo1::GetMaxDamageMemberCount() const	pure		[cited at a2627c8ac] CvDllCombatInfo.cpp:139-142 -> CvGameCoreStructs.cpp:524-527	issue 4452: the constant MAX_DAMAGE_MEMBER_COUNT (32); re-audited at x64-vp55 a2627c8ac (ticket 0765, 2026-11-25): Release-5.5 made CvCombatInfo::getMaxDamageMemberCount static (it returns the same constant)
+ICvCombatInfo1::GetDamageMember(int) const	pure		[cited at a2627c8ac] CvDllCombatInfo.cpp:127-132 -> CvGameCoreStructs.cpp:514-517 524-527	issue 4452: a pointer into m_kDamageMembers (no lower bound check: callers pass 0..count-1); valid while the combat info lives (the call that passes it); re-audited at x64-vp55 a2627c8ac (ticket 0765, 2026-11-25): the bound is the static CvCombatInfo::getMaxDamageMemberCount (the same constant)
+ICvCombatInfo1::GetDamageInflicted(BattleUnitTypes) const	conditional	pure iff the mod option EVENTS_BATTLES_DAMAGE (with EVENTS_BATTLES) is off: otherwise it fires the Lua GameEvent BattleDamageDelta (any Lua hook, any write); VP ships both off (NewCustomModOptions.xml)	CvDllCombatInfo.cpp:112-115 -> CvGameCoreStructs.cpp:345-388	issue 4452: not called by the server's unit feed
+ICvPlayer1::GetEmbarkedGraphicOverride()	pure		CvDllPlayer.cpp:371-374 -> CvPlayer.h:2784-2787	issue 0439 (MC #2908; lines at e9d0c4837, the column's commit; CvPlayer.h 2818-2821 at the x64 pin 04b1211b8): returns the member m_strEmbarkedGraphicOverride (a CvString) as const char*; the pointer is valid until the string is set again (CvPlayer::init, Lua SetEmbarkedGraphicOverride, a load): the feed hashes it inside the call
+ICvTeam1::CanEmbarkAllWaterPassage() const	pure		CvDllTeam.cpp:79-82 -> CvTeam.cpp:3991-3994	issue 0439 (MC #2908): m_iEmbarkedAllWaterPassageCount > 0, a member compare

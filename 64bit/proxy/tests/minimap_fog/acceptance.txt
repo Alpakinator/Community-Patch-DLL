@@ -1,0 +1,31 @@
+Ticket 0727 acceptance (branch task-0727-minimap-unexplored; research/05-graphics-composition/observer-switch-minimap.md 6.6-6.8)
+2026-11-25, workstation, 0727-impl.
+
+1. 0552's repro on the product route with FixMinimapUnexplored = 1 [L]: the product layout of this branch laid by lay.py
+   (build_server on the 0.1b pins, this branch's composite, helper on, the beta 3 installer's renderer defaults), save
+   C5H-0552-T0, mm_block.lua reveal then un-reveal of the 8 x 6 block (42..49, 20..25):
+   - build 26577625 (c5h-new-a): after the un-reveal the block's 48 cells unexplored (48 of 48), 2749 of 2772 cells
+     unexplored, box first 11,23 low 11,21 high 17,25 = T0's (after the reveal 2701 and 11,20..49,25); one proxy line
+     "minimap fog: slot 0: 48 cell(s) marked unexplored ..."; edge bits 0 of 16,632 inconsistent; mm_check PASS.
+   - build 4390913 (c5h-c): the same numbers; mm_check PASS.
+   Pictures (DIAGNOSTIC, D112: a lay.py layout, not the installer): Visual Checks issue 0727, c5h-new-a-{t0-fix1,
+   reveal-fix1, unreveal-fix1 (PASS), unreveal-key0} and c5h-c-{reveal-fix1, unreveal-fix1 (PASS)}, with -minimap crops,
+   under F:/c5-64bit-work/0727/shots/. The un-reveal crop equals the T0 crop (block gone, view back on the start area).
+2. FixMinimapUnexplored = 0 (c5h-new-a, same layout): "minimap fog: off (...: FixMinimapUnexplored = 0)"; after the
+   un-reveal the block stays explored (0 of 48), box 11,20..49,25: the stock behaviour (0552 6.4), unchanged.
+   The fail-loud path live: the first build's too strict transform check refused at the first apply with one LOUD line
+   and wrote nothing (6.8); corrected.
+3. Heap and .data writes only, no code write (D228): proxy/src/proxy_minimap_fog.cpp writes the active block's cell flag
+   bytes, box and "no plot yet" byte (heap) and the system's redraw word (.data, compare-exchange); it calls no EXE
+   function and reads no code byte.
+4. Proxy tests for the marking: python -I proxy/tests/minimap_fog/test_minimap_fog.py --scratch <dir> -> 15/15 (core
+   128/128, binding 152/152; proxy toolchain and MSVC x86 ASan; the negative --expect-fail runs and the ASan canary).
+   Layout of both builds: python -I proxy/tests/minimap_fog/layout_check.py --old <4390913> --new <26577625> -> PASS;
+   with --break -> FAIL on exactly 3 checks (exit 1). proxy/tools/test_proxy_rt.py --build <this branch's build_server
+   out>: 235/235.
+5. test_options: 1020/1020 in the x86 and x64 trees against docs/OPTIONS.md with the entry
+   (proxy/tests/minimap_fog/OPTIONS-md-entry.txt); 1019/1020 against the document without it (the docs check). The
+   installer page schema: test_options_schema.py 22/22 (the row comes from the options table).
+6. The docs/OPTIONS.md entry text: proxy/tests/minimap_fog/OPTIONS-md-entry.txt (to go after FixUnknownWonderBase's).
+7. Research 05 observer-switch-minimap.md 6.5 says R1 landed (and 6.6-6.8); runbook lines (2.6, section 3 Ghidra of
+   26577625); the section README row.

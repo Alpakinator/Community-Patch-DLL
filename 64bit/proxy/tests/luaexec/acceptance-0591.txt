@@ -1,0 +1,36 @@
+Ticket 0591 acceptance (impl-B-0591, account B, 2026-11-19); details research/06-tooling-and-workflows/run-and-drive-the-game.md
+section 3, "No loadstring".
+
+[pass] the runner compiles its chunk with luaL_loadbuffer (C function LuaExecCompile, passed as the runner's third argument by
+       RunExternalLua) or, without it, load(reader); the runner text no longer names loadstring (checked by the unit test)
+       (proxy/src/proxy_luaexec.cpp)
+[pass] unit test that nils loadstring in a lua51 state: python -I proxy/tests/luaexec/test_luaexec.py --scratch DIR
+       stock Lua 5.1.4, the build-26577625 sandbox (loadstring, io, os.execute/exit/getenv/remove/rename/setlocale/sleep nil),
+       a metatable on _G counting reads of loadstring; 23/23 on the proxy toolchain (clang-cl -m32, VC9) and 23/23 under MSVC
+       /fsanitize=address with a caught canary; negative control: the old runner fails there and its read is seen.
+       test_luaexec: 9/9 passed. tools/harness/tests/test_luaexec_modpack.py: 9 passed (unchanged).
+[pass] fork change only on a new fork branch: ia-luaexec-no-loadstring d45303627 (parent 440878983, the instruments commit that
+       holds CvLuaSupport.cpp's runner; the x64 pin 1fd51353e has no LUAEXEC_RUNNER at all), pushed; never x64, i0-ship or
+       master. Its delta applies on i0 pin 5d18d3d6 after tools/d10/evidence/0463/ia-39f17f754-440878983.patch; compile block,
+       call and LuaExecCompile text-identical to the proxy's (scratch cmp_runners.py PASS).
+[open] the -ia builds take the instruments by patch (tools/release/stages/build.py IA_PATCHES); a patch row carrying the change
+       is outside this ticket's touches (follow-up for lead-0590).
+[pass] live round trip on an old-build instance: c5h-c (Goldberg, build 4390913, stamp 0x546CD0A8 checked by the driver),
+       2026-11-19 22:49-22:59 EST, granted by MC-B #7344, claim for 0591. python -I proxy/tests/luaexec/live_0591.py (run as
+       --name c5h-c, batch-5 layout F:/c5-64bit-work/0551/layouts/x64-1fd51353-p1e09fc7/bin, the proxy 920d53f0... below).
+       Product route: server attached, kRt_Boot ok, no FALLBACK, the VP_LUAEXEC thread; frontend.py dismiss exit 0 through
+       the channel; then _G.loadstring set to nil THROUGH THE CHANNEL (the new build's sandbox reproduced on the old build)
+       and 10 checks PASS with it nil: a result (turn 0, type(G.loadstring) nil, 42), syntax error ok=0 "=luaexec:3:",
+       run-time error ok=0 with traceback, print captured, persistent table, state InGame, state _G (loadstring nil, load a
+       function), unknown state ok=0 env=none; 2 AI turns by turns.py end/wait (0->1 7.5 s, 1->2 6.4 s) with loadstring
+       still nil after each; loadstring put back (type function); autosave settled and posted (#7359) before cli.py
+       stop (exit 0), leftovers clean, set-proxy --original exit 0, front-end files equal their pre-prepare hashes (MC
+       #6596), frontend.py restore, provision verify exit 0; no box at any check (dialogwatch marker before each step).
+       c5h-c released 23:02 (#7363). Evidence: proxy/tests/luaexec/evidence/live-c5h-c-*.
+       Note (first attempt, same game): the driver looked for vpproxy.log in the mod folder; the stop file ended it at the
+       boot step with the game at the load screen; fixed (My Games\Logs\VP64\run) and resumed --from boot.
+[not run] new-build instance: 0590's provisioning of new-build instances (its C3) has not merged (2026-11-19 23:02); the
+       live check above reproduces the new build's only Lua change (loadstring nil in _G) on the old build instead.
+Proxy builds: C:/c5-64bit-work/0591/proxy-pin/bin/CvGameCore_Expansion2.dll 920d53f09e7ce81f4eda7c4575005c6bdc68b16c166addfc2f957ce7fefdb4be
+(this repo at 1e09fc7c2, the batch-5 layout's tools commit, with only proxy_luaexec.cpp from the branch; fork 1fd51353e).
+Export gate: PASS (0 new findings).

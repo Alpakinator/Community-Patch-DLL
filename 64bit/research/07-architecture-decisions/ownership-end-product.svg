@@ -1,0 +1,265 @@
+<svg viewBox="0 0 1280 1134" width="1280" height="1134" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ownership diagram of the finished patch: the 32-bit shell on the left with its rendering engine broken down, the 64-bit server on the right with its world renderer broken down, and the hand-overs between them">
+  <style>
+    svg{--bg:#f4f5f7;--panel:#ffffff;--fg:#1b2028;--muted:#5d6675;--line:#d6dbe2;
+      --exe:#a8640f;--exe-bg:#fcefd9;--exe-line:#e3b26f;
+      --srv:#0c6f8f;--srv-bg:#dcf0f6;--srv-line:#7cc0d6;
+      --off:#6f7784;--off-bg:#e9ebee;--off-line:#b8bec7}
+    @media (prefers-color-scheme: dark){svg{--bg:#14171c;--panel:#1b1f26;--fg:#e7e9ee;--muted:#9aa3b1;--line:#2c333d;
+      --exe:#e2a24b;--exe-bg:#33260f;--exe-line:#7a5a24;
+      --srv:#55b8d6;--srv-bg:#0f2b35;--srv-line:#1f5a6c;
+      --off:#8a919d;--off-bg:#23272e;--off-line:#3a414b}}
+    .bg{fill:var(--bg)}
+    text{font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;fill:var(--fg)}
+    .t-h{font-weight:600;font-size:15px}
+    .t-s{font-size:12.5px} .t-m{font-size:11.5px;fill:var(--muted)} .t-k{font-size:11px;font-weight:600;letter-spacing:.05em}
+    .t-o{font-size:12px}
+    .col{fill:var(--panel);stroke:var(--line);stroke-width:1}
+    .b-exe{fill:var(--exe-bg);stroke:var(--exe-line);stroke-width:1}
+    .b-keep{fill:var(--panel);stroke:var(--exe-line);stroke-width:1.2;stroke-dasharray:5 3}
+    .b-srv{fill:var(--srv-bg);stroke:var(--srv-line);stroke-width:1}
+    .b-off{fill:var(--off-bg);stroke:var(--off-line);stroke-width:1;stroke-dasharray:4 3}
+    .b-new{fill:var(--panel);stroke:var(--srv);stroke-width:1.5}
+    .b-rend{fill:none;stroke:var(--exe-line);stroke-width:1.5}
+    .b-srend{fill:none;stroke:var(--srv-line);stroke-width:1.5}
+    .t-exe{fill:var(--exe)} .t-srv{fill:var(--srv)} .t-off{fill:var(--off)}
+    .arrow{stroke:var(--fg);stroke-width:1.4;fill:none;marker-end:url(#ah)}
+    .arrow2{stroke:var(--fg);stroke-width:1.4;fill:none;marker-end:url(#ah);marker-start:url(#at)}
+    .mk{fill:var(--fg)}
+  </style>
+  <rect class="bg" x="0" y="0" width="1280" height="1134"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="at" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk" d="M10 0 L0 5 L10 10 z"/></marker>
+  </defs>
+
+  <!-- ================= Shell column ================= -->
+  <rect class="col" x="16" y="16" width="620" height="980" rx="4"/>
+  <text class="t-h t-exe" x="32" y="44">32-bit shell</text>
+  <text class="t-m" x="32" y="62">Original CivilizationV_DX11.exe, no code byte changed, plus the patch's 32-bit DLLs loaded into it</text>
+
+  <rect class="b-exe" x="32" y="78" width="286" height="52" rx="3"/>
+  <text class="t-s" x="42" y="99">Window, input, Steam</text>
+  <text class="t-m" x="42" y="116">keyboard, mouse, Steam client and overlay</text>
+
+  <rect class="b-exe" x="334" y="78" width="286" height="52" rx="3"/>
+  <text class="t-s" x="344" y="99">Front end and mod menu</text>
+  <text class="t-m" x="344" y="116">mod activation, gameplay database build</text>
+
+  <rect class="b-exe" x="32" y="140" width="286" height="52" rx="3"/>
+  <text class="t-s" x="42" y="161">Lua VM and 2D UI</text>
+  <text class="t-m" x="42" y="178">all game Lua, EUI, popups, city screen</text>
+
+  <rect class="b-exe" x="334" y="140" width="286" height="52" rx="3"/>
+  <text class="t-s" x="344" y="161">Leader screens, audio (Miles)</text>
+  <text class="t-m" x="344" y="178">leader scenes and all sound</text>
+
+  <rect class="b-exe" x="32" y="202" width="286" height="52" rx="3"/>
+  <text class="t-s" x="42" y="223">Netcode and save-file container</text>
+  <text class="t-m" x="42" y="240">lobby, message transport, save format</text>
+
+  <rect class="b-exe" x="334" y="202" width="286" height="52" rx="3"/>
+  <text class="t-s" x="344" y="223">Asset loader</text>
+  <text class="t-m" x="344" y="240">UI art, leader scenes, sound</text>
+
+  <!-- Rendering engine -->
+  <rect class="b-rend" x="32" y="268" width="588" height="560" rx="4"/>
+  <text class="t-k t-exe" x="44" y="288">RENDERING ENGINE (EXE SUBSYSTEM)</text>
+
+  <rect class="b-exe" x="44" y="298" width="276" height="52" rx="3"/>
+  <text class="t-s" x="54" y="319">Direct3D 11 device and contexts</text>
+  <text class="t-m" x="54" y="336">immediate and 9 deferred contexts</text>
+
+  <rect class="b-exe" x="332" y="298" width="276" height="52" rx="3"/>
+  <text class="t-s" x="342" y="319">Swap chain and frame</text>
+  <text class="t-m" x="342" y="336">back buffer, depth buffer, Present</text>
+
+  <rect class="b-exe" x="44" y="360" width="276" height="52" rx="3"/>
+  <text class="t-s" x="54" y="381">Camera</text>
+  <text class="t-m" x="54" y="398">input, zoom, look-at, view matrices</text>
+
+  <rect class="b-exe" x="332" y="360" width="276" height="52" rx="3"/>
+  <text class="t-s" x="342" y="381">Hex picking</text>
+  <text class="t-m" x="342" y="398">mouse to plot on a flat plane</text>
+
+  <rect class="b-exe" x="44" y="422" width="276" height="52" rx="3"/>
+  <text class="t-s" x="54" y="443">UI pass</text>
+  <text class="t-m" x="54" y="460">HUD, flags, banners, yield icons</text>
+
+  <rect class="b-exe" x="332" y="422" width="276" height="52" rx="3"/>
+  <text class="t-s" x="342" y="443">Compiled shaders</text>
+  <text class="t-m" x="342" y="460">1,417 in the EXE file, read by the server</text>
+
+  <rect class="b-new" x="44" y="486" width="564" height="64" rx="3"/>
+  <text class="t-s t-srv" x="54" y="505">Compositor DLL (new, loaded by the proxy after a hash check)</text>
+  <text class="t-m" x="54" y="522">hooks in Direct3D system modules only; publishes the camera when the EXE has set its views;</text>
+  <text class="t-m" x="54" y="538">draws the server's world picture after the scene clear; makes the copies in both directions</text>
+
+  <text class="t-k t-exe" x="44" y="572">STILL STARTED BY THE EXE, NEVER DRAWN TO THE SCREEN</text>
+  <rect class="b-keep" x="44" y="580" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="52" y="599">Terrain build</text><text class="t-m" x="52" y="615">height field</text>
+  <rect class="b-keep" x="188" y="580" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="196" y="599">River system</text><text class="t-m" x="196" y="615">river mesh</text>
+  <rect class="b-keep" x="332" y="580" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="340" y="599">Wave system</text><text class="t-m" x="340" y="615">coast-wave chunks</text>
+  <rect class="b-keep" x="476" y="580" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="484" y="599">Water object</text><text class="t-m" x="484" y="615">sea settings</text>
+
+  <rect class="b-keep" x="44" y="634" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="52" y="653">Overlay</text><text class="t-m" x="52" y="669">highlight texture</text>
+  <rect class="b-keep" x="188" y="634" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="196" y="653">Minimap</text><text class="t-m" x="196" y="669">panel texture, clicks</text>
+  <rect class="b-keep" x="332" y="634" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="340" y="653">Strategic view</text><text class="t-m" x="340" y="669">must stay started</text>
+  <rect class="b-keep" x="476" y="634" width="132" height="46" rx="3"/>
+  <text class="t-s t-exe" x="484" y="653">Arrows</text><text class="t-m" x="484" y="669">must stay started</text>
+
+  <text class="t-k t-off" x="44" y="702">SWITCHED OFF IN THE EXE</text>
+  <g>
+    <rect class="b-off" x="44" y="710" width="132" height="30" rx="3"/><text class="t-o t-off" x="52" y="729">Landmarks</text>
+    <rect class="b-off" x="188" y="710" width="132" height="30" rx="3"/><text class="t-o t-off" x="196" y="729">City meshes</text>
+    <rect class="b-off" x="332" y="710" width="132" height="30" rx="3"/><text class="t-o t-off" x="340" y="729">Units (Granny)</text>
+    <rect class="b-off" x="476" y="710" width="132" height="30" rx="3"/><text class="t-o t-off" x="484" y="729">Forest, jungle</text>
+    <rect class="b-off" x="44" y="748" width="132" height="30" rx="3"/><text class="t-o t-off" x="52" y="767">Decals</text>
+    <rect class="b-off" x="188" y="748" width="132" height="30" rx="3"/><text class="t-o t-off" x="196" y="767">FOW</text>
+    <rect class="b-off" x="332" y="748" width="132" height="30" rx="3"/><text class="t-o t-off" x="340" y="767">FluidFOW</text>
+    <rect class="b-off" x="476" y="748" width="132" height="30" rx="3"/><text class="t-o t-off" x="484" y="767">Distance fog</text>
+    <rect class="b-off" x="44" y="786" width="132" height="30" rx="3"/><text class="t-o t-off" x="52" y="805">Yield icons</text>
+    <rect class="b-off" x="188" y="786" width="132" height="30" rx="3"/><text class="t-o t-off" x="196" y="805">Movement path</text>
+    <rect class="b-off" x="332" y="786" width="132" height="30" rx="3"/><text class="t-o t-off" x="340" y="805">Particles</text>
+    <rect class="b-off" x="476" y="786" width="132" height="30" rx="3"/><text class="t-o t-off" x="484" y="805">Combat, Projectile</text>
+  </g>
+
+  <!-- Proxy -->
+  <rect class="b-new" x="32" y="842" width="588" height="80" rx="3"/>
+  <text class="t-s t-srv" x="42" y="861">Proxy DLL (new, 32-bit, in the mod's game-DLL slot)</text>
+  <text class="t-m" x="42" y="878">forwards the EXE-DLL interface: 999 calls in, 296 callbacks out, 3,463 Lua methods;</text>
+  <text class="t-m" x="42" y="894">starts the server, checks versions and hashes, answers pure reads itself, keeps the started</text>
+  <text class="t-m" x="42" y="910">systems off the screen, passes UI events on and raises the server's; on failure: report, popup</text>
+
+  <rect class="b-new" x="32" y="934" width="588" height="46" rx="3"/>
+  <text class="t-s t-srv" x="42" y="953">Off switches in config.ini and the helper program (new)</text>
+  <text class="t-m" x="42" y="969">the patch sets the EXE's own switches; the helper restores the player's values after a failure</text>
+
+  <!-- ================= Server column ================= -->
+  <rect class="col" x="826" y="16" width="438" height="980" rx="4"/>
+  <text class="t-h t-srv" x="842" y="44">64-bit server</text>
+  <text class="t-m" x="842" y="62">server.exe, new code, started and stopped by the proxy</text>
+
+  <rect class="b-srv" x="842" y="78" width="406" height="52" rx="3"/>
+  <text class="t-s" x="852" y="99">Game state and rules</text>
+  <text class="t-m" x="852" y="116">the Vox Populi DLL built for x64, the only copy</text>
+
+  <rect class="b-srv" x="842" y="140" width="406" height="52" rx="3"/>
+  <text class="t-s" x="852" y="161">AI, pathfinding, diplomacy, turn processing</text>
+  <text class="t-m" x="852" y="178">no 4 GB wall; caches as large as memory allows</text>
+
+  <rect class="b-srv" x="842" y="202" width="406" height="52" rx="3"/>
+  <text class="t-s" x="852" y="223">Database copy, save and load of game state</text>
+  <text class="t-m" x="852" y="240">own copy of the EXE-built database; state as byte streams</text>
+
+  <rect class="b-srv" x="842" y="264" width="406" height="52" rx="3"/>
+  <text class="t-s" x="852" y="285">Event feed</text>
+  <text class="t-m" x="852" y="302">the DLL's change notices, queued for the renderer</text>
+
+  <!-- World renderer -->
+  <rect class="b-srend" x="842" y="330" width="406" height="570" rx="4"/>
+  <text class="t-k t-srv" x="852" y="350">WORLD RENDERER (OWN THREAD, OWN DEVICE)</text>
+
+  <rect class="b-srv" x="852" y="360" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="378">Terrain</text>
+  <text class="t-m" x="862" y="394">every land tile baked and kept ready, tessellated surface</text>
+
+  <rect class="b-srv" x="852" y="414" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="432">Water</text>
+  <text class="t-m" x="862" y="448">ocean, coast, lakes, rivers, coast waves, currents</text>
+
+  <rect class="b-srv" x="852" y="468" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="486">On the ground</text>
+  <text class="t-m" x="862" y="502">roads, railroads, farm fields, decals, forest and jungle</text>
+
+  <rect class="b-srv" x="852" y="522" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="540">Models (own reader, no Granny runtime)</text>
+  <text class="t-m" x="862" y="556">improvements, resources, wonders, cities, units</text>
+
+  <rect class="b-srv" x="852" y="576" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="594">Effects</text>
+  <text class="t-m" x="862" y="610">combat animation, projectiles, particles</text>
+
+  <rect class="b-srv" x="852" y="630" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="648">Overlays</text>
+  <text class="t-m" x="862" y="664">borders, highlights, movement range and path, arrows</text>
+
+  <rect class="b-srv" x="852" y="684" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="702">Fog and light</text>
+  <text class="t-m" x="862" y="718">fog of war, distance fog, lighting and colour grading</text>
+
+  <rect class="b-srv" x="852" y="738" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="756">Minimap and strategic view</text>
+  <text class="t-m" x="862" y="772">the minimap is copied into the EXE's own panel texture</text>
+
+  <rect class="b-srv" x="852" y="792" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="810">Asset reading</text>
+  <text class="t-m" x="862" y="826">shaders, texture packs and models from the game install</text>
+
+  <rect class="b-srv" x="852" y="846" width="386" height="44" rx="3"/>
+  <text class="t-s" x="862" y="864">Frame ring</text>
+  <text class="t-m" x="862" y="880">shared GPU textures with a shared fence, one per frame</text>
+
+  <rect class="b-srv" x="842" y="914" width="406" height="56" rx="3"/>
+  <text class="t-s" x="852" y="936">Headless mode</text>
+  <text class="t-m" x="852" y="954">the server without the EXE: AI tests, parity and save checks</text>
+
+  <!-- ================= Hand-overs ================= -->
+  <path class="arrow2" d="M648 152 L814 152"/>
+  <text class="t-s" x="731" y="140" text-anchor="middle">shared-memory IPC</text>
+  <text class="t-m" x="731" y="172" text-anchor="middle">three channels, spin-waited</text>
+  <text class="t-m" x="731" y="187" text-anchor="middle">interface calls, callbacks,</text>
+  <text class="t-m" x="731" y="202" text-anchor="middle">Lua calls, database writes,</text>
+  <text class="t-m" x="731" y="217" text-anchor="middle">save streams, net messages</text>
+
+  <path class="arrow" d="M648 392 L814 392"/>
+  <text class="t-s" x="731" y="380" text-anchor="middle">camera and frame number</text>
+  <text class="t-m" x="731" y="410" text-anchor="middle">every frame</text>
+
+  <path class="arrow" d="M814 518 L648 518"/>
+  <text class="t-s" x="731" y="506" text-anchor="middle">world picture</text>
+  <text class="t-m" x="731" y="536" text-anchor="middle">GPU texture of that frame;</text>
+  <text class="t-m" x="731" y="551" text-anchor="middle">the EXE waits at most 3.4 ms</text>
+
+  <path class="arrow" d="M648 603 L814 603"/>
+  <text class="t-s" x="731" y="591" text-anchor="middle">copied once per load</text>
+  <text class="t-m" x="731" y="621" text-anchor="middle">through shared memory</text>
+
+  <path class="arrow" d="M648 665 L814 665"/>
+  <text class="t-s" x="731" y="653" text-anchor="middle">UI overlays, every frame</text>
+  <text class="t-m" x="731" y="683" text-anchor="middle">highlight texture; arrow,</text>
+  <text class="t-m" x="731" y="698" text-anchor="middle">path and view-mode events</text>
+
+  <path class="arrow" d="M814 764 L648 764"/>
+  <text class="t-s" x="731" y="752" text-anchor="middle">minimap picture</text>
+  <text class="t-m" x="731" y="782" text-anchor="middle">copied into the EXE's own</text>
+  <text class="t-m" x="731" y="797" text-anchor="middle">minimap texture</text>
+
+  <path class="arrow" d="M814 882 L648 882"/>
+  <text class="t-s" x="731" y="870" text-anchor="middle">unit positions, every frame</text>
+  <text class="t-m" x="731" y="900" text-anchor="middle">raised as the UI's own</text>
+  <text class="t-m" x="731" y="915" text-anchor="middle">Lua events for flags</text>
+
+  <!-- ================= Files ================= -->
+  <rect class="b-exe" x="16" y="1012" width="620" height="66" rx="3"/>
+  <text class="t-s" x="26" y="1033">Game install, the player's own (read at run time by both sides, never shipped)</text>
+  <text class="t-m" x="26" y="1050">the EXE file with its shader section, texture packs and loose textures, Granny model files,</text>
+  <text class="t-m" x="26" y="1066">terrain tables and art definitions, sound</text>
+
+  <rect class="b-new" x="648" y="1012" width="616" height="66" rx="3"/>
+  <text class="t-s t-srv" x="658" y="1033">Patch files</text>
+  <text class="t-m" x="658" y="1050">mod folder: proxy DLL, the original 32-bit DLL beside it, compositor DLL, helper; VP64 folder:</text>
+  <text class="t-m" x="658" y="1066">server.exe, the x64 DLL and its libraries, manifest; VP64Options.ini in the user's game folder</text>
+
+  <!-- Legend -->
+  <rect class="b-exe" x="16" y="1098" width="14" height="14"/><text class="t-m" x="38" y="1110">stays in the EXE, unchanged</text>
+  <rect class="b-keep" x="222" y="1098" width="14" height="14"/><text class="t-m" x="244" y="1110">EXE system still started, never drawn to the screen</text>
+  <rect class="b-off" x="548" y="1098" width="14" height="14"/><text class="t-m" x="570" y="1110">EXE system switched off</text>
+  <rect class="b-srv" x="726" y="1098" width="14" height="14"/><text class="t-m" x="748" y="1110">new 64-bit server</text>
+  <rect class="b-new" x="872" y="1098" width="14" height="14"/><text class="t-m" x="894" y="1110">new 32-bit code and files added to the EXE's side</text>
+</svg>

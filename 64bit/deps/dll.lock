@@ -1,0 +1,347 @@
+# The DLL fork commit this repository builds against (see docs/MASTER-COORDINATOR-HANDOFF.md section 3.4).
+# Pinned by the team-1000 coordinator, 2026-11-10 03:45 EST, epic 1000. Re-pinned by the team-2400 coordinator 2026-11-10
+# 15:46 EST: x64 e9d0c4837 merged with i0-ship e6f904ad6 (deps/i0.lock: growth, crash and D25 determinism fixes).
+# Re-pinned by one-off 9013, 2026-11-10 21:42 EST: x64 c43ea1b9f = merge of i0-ship ccfd6dd4d (statistics database
+# pragmas, D35) into e716240a7, which merged i0-ship 40ce81aee (the cherry-pick of e9d0c4837, D32) into 29f15ac38 and
+# changed no file. (Replaced: the intermediate pin e716240a7 of 20:57 EST, fingerprint 994bc6a7... = 29f15ac38's.)
+# Re-pinned by one-off 9029, 2026-11-11 14:10 EST: x64 76992d235 = merge (--no-ff, clean, empty remerge-diff) of i0-ship
+# bbfacca1a (upstream fix batch 1, deps/i0.lock) into c43ea1b9f, made by one-off 9020 as x64-next; fork x64 fast-forwarded
+# c43ea1b9f -> 76992d235. (Replaced: c43ea1b9f, Release-5.4.8-22-gc43ea1b9f, fingerprint a27227d9...ea2a, build
+# x64-c43ea1b9, kept.)
+# Re-pinned by one-off 9045, 2026-11-13 (DLL pin batch 2, decision D91; tracker 9045): x64 04b1211b8 = 76992d235 with
+# i0-ship-batch2 merged twice (--no-ff, clean, empty remerge-diffs): feece282c took ee893bc18 (bugs 0084, 0096, 0103, 0116,
+# eight cherry-picks -x of the fix branches; its tree equals 76992d235 + the eight x64-fix-* commits cherry-picked, tree
+# 5d7240218e7d), 04b1211b8 took 26234371e (the statistics logger rolls back with Execute("ROLLBACK"), so the DLL imports
+# no Connection::RollbackTransaction, which the server's remote-mode write recording refuses; MC decision, 9045).
+# Fork branch x64-batch2 (new); fork x64 stays at 76992d235 until the MC fast-forwards it. Bugs 0103 (AI logging on)
+# and 0116 change game results against 76992d235 (research/03-dll-engine-boundary/upstream-fix-batch-1.md section 8).
+# (Replaced: 76992d235, Release-5.4.8-40-g76992d235, fingerprint 764fa10e...3be8, builds x64-76992d23 and
+# x64-76992d23-p1607d42, kept: see release-old below.)
+# Re-pinned by ticket 0463, 2026-11-16 (DLL pin batch 3, MC #3293/#3296): x64 4f4daac70 = 04b1211b8 with i0-ship-batch3
+# 39f17f754 merged (--no-ff, clean, empty remerge-diff; deps/i0.lock: one-off 9075's upstream takes #13566, #13482, #13395
+# and bug 0421's Lua plot improvement-index guard). Its diff from 04b1211b8 has the same patch-id as the i0 diff
+# 26234371e..39f17f754 (d2b30596...); carry.tsv on Release-5.4.8 gives this tree (branches.py --compare-x64). Fork branch
+# x64-batch3 (new); fork x64 stays at 04b1211b8 until the MC fast-forwards it. (Replaced: 04b1211b8,
+# Release-5.4.8-51-g04b1211b8, fingerprint 3f171f20...02ad, layouts x64-04b1211b-pfdee656 and x64-04b1211b-pa803776,
+# kept: see release-old below.)
+# Re-pinned by ticket 0517, 2026-11-17 (DLL pin batch 4, D181; prepared by ticket 0497): x64 c29442e8c = 4f4daac70 with
+# 0497's i0-ship-batch4 2fbf08f9a merged (66b4853cc: --no-ff, clean, empty remerge-diff; upstream #13522 and the D176 fix)
+# + cherry-picks -x of D181's three x64 fix branches in this order: fix-0508-x64 77d110cc4 (ceadc7549), fix-a9-x64
+# caf579d9f (15d5f1e7d), fix-a10-x64 2915322be (c29442e8c); each has the patch-id of its i0 twin (125fa2ee, c5345bb4,
+# c1ef6bb8), the whole batch-3 -> batch-4 diff the same patch-id on both pins (0a248751), and the tree equals x64-batch3 +
+# a --no-ff merge of the new i0-ship-batch4 e96457fd5 (the carry's route; branches.py --compare-x64, 55 applied). Fork
+# branch x64-batch4 (0497's, fast-forwarded by 0517); fork x64 stays at 4f4daac70 until the MC fast-forwards it. A9
+# changes game results on purpose (research/03-dll-engine-boundary/upstream-fix-batch-4.md section 9). (Replaced:
+# 4f4daac70, Release-5.4.8-57-g4f4daac70, fingerprint 2b1571a9...45db, layout x64-4f4daac7-pf8e9f42, kept: see the
+# -b3 keys below.)
+# Re-pinned by ticket 0551, 2026-11-18 (DLL pin batch 5, D195): x64 1fd51353e = c29442e8c + a cherry-pick -x of ticket
+# 4813's fix-cnip-x64 909f73bd1 (fca1f5b56; the path finder's not-refreshed node-cache read fixed at both sites, patch-id
+# 3e180c82, the same as i0-ship-batch5's) + a cherry-pick -x of ticket 4719's x64-ifver 344bdff8e (1fd51353e;
+# CvOutOfProcessInterface.h, VP_OUT_OF_PROCESS_INTERFACE_VERSION 1 and the export DllGetOutOfProcessInterfaceVersion behind
+# VP_OUT_OF_PROCESS; x64 only: from this pin a server built against this source refuses a DLL without the export,
+# research/03-dll-engine-boundary/upstream-export-e4-dll-commit.md 8.5). No conflict, no hand edit. The tree equals
+# x64-batch4 + the ifver pick + a --no-ff merge of i0-ship-batch5 5d18d3d6c (the carry's route; branches.py --compare-x64).
+# Fork branch x64-batch5 (new); fork x64 stays at c29442e8c until the MC fast-forwards it. The finder fix changes game
+# results on purpose (research/03-dll-engine-boundary/upstream-fix-batch-5.md). (Replaced: c29442e8c,
+# Release-5.4.8-63-gc29442e8c, fingerprint 77a417ec...6414, layout x64-c29442e8-p58724e0, kept: see the -b4 keys below.)
+# Read by tools/x64-dll/build.py (resolve_src), which every script taking --src calls: --src must be a git checkout at
+# `commit` without tracked changes, or a plain copy without .git whose source fingerprint equals `fingerprint`
+# (CURRENT_GAMECORE_VERSION is then "<describe> Copy"); --unlocked (git checkouts only) otherwise.
+# Re-pinning: change commit and describe, then replace the fingerprint line with the output of
+#   python tools/x64-dll/src_fingerprint.py --git <fork clone>
+# (v1: SHA-256 over every *.h/.hpp/.inl/.c/.cpp/.def of the build-input directories plus build_vp_clang.py, CRLF folded
+# to LF; the exact rule is FINGERPRINT_* in tools/x64-dll/build.py. Issue 1508, 2026-11-10.)
+# then run proxy/gen/regen_model.py --src <pin source> --lock deps/dll.lock --write even when it reports EQUAL, so
+# proxy/model records the new commit (test_hi_coverage checks it; batch 5 left it at c29442e8c, ticket 0602).
+# Re-pinned by ticket 0574, 2026-11-19 (release 0.1b, D195; MC #6806): x64 9a3ca174b = x64-batch5 1fd51353e
+# + epic 0504's danger package (perf/speed-danger-b5 5d4a90aa5, 12 commits behind VP64_SPEED_DANGER and
+# VP64_SPEED_DANGER_DG7) + ticket 0573's hidden embarks (hidden-embark-x64-b5 a49d8b2e7, behind VP64_HIDDEN_EMBARK),
+# a --no-ff merge of the latter into the former; one conflict (CvGameCoreDLLPCH.h, both include blocks kept, then
+# the package's #line 251); the tree is the sum of the two features (research/06-tooling-and-workflows/
+# release-builds.md 5.1). The defines come from tools/x64-dll/build.py's marker headers (5.2), never PREDEFS. Fork
+# branch x64-0.1b (new). Until the 0.1b release candidate's take writes them, the release/verified/tools keys
+# below still describe batch 5's build.
+# 2026-11-19 13:05 (MC #7028): moved on to 1b87dd185 = 9a3ca174b + one commit removing the 66 '#line N' lines (the
+# narrowing gate keys sites by physical line; release-builds.md 5.3): gate 794 / 0 new / 4 gone.
+# Re-pinned by ticket 0765, 2026-11-25 (Vox Populi 5.5, D259, epic 0763): x64 a2627c8ac = fork branch x64-vp55 (ticket
+# 0764): i0-vp55 dc6b8ad48 (deps/i0.lock: upstream tag Release-5.5 b0bce8c2f + the 25 carried i0 commits) + cherry-picks
+# -x of the three upstream-shape x64-layer commits of fork branch export-e5-dll (6f5f1cf55 port and interface version,
+# 03ce5ed6e the danger reach cache, 58a8ce863 hidden embarks); the 71 commits of 1b87dd185 one by one, and every
+# conflict's resolution: research/03-dll-engine-boundary/vp55-dll-branches.md. Its tree equals the take branch
+# x64-release-5.5-cd65a9540 bea5974f6 of 0764's candidate take (fingerprint below = that take's lock). The release
+# configuration stays plain `release` (no release-config line; the profile lines below are still 1b87dd185's and are not
+# used by a plain release build; the PGO retrain on 5.5 is ticket 0774). 5.4.8 saves do not load on this pin (upstream
+# #13643; vp55-dll-branches.md 4). The patch side of this pin (model, purity, the Exe table on the proxy route, suites):
+# research/03-dll-engine-boundary/vp55-patch-side.md. (Replaced: 1b87dd185, Release-5.4.8-80-g1b87dd185, fingerprint
+# 996b97a5...412f 479 files, base Release-5.4.8 (7307aefdf), branch x64-0.1b. The build keys tools/epoch/verified/release
+# of batch 5 that stood at the top until the 0.1b take are kept as the -b5 keys below.)
+# Paths (ticket 0765, MC #15669: this file is exported): the MC's pins folder is written `<pins_dir>`, the pins_dir
+# setting of tools/release/settings.py (deps/local-settings.ini or C5_PINS_DIR); tools/d10/run_d10.py,
+# tools/drift/run_pair.py and perf/speedkit/defineoff.py resolve it (and %VAR% placeholders). No user path is written.
+repository  = https://github.com/artemigkh/Community-Patch-DLL.git
+branch      = x64-vp55
+commit      = a2627c8ac15610499a45614d2c5a3242ddbb4ee1
+describe    = Release-5.5-28-ga2627c8ac1
+base        = Release-5.5 (b0bce8c2f)
+fingerprint = v1 94579acb3ff2544dff973c875655d021cfb653b708a9da76d04d6fc7c3805562 488 files
+source      = either: git -C <fork clone> worktree add --detach <dir> a2627c8ac
+              or:     git -C <fork clone> archive -o <tmp>\src.tar a2627c8ac  then  tar -x -f <tmp>\src.tar -C <dir>
+build       = python tools/x64-dll/build_all.py --src <dir> --out <out> [--config debug|release]
+              (its steps are listed by name in <out>/build_all.json and in tools/x64-dll/README.md; not repeated here)
+# The PGO profile of the configuration release-pgo (ticket 0513, decision D184): a build input like the source.
+# tools/x64-dll/build.py --config release-pgo reads `profile-file` (or --profile FILE) and refuses a file whose SHA-256
+# is not the `profile` line's; the first line's form is fixed (build.py lock_profile), the rest is the training record
+# (tools/x64-dll/pgo/train.py writes these lines into <work>/dll-lock-profile.txt). The file is never committed.
+# `profile-file` names no machine folder (ticket 0774; this lock is exported): `<pgo_dir>` is the setting pgo_dir of
+# tools/release/settings.py (deps/local-settings.ini, or the environment variable C5_PGO_DIR), resolved by build.py.
+# Retrained by ticket 0774 (2026-11-26) on this pin, x64-vp55 a2627c8ac, with VP 5.5 saves of ticket 0771 (G, L) and the
+# new S game, on the Release-5.5 test database (research/08-performance/speedup-p1-pgo.md section 12; archive
+# F:/c5-64bit-work/0774/profile/). Retrain at every new pin (the retrain rule, build-summary.json pgo_retrain).
+# (Replaced: 0513's profile 718d3e58... of 1b87dd185, 5.4.8, trained on 0438's H and M saves; kept in its folder.)
+# `release-config = release-pgo` (ticket 0774, D184): the release take builds the x64 DLL as release-pgo with this
+# profile (tools/release/stages/build.py x64_config); `release-config = release` takes a release without PGO.
+profile      = sha256 9aef3841017994de79ce55a266cc1072c65b45b9579f34a425528d25196d5b8b bytes 11237976 pin a2627c8ac15610499a45614d2c5a3242ddbb4ee1 name vp64-a2627c8ac.profdata
+             trained 2026-11-26 01:42 -0500 by tools/x64-dll/pgo/train.py on the pgo-instr build sha256 a925c9c0a552558a76ee8d21749466ad3372cd4a86d7c234d4b50aadf0a39752
+             training G: VP55-HUGE_0350-B.Civ5Save turns 350->355, raw 11578776 B sha256 7d486b0d1c969abda4bc5e8a594b2227215d32fa921c928e8ad27695481217c3
+             training L: HI-0771-LC21B55-T200.Civ5Save turns 200->210, raw 11575272 B sha256 e7f432851fdc317d768cd9ef6ea974d0724d2fb4f830ac99796a47b38c7e6678
+             training S: continents-standard-fixed-seed.json turns 0->50, raw 11545480 B sha256 4278fcc799de54dcfa05d4983210807323599113e6128cfcedb719c500b962eb
+             tools: llvm-profdata LLVM version 19.1.7; clang-cl clang version 19.1.7; profile runtime clang_rt.profile-x86_64.lib sha256 d9f409687af3dd21d13b68187fa2d5430de5c5f05cf348e1e0377334463b7f92
+             Total functions: 47410; Maximum function count: 1721268778
+profile-file = <pgo_dir>/vp64-a2627c8ac.profdata
+release-config = release-pgo
+# `verified` is written by hand after a build_all.py (or build_server.py) run at this commit: the run's date and clock
+# times, config, source form, "every step in build_all.json rc 0" (the step NAMES as that file lists them, never a
+# count, so the line cannot go stale when a step is added), the unresolved count, the narrowing gate, the smoke step
+# result, and where the evidence is. A reader compares the date with today. (Issue 2007, 2026-11-10: the earlier line
+# said "all 5 steps" after build_all.py had grown a sixth, cvlocalization.)
+tools       = c5-64bit-patch 957531e59 (ticket 0765's branch task-0765-vp55-patch-side with main 8ee426878; repo_dirty=0):
+              server.exe and the proxy of the release hashes below; the DLL and its libraries come from the build_all.py
+              run at 80ed86dd8 (the same branch, 18:48, no tools/x64-dll change in between).
+epoch       = SOURCE_DATE_EPOCH unset = the commit time of `tools`.
+verified    = 2026-11-25 18:48-18:57 EST (ticket 0765), release, offline, plain source copy (the build folders only) of the
+              fork at a2627c8ac whose fingerprint matches, `server/build_server.py --config release --offline` with
+              C5_RELEASE_TEST_DB = the Release-5.5 test database: build_all steps stubs, cvgamedatabase, cvlocalization, dll,
+              host, smoke rc 0 (429 s; dll 332 s with the LTO link), narrowing 799 against 808 (0 new, 9 gone), smoke on the
+              5.5 database ("Release-5.5-28-ga2627c8ac1 Copy", 22 majors); server.exe and the proxy again at `tools` with
+              --deps of that build 20:03-20:09 (369 s; proxy step 7 test_purity 66/66). test_proxy_rt 240/240 on the same DLL
+              (proxy of 19:19). Candidate tier steps not run here (savetest, drift, fixchecks: the 5.5 reference saves are
+              tickets 0766/0771; 0764's drift identity pass used 0764's own build of the same tree). Evidence:
+              research/03-dll-engine-boundary/vp55-patch-side.md section 8.
+release     = <pins_dir>/dlls/x64-a2627c8a-p957531e (to be laid out by the MC from
+              F:/c5-64bit-work/0765/layouts/x64-a2627c8a-p957531e, its SHA256.txt): bin/CvGameCore_Expansion2.dll SHA-256
+              05F9B101D88DF8A512018855B2241C7306742C0B2636895C83B0222919D410E1 (16,672,256 B, version string
+              "Release-5.5-28-ga2627c8ac1 Copy"); bin/server.exe 8CBA59D6C17F4923A1975827DCAD0049A6D61393C30810943FDE325208211555
+              (11,924,480 B); proxy/bin/CvGameCore_Expansion2.dll 966A85B3FA5ED14F3355CB6A729CD0C448A5113A713610A28B8D0527C085D1AC
+              (1,675,264 B); lua51_x64.dll 30724D6D...0F1A, CvGameDatabase_x64.dll 9C37B39E...466E, CvLocalization_x64.dll
+              35863EDE...7D8A, civ5save.exe 409422EF...5B6C (= the batch-5 layout's). Not repeatable (epoch unset, LTO).
+tools-b5    = c5-64bit-patch 1e09fc7c2 (ticket 0551's branch: main of 2026-11-18 14658067a with pin batch 5's locks, carry rows
+              and descriptor counts; repo_dirty=0). The release hashes below belong to the build made at this tool commit.
+epoch-b5    = SOURCE_DATE_EPOCH unset = the commit time of `tools-b5` (2026-11-18T22:39:18-05:00).
+verified-b5 = 2026-11-18 22:40-23:02 EST (ticket 0551), release, offline, archive of the fork at 1fd51353e whose source
+              fingerprint matches, through tools/release/take_release.py Release-5.4.8 --tier validated --carry pins --for-art at
+              `tools`: build_all steps stubs, cvgamedatabase, cvlocalization, dll, host, smoke rc 0, 0 unresolved, narrowing 794 against
+              798 (0 new, 4 gone). Validated tier: model equal to the committed (no regeneration for this pin), purity, test_proxy_rt,
+              hutest and scenarios (with hutest's fake DLL exporting the interface version, c954a2a09), verify leg ok; save test PASS
+              30,569 / 359,261 / 685,488; drift none; fix checks ok; instance arms 208,403 and 370,660 verified, 0 mismatches; whole
+              games 4/4 x64 = x86; the D162 HI release journeys PASSED on this build (release-basic 6/6, release-large 5/5 on product and stock, c5h-c, 2026-11-19 02:55-03:37 EST; take_release --art-check: for the owner yes). From this pin the server is built against a source with CvOutOfProcessInterface.h and
+              refuses an x64 DLL without DllGetOutOfProcessInterfaceVersion. Evidence: research/03-dll-engine-boundary/upstream-fix-batch-5.md section 5-6, server/evidence/0551/.
+release-b5  = <pins_dir>/dlls/x64-1fd51353-p1e09fc7 (to be laid out by the MC from F:/c5-64bit-work/0551/layouts/x64-1fd51353-p1e09fc7, its SHA256.txt
+              checked 2026-11-19): bin/CvGameCore_Expansion2.dll SHA-256
+              78355A759E8A77E367E2B4162DD8F6779848D382FF08722CEB3E4F15E2AEAFE6 (23,681,536 B, version string
+              "Release-5.4.8-65-g1fd51353e Copy"); bin/server.exe A6026D538FDB83F38992190165FDBB6C97ED951C98F5BE870CEFB90398FA92F7
+              (8,269,824 B); proxy/bin/CvGameCore_Expansion2.dll 5BAB1B6C16822042F75D10C93AC1634ACFAE99933029642E791FE5043CA02C1E
+              (1,306,624 B); lua51_x64.dll 30724D6D...0F1A, CvGameDatabase_x64.dll 9C37B39E...466E, CvLocalization_x64.dll
+              35863EDE...7D8A, civ5save.exe 409422EF...5B6C (= the batch-4 layout's).
+tools-b4    = c5-64bit-patch 58724e072 (ticket 0517's branch: main of 2026-11-17 with the proxy model regenerated for pin batch
+              4; repo_dirty=0). The release hashes below belong to the build made at this tool commit.
+epoch-b4    = SOURCE_DATE_EPOCH unset = the commit time of `tools` (2026-11-17T21:46:28-05:00).
+verified-b4 = 2026-11-17 21:48-22:13 EST (ticket 0517), release, offline, archive of the fork at c29442e8c whose source
+              fingerprint matches, through tools/release/take_release.py Release-5.4.8 --tier validated --carry pins --for-art at
+              `tools`: build_all steps stubs, cvgamedatabase, cvlocalization, dll, host, smoke rc 0, 0 unresolved, narrowing 794 against
+              798 (0 new, 4 gone). Validated tier: model equal to the committed (regenerated for this pin, 58724e072: A10's
+              CvAStar::m_iCurrentGenerationID type), purity, test_proxy_rt, hutest, scenarios, verify leg ok; save test PASS 31,226 /
+              349,074 / 683,261; drift none; fix checks ok; instance arms 175,141 and 372,462 verified, 0 mismatches; whole games 4/4
+              x64 = x86; the D162 HI release journeys PASSED on this build (release-basic 6/6, release-large 5/5 on product and stock, c5h-b with AutoUnitCycle = 1, 2026-11-18 03:35-04:17 EST; take_release --art-check: for the owner yes). Evidence: research/03-dll-engine-boundary/upstream-fix-batch-4.md section 9, server/evidence/0517/.
+release-b4  = <pins_dir>/dlls/x64-c29442e8-p58724e0 (to be laid out by the MC from F:/c5-64bit-work/0517/layouts/x64-c29442e8-p58724e0, its SHA256.txt
+              checked 2026-11-18): bin/CvGameCore_Expansion2.dll SHA-256
+              2B56A1CDCAF6380DD58E9F8984534123AC12379D213FE63CF78F558650F9038E (23,681,024 B, version string
+              "Release-5.4.8-63-gc29442e8c Copy"); bin/server.exe FC73E60EE6843FB26451F3C97DB5397969321E1AD4FFF608615237BAF5BCB4CE
+              (7,709,184 B); proxy/bin/CvGameCore_Expansion2.dll 3DFD7521C8E4444A301E8722B397939AEB01219D08FEF1AAF8D0CD946E22B2EA
+              (1,195,520 B); lua51_x64.dll 30724D6D...0F1A, CvGameDatabase_x64.dll 9C37B39E...466E, CvLocalization_x64.dll
+              35863EDE...7D8A, civ5save.exe 409422EF...5B6C (= the batch-3 layout's).
+tools-b3    = c5-64bit-patch f8e9f424b (ticket 0463's branch: main of 2026-11-17 with bug 0452's server load fix, 2606's pack
+              name and the regenerated proxy model of pin batch 3; repo_dirty=0). The release hashes below belong to the build made at
+              this tool commit.
+epoch-b3    = SOURCE_DATE_EPOCH unset = the commit time of `tools` (2026-11-17T08:12:50-05:00).
+verified-b3 = 2026-11-17 08:15-08:54 EST (ticket 0463, second take), release, offline, archive of the fork at 4f4daac70 whose
+              source fingerprint matches, through tools/release/take_release.py Release-5.4.8 --tier validated --carry pins --for-art
+              at `tools`: build_all steps stubs, cvgamedatabase, cvlocalization, dll, host, smoke rc 0, 0 unresolved, narrowing 794
+              against 798 (0 new, 4 gone), repeatability check OK (181 link inputs, 532 members, none stamped). Validated tier: model
+              equal to the committed (regenerated for this pin, e6a717c29), purity 137 + 29 kept / 0 dropped, test_proxy_rt, hutest,
+              scenarios 19/19, verify leg PASS; save test PASS 30,666 / 351,496 / 689,879; drift none; fix checks ok; instance arms
+              0 mismatches; whole games 4/4 x64 = x86; the D162 HI release journeys PASSED on this build (release-basic 6/6, release-large 5/5 on product and stock, c5h-d, 2026-11-17 15:46-16:28 EST; take_release --art-check: for the owner yes). Evidence: research/03-dll-engine-boundary/upstream-fix-batch-2.md section 3.4, tools/d10/evidence/0463/.
+release-b3  = <pins_dir>/dlls/x64-4f4daac7-pf8e9f42 (to be laid out by the MC from F:/c5-64bit-work/0463/layouts/x64-4f4daac7-pf8e9f42, its SHA256.txt
+              checked 2026-11-17): bin/CvGameCore_Expansion2.dll SHA-256
+              2D737BD58EF4FD31829793C5992497FC366CDFC6A522789DA29429C9A597438B (23,669,760 B, version string
+              "Release-5.4.8-57-g4f4daac70 Copy"); bin/server.exe ED829BDA1F338B100703630FEB885D72FE36FE19084782AF483E743A05277FE8
+              (7,564,288 B); proxy/bin/CvGameCore_Expansion2.dll 4815ED814CD2BC8CC727C5F0561EF7A80066490B2566C5DDCB4E482DC79B775F
+              (1,162,240 B); lua51_x64.dll 30724D6D...0F1A, CvGameDatabase_x64.dll 9C37B39E...466E, CvLocalization_x64.dll
+              35863EDE...7D8A, civ5save.exe 409422EF...5B6C (= the batch-2 layout's).
+tools-b2    = c5-64bit-patch fdee65668 (ticket 0351's branch: main bdbd0bb9 + one tracker log line; it carries 0343's
+              .Civ5Map reader in tools/x64-dll/closedlib-stubs/CvWorldBuilderMap/; server and proxy sources are main's at
+              bdbd0bb9). The release hashes below belong to the build made at this tool commit. Adopted by ticket 0360,
+              2026-11-15. (Replaced: a803776cf, main e61200a + 9045's lock and test_proxy_rt changes, one-off 9045.)
+epoch-b2    = SOURCE_DATE_EPOCH unset = the commit time of `tools` (2026-11-15T06:10:52-05:00): the DLL's __DATE__/__TIME__
+              and the build id time of server.exe and the proxy. (Replaced: 2026-11-13T11:28:22-05:00, a803776cf.)
+verified-b2 = 2026-11-15 06:12:33-06:26:42 EST (ticket 0351), release, offline, archive of the fork at 04b1211b8 whose
+              source fingerprint matches, through tools/release/take_release.py Release-5.4.8 --tier validated --carry
+              pins (server/build_server.py) at `tools`: build_all.json steps stubs, cvgamedatabase, cvlocalization, dll,
+              host, smoke all rc 0, 0 unresolved, narrowing gate 794 against baseline 798 (0 new, 4 gone); server.exe,
+              civ5save.exe and the proxy rebuilt from a clean checkout of `tools` 08:03:47-08:05:41 EST with --deps of
+              that build (repo_dirty=0; the driver's own layout said dirty=1 and differs from these only in the dirty
+              literal, stamps, checksum and PDB GUIDs, tools/d10/evidence/0351/clean-vs-validated.txt). Validated tier
+              (D127) on the driver's layout: purity 143 kept / 0 dropped, test_proxy_rt 87/87, hutest PASS, scenarios ok,
+              verify leg PASS, save test (run_d10, D24) PASS tiny/standard/huge parts 1-3, rows 30,666 / 351,496 /
+              683,123, drift none, fix checks ok, instance arms 0 mismatches, whole-game parity 4 of 4 x64 = x86 on
+              oldpc and the laptop; verdict validated (09:27:06). On the clean files: test_proxy_rt 87/87, verify leg
+              PASS, drift none, save test PASS again (main 36892819, --save-mods none). Evidence
+              tools/d10/evidence/0351/acceptance.txt and research/06-tooling-and-workflows/evidence/0351/; adoption
+              checks tools/d10/evidence/0360/. Replaced (one-off 9045, the build at a803776cf):
+              2026-11-13 11:45:07-11:54:39 EST (one-off 9045), release, offline, plain copy (git archive) of the fork at
+              04b1211b8 whose source fingerprint matches, `python -I server/build_server.py --src
+              D:/c5-64bit-work/9045/src-x64f --out D:/c5-64bit-work/9045/bF --config release --offline --jobs 6` at
+              `tools` (repo_dirty=0): build_all.json steps stubs, cvgamedatabase, cvlocalization, dll, host, smoke all
+              rc 0, 0 unresolved, narrowing gate 794 against baseline 798 (0 new, 4 gone), smoke exit 0; server and proxy
+              steps OK (572 s in all). Offline on the layout [2026-11-13 12:08-12:4x]: test_proxy_rt 56/56 (with bug 0128's
+              test fix), hutest 45/0, hutest --scenario all 8/8, verify leg (proxy-design 17.2 command, Tiny 0-50 strict,
+              local_answers=1 local_verify=1 test_slot_poll=4 lua_mirror=1) PASS, 1,300,212 getter answers and 1,198,941
+              UI-Lua hits verified, 0 mismatches, 0 lock errors; save test (run_d10.py, D24) PASS 12:14:21-12:37:38 (1,397 s) against deps/i0.lock's build i0ship-26234371,
+              --order-exception none, --d18-* yes, AI logging off: tiny 0-100, standard 0-200, huge save 350-400 pass
+              parts 1-3, only the version-string exception; x86 direct = x64 direct 30,666 / 351,496 / 683,123 rows
+              (report tools/d10/evidence/9045/d10-final-report.txt); fix checks 0096 PASS, 0103 (Tiny 0-100 logging
+              on = off = old pin off) PASS. Logs D:/c5-64bit-work/9045/off-*-final.log.
+release-b2  = <pins_dir>/dlls/x64-04b1211b-pfdee656 (ticket 0360, 2026-11-15: a copy of ticket 0351's clean layout
+              F:/c5-64bit-work/0351/x64-04b1211b-pfdee656-clean, checked file by file against its SHA256.txt; SHA256.txt
+              and README.txt in that folder): bin/CvGameCore_Expansion2.dll SHA-256
+              29F58E174B354E02A3566841908E225F7678BB8A9BD1EA0774E1B560442A7B1D (23,655,424 B, version string
+              "Release-5.4.8-51-g04b1211b8 Copy"); bin/server.exe 5B254430F9AAC96CB6EC86B17064AE4C86D6E4C0A9D239B30D1E159D0C8640E5
+              (3,285,504 B); proxy/bin/CvGameCore_Expansion2.dll
+              75C40CECCF1E436F95AF84BA232F04CEB99103D11E44C01DC0CDB5B59D2854EC (1,097,216 B); proxy/bin/vp64helper.exe
+              B8AC9A64F86CE89CDEC30B8A219C86ABC904749FEE075F38B0D70325A2F68E0F (215,040 B); lua51_x64.dll 30724D6D...0F1A,
+              CvGameDatabase_x64.dll 9C37B39E...466E, CvLocalization_x64.dll 35863EDE...7D8A, civ5save.exe 409422EF...5B6C.
+              The DLL pin 04b1211b8 did not move; the x64 DLL's bytes changed with the tools (0343's .Civ5Map reader in
+              the closed-library stubs). Replaced (kept on disk, not retired): the layout of one-off 9045 at a803776cf,
+              <pins_dir>/dlls/x64-04b1211b-pa803776 (2026-11-13 12:08 EST; SHA256.txt and README.txt in
+              that folder): bin/CvGameCore_Expansion2.dll SHA-256
+              74588135651DF6BE7B4BB2E51D8A3F297ECD73E598E6591D4CC4270352D94570 (23,616,000 B, version string
+              "Release-5.4.8-51-g04b1211b8 Copy"); bin/server.exe B7A4D8CCCC291CAEFFAA52C7C766E9950074B6D9C65115E93529DB7CD3C33224
+              (1,589,760 B); proxy/bin/CvGameCore_Expansion2.dll
+              78108DA9C56E732EF965A4B6FF537E7F5A5B059D883943E366530C496959B4CF (893,952 B); lua51_x64.dll 30724D6D...0F1A,
+              CvGameDatabase_x64.dll 75045A87...C39D, CvLocalization_x64.dll 35863EDE...37D8A, civ5save.exe 409422EF...5B6C
+              (the four equal to issue 0115's double build of 76992d235: their sources did not change).
+repeat      = REPEATABLE from tools 9146336e (the merge of ticket 0373): the release link line carries
+              /mllvm:-dse-memoryssa-scanlimit=1000 (tools/x64-dll/build.py LTO_DETERMINISM_LINK). With it, 6 of 6 relinks
+              of one build's byte-equal inputs in 0358's flipping environment and two full release builds in different
+              folders and environments gave one DLL (9C4C3C4D... at epoch 1794587302), while 3 of 6 control relinks
+              without it flipped (ticket 0373, 2026-11-15, research/06-tooling-and-workflows/x64-lto-link-repeatability.md
+              section 5). The cause was LLVM 19.1.7's DSE deciding one store at the edge of its default scan limit in a
+              run-dependent order. The release hashes above were built without the setting and are one of that link's
+              two variants; a rebuild at this lock's tools commit can still give either. A build with the setting is a
+              new candidate: its own purity file (0373: 143 of 143 kept) and its own save test and parity.
+              Replaced (ticket 0373, MC 2026-11-15): "NOT repeatable: the x64 DLL's whole-program link is not deterministic run to run (ticket 0358) ...".
+release-rv  = the re-validation build of feece282c (the eight fixes without the rollback commit), used for the testbed
+              games and the first save test: <pins_dir>/dlls/x64-feece282-p6a9b544 (tools 6a9b54408): DLL
+              D40BD17866089C1F12F7E10D43F1D6243A63CA36DCD9B6EE1CBC03ED6567CD11, server.exe 70EFDABC...2DE8, proxy
+              4E5E5BB8...7DC0. Its DLL imports Connection::RollbackTransaction: the proxy route refuses it (direct mode
+              runs it). Not a pin; a labelled comparison arm.
+verified-old = (76992d235) 2026-11-11 14:07-14:19 EST, release, offline, plain copy (git archive) of the fork at 76992d235 whose source
+              fingerprint matches, through server/build_server.py of this repository at b6c52e429 (one-off 9029):
+              build_all.json steps stubs, cvgamedatabase, cvlocalization, dll, host, smoke all rc 0 (514 s; dll 440 s),
+              0 unresolved, narrowing gate 794 against baseline 798 (0 new, 4 gone), smoke exit 0; server and proxy
+              steps OK (570 s in all). Server and proxy rebuilt 14:18-14:19 with --deps of that build from repository
+              commit 887e89dc2 (repo_dirty=0; it adds the bug 0094 fix to server/src/srv_main.cpp), 54 s. Logs:
+              tools/d10/evidence/9029/build-x64.txt. (Replaced: the c43ea1b9f build of 2026-11-10 21:48-21:58 EST,
+              tools/d10/evidence/9013/build-x64-c43ea1b9.txt.)
+release-old = (76992d235) <pins_dir>/dlls/x64-76992d23-p1607d42 (one-off 9043, 2026-11-13 01:57 EST, decision D87: the proxy
+              and server pin moved once, carrying 9036's g_eng slot reuse, in-order end on an exception and bug 0101's
+              list, 9041's ReturnRing (bug 0102's growth) and 9042's options file). SHA256.txt and README.txt in that
+              folder. bin/ = the x64 DLL FA75F483... and its libraries copied unchanged from x64-76992d23/bin (the DLL
+              pin 76992d235 did not move), plus server.exe SHA-256
+              C71268B0D816B6D102F1380AA01353693486CA2A42F7EA98DCCA80C55B8601B4 (1,588,736 B); proxy/bin/
+              CvGameCore_Expansion2.dll SHA-256 21C6492ADEED0F2F4AB2BF09804CFA1079C0C7EBE1D069C506E91ED1B1CA418B
+              (880,128 B). Both built from THIS REPOSITORY'S COMMIT 1607d42b7 (repo_dirty=0; bug 0115: they embed the
+              build time, so a rebuild of the same commit gives other bytes; the hashes belong to this build only):
+              `python -I server/build_server.py --src <git archive of 76992d235, fingerprint matches> --out
+              D:/c5-64bit-work/9043/b1 --config release --offline --deps D:/c5-64bit-work/9036/b1/deps` (52 s,
+              01:55:42-01:56:34 EST; the deps are 9036's full build_all of 76992d235 of 2026-11-12 23:21-23:30, every
+              step rc 0; its own DLL 12B7F4FB... is not used). Offline on this build [2026-11-13 01:57-01:59]:
+              test_proxy_rt 55/55, hutest 45/0, hutest --scenario all 8/8, verify leg on the layout itself (17.2
+              command, --bin and --proxy of x64-76992d23-p1607d42) PASS, 1,300,212 answers verified, 0 mismatches.
+              Logs D:/c5-64bit-work/9043/{build,test_proxy_rt,hutest,hutest-scenarios,verify}.txt / .log.
+              Previous proxy/server pin, kept until the MC retires it:
+release-older = (76992d235) <pins_dir>/dlls/x64-76992d23/bin (SHA256.txt in x64-76992d23): CvGameCore_Expansion2.dll SHA-256
+              FA75F4833D0141EE2E9567AB202DA15F1A6DF6EDFAB1C6C5CD43DFF611A48CEC (23,618,048 B), server.exe
+              3A35330AEF3D57913DF5C3B57FF16F77F3FCE41AF66601D28E93D771FF494CCC (since 2026-11-11 16:0x EST: bug 0094
+              corrected, built from repository commit d73c2101f, repo_dirty=0, 51 s with --deps of a full build_all of
+              76992d235 at 15:33-15:42 that passed every step; only server.exe and its PDB were replaced in the folder;
+              replaced: A1D7BDD6...803B, kept in x64-76992d23/replaced-2026-11-11-0094/); the x86 proxy
+              x64-76992d23/proxy/bin/CvGameCore_Expansion2.dll 96D4521EC6DCB15BC34126881111C92FFB55D82F9C3D506D66EB938090A01FF7;
+              version string "Release-5.4.8-40-g76992d235 Copy". Save test against deps/i0.lock's build: tracker 9029.
+              (Not the same bytes as 9020's x64next-76992d23 build D6E4F881...BD0, 23,617,536 B, of the same source built
+              from an older checkout of this repository's tools; that build is a comparison arm only.) (Replaced:
+              x64-c43ea1b9, DLL 7EA44FC3...6706, server.exe 9BBCE03E...03BE, kept for other teams.)
+stress-43   = SHA-256 08A79346ACA9E465886197A4BA9CE29C41F96DE736D8E36A8FE70DE0A0C63BB9 (23,695,872 B; one-off 9079,
+              2026-11-23 02:00 EST, for the ledger's Increment 2.5 43-civ stress arm; MC #11069/#11077): the pin 1b87dd185
+              (C:/c5-64bit-work/keep/pins-0.1b/src-x64-1b87dd185) built with `tools/x64-dll/build_all.py --config release
+              --major-civs 43` (define on the DLL step only) at this repository's cddc81631 (main f9891ef72 merged into
+              9079's branch; no product file changed by the branch), F:/c5-64bit-work/9079/m43-x64 (build_all.json);
+              version string "Release-5.4.8-80-g1b87dd185+m43 Copy". server/build_server.py --deps of it at cbfe2f6dc
+              (C:/c5-64bit-work/9079/server-build, dirty 0, no define, G1): bin/server.exe
+              CB7C3828392C1F2190601906A193AAF9583736FDF6B441F045042D9C6AA5A266 (11,396,608 B), proxy/bin/
+              CvGameCore_Expansion2.dll 9F7435D52299AC72468F248C4C031FB6D8EB0821C91C5CDBDC7DBB23461FA6B5 (1,574,400 B),
+              proxy/bin/vp64helper.exe 991B04B6B6BE173D7E0E3134106A9B0E1C2A11BFEADC05397A9F1B0AEE81EE74. Not repeatable
+              (epoch unset, LTO): the hashes belong to this build only. A test build, not a release take: never the release
+              pipeline's 43-civ build (`release-43` below stays 0334's; MC review of 9079, 2026-11-23).
+verified-stress-43 = 2026-11-23 01:46-02:05 EST (one-off 9079): build_all six steps rc 0 in 890 s (link 722 s), smoke "Supporting
+              43 major civilizations" and "+m43"; build_server OK in 176 s, build_proxy OK in 65 s. Not verified: parity,
+              save test or journeys of this build (only the 9079 stress arm ran on it).
+release-43  = F:/c5-64bit-work/0765/take43/layout/x64-a2627c8a-m43-p00ba21d (ticket 0765's candidate 43-civ take of the
+              Vox Populi 5.5 pins, 2026-11-25 21:00-22:47 EST, take_release.py Release-5.5 --carry pins --major-civs 43 --skip-ia
+              at this repository's 00ba21d8c, repo_dirty 0; a candidate layout, not in <pins_dir>/dlls/ until the MC lays it out):
+              bin/CvGameCore_Expansion2.dll SHA-256 48C508F659569D198F4D5D6FF0B89209A9B013FA5F82B9D9D2C7E4DCBCCB630E (16,642,560 B,
+              version string "Release-5.5-28-ga2627c8ac1+m43 Copy"); bin/server.exe
+              7FED912057766D225AAA083FF9D28A0341E3C7E62C9762271E784B2720FBCB5D; proxy/bin/CvGameCore_Expansion2.dll
+              83CE7C848CAC76E69EBD03F6B8DC71B783DC160CAAE03AD12DF10DD0CBD53765 (server and proxy without the define, G1).
+              Not repeatable (epoch unset, LTO).
+verified-43 = 2026-11-25 22:47 EST (ticket 0765): the take's build stage: build_all stubs, cvgamedatabase, cvlocalization, dll,
+              host, smoke rc 0, unresolved 0, narrowing 799 (0 new, 9 gone), smoke 43 majors; one headless game on it
+              (server/tests/specs/continents-large-30majors-fixed-seed.json, turns 0-10, run_server --fail-on-unserved): exit 0,
+              result passed, Lua errors 0, MAX_MAJOR_CIVS 43, the 30 majors in slots 0-29, city states from 43
+              (research/03-dll-engine-boundary/vp55-patch-side.md 8.5). Not run: parity, save test, journeys.
+release-43-v548 = F:/c5-64bit-work/0334/rebuild/layout/x64-04b1211b-m43-p9aa30f1 (epic 0334, lead-0334, 2026-11-15 10:06 EST; MC
+              #1702/#1707: the build that ships and that 4254's parity proof is for; a candidate layout, not in
+              <pins_dir>/dlls/ until the MC lays it out; SHA256.txt and README.txt in that folder): the pin
+              04b1211b8 built with `tools/x64-dll/build_all.py --major-civs 43` (/DMOD_GLOBAL_MAX_MAJOR_CIVS=43 on the
+              DLL compile only, MC decision G2: no fork branch) at this repository's 9aa30f190 (the team branch with main
+              74118dfc, 0343's .Civ5Map reader and issue 4253's run-time server): bin/CvGameCore_Expansion2.dll SHA-256
+              CF9811262633EC3181FC86CCF95E40B52A1D2720AA24395FB4A4FEF83FC89F16 (23,625,728 B, version string
+              "Release-5.4.8-51-g04b1211b8+m43 Copy"); bin/server.exe
+              D529D5D0A8F6EE12E7B36A57E670CC63FB18DC8C26948118FBCD5F9BE243B698 (3,697,664 B) and
+              proxy/bin/CvGameCore_Expansion2.dll D6A4305651FD0F85ABFDAC9F4022F25369514686C5FCEC4219A4D598B4DF8495
+              (1,097,728 B), both without the define (G1), built by server/build_server.py --deps of that build
+              (VP_BUILD_REPO_COMMIT 9aa30f190, dirty 0); lua51_x64.dll 30724D6D...0F1A, CvGameDatabase_x64.dll
+              9C37B39E...466E, CvLocalization_x64.dll 35863EDE...7D8A, civ5save.exe 409422EF...5B6C (= release's).
+              Replaced (kept on disk, not shipped): issue 4252's layout F:/c5-64bit-work/0334/4252/layout/
+              x64-04b1211b-m43-p11b2c60 (DLL 3E862705...D631, the same PE section sizes: it already had 0343's reader;
+              the bytes differ by the epoch and LTO, ticket 0358; server.exe DB26A0EB..., proxy 93ADCAD1... at 11b2c6022).
+verified-43-v548 = 2026-11-15 09:55:31-10:06:58 EST (lead-0334), release, offline, plain copy (git archive) of the fork at
+              04b1211b8 whose source fingerprint matches, SOURCE_DATE_EPOCH 1794754471 (the commit time of 9aa30f190),
+              `python -I research/03-dll-engine-boundary/evidence/0334/4252/build_x64.py --work
+              F:/c5-64bit-work/0334/rebuild --arms m43 --epoch 1794754471` (build_all.py --config release --offline
+              --major-civs 43, then server/build_server.py --deps) at tools 9aa30f190 (repo_dirty=0): build_all.json six
+              steps (stubs, cvgamedatabase, cvlocalization, dll, host, smoke) all rc 0, 0 unresolved, narrowing gate 794
+              against baseline 798 (0 new, 4 gone), link 421 s, smoke with the DLL's own lines "Supporting 43 major
+              civilizations" and "+m43". Log F:/c5-64bit-work/0334/rebuild/run-1.log. Parity and save test on this build:
+              issue 4254 (player-limits.md 8.3); games: issue 4255 (8.4). Earlier build (issue 4252, 3E862705...):
+              2026-11-15 07:52:23-08:05:44 EST at tools 3dd1c972, epoch 1794587302, same steps and results
+              (research/03-dll-engine-boundary/evidence/0334/4252/).

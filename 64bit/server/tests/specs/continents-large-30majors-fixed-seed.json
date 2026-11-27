@@ -1,0 +1,4 @@
+{"map": {"script": "Assets/Maps/Continents.lua", "size": "WORLDSIZE_LARGE"},
+ "speed": "GAMESPEED_STANDARD", "era": "ERA_ANCIENT", "difficulty": "HANDICAP_EMPEROR",
+ "majors": 30, "cityStates": 16,
+ "seeds": {"map": 43017, "sync": 43018}}

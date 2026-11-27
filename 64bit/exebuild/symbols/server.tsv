@@ -1,0 +1,17 @@
+# exebuild/symbols/server.tsv - EXE symbols used by server/ (server.exe reading the EXE across processes). Epic 0590.
+# Columns (tab-separated): name, kind, anchor_va, consumer, note. The anchor VA is the symbol's VA in Steam build 4390913
+# (DX11 EXE, ImageBase 0x400000). Never write another build's VA here: those are in the local tables (exe_tables setting).
+# Format and kinds: research/02-exe-internals/exe-build-table.md section 3. One row per anchor across all files: a
+# consumer reuses an existing name.
+# Ticket 4966: the live-terrain field (srv_liveterrain_exefield.*). The grid constants block 0xD90FBC..0xD9132C (880 B,
+# starting at shell.tsv's cam_wrapx) is read whole and parsed by render/src/liveterrain/producer.cpp at fixed offsets.
+# The server also uses cam_gridptr (block +0x008), cam_h2w (+0x074) and cam_grid (+0x2B4) of shell.tsv. The lt_* fields
+# below are catalogued so that the server can check, per build, that each sits at its build-4390913 offset in the block.
+name	kind	anchor_va	consumer	note
+lt_corners	data	0xD910F0	server/src/render/srv_liveterrain_exefield.cpp	block +0x134: 4 corner vectors (layout check)
+lt_plots_w	data	0xD911C4	server/src/render/srv_liveterrain_exefield.cpp	block +0x208: map width in plots (layout check)
+lt_plots_h	data	0xD911C8	server/src/render/srv_liveterrain_exefield.cpp	block +0x20C: map height in plots (layout check)
+lt_g	data	0xD911D0	server/src/render/srv_liveterrain_exefield.cpp	block +0x214: 16 ints G (layout check)
+lt_ginv	data	0xD91210	server/src/render/srv_liveterrain_exefield.cpp	block +0x254: 16 ints Ginv (layout check)
+lt_grid_samples_w	data	0xD91264	server/src/render/srv_liveterrain_exefield.cpp	block +0x2A8: grid samples in x (layout check)
+lt_grid_samples_h	data	0xD91268	server/src/render/srv_liveterrain_exefield.cpp	block +0x2AC: grid samples in y (layout check)

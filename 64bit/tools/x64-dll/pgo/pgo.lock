@@ -1,0 +1,17 @@
+# PGO profile of the x64 DLL (tickets 4801, 0513; research/08-performance/speedup-p1-pgo.md).
+# Written by tools/x64-dll/pgo/train.py. The profile file is NOT committed (MC #4429 (2)); it is kept by
+# its SHA-256. The build input is deps/dll.lock's `profile` line (ticket 0513); this file is the training
+# record of the last train.py run (<work>/dll-lock-profile.txt has the lock lines).
+pin          = a2627c8ac15610499a45614d2c5a3242ddbb4ee1
+profile      = vp64-a2627c8ac.profdata
+sha256       = 9aef3841017994de79ce55a266cc1072c65b45b9579f34a425528d25196d5b8b
+bytes        = 11237976
+trained      = 2026-11-26 01:42 -0500
+instrumented = sha256 a925c9c0a552558a76ee8d21749466ad3372cd4a86d7c234d4b50aadf0a39752
+training     = G: VP55-HUGE_0350-B.Civ5Save turns 350->355, raw 11578776 B sha256 7d486b0d1c969abda4bc5e8a594b2227215d32fa921c928e8ad27695481217c3, wall 247.1 s
+training     = L: HI-0771-LC21B55-T200.Civ5Save turns 200->210, raw 11575272 B sha256 e7f432851fdc317d768cd9ef6ea974d0724d2fb4f830ac99796a47b38c7e6678, wall 149.6 s
+training     = S: examples/specs/continents-standard-fixed-seed.json turns 0->50, raw 11545480 B sha256 4278fcc799de54dcfa05d4983210807323599113e6128cfcedb719c500b962eb, wall 102.4 s
+tool         = llvm-profdata: LLVM version 19.1.7
+tool         = clang-cl: clang version 19.1.7
+tool         = profile runtime: clang_rt.profile-x86_64.lib sha256 d9f409687af3dd21d13b68187fa2d5430de5c5f05cf348e1e0377334463b7f92
+summary      = Total functions: 47410; Maximum function count: 1721268778

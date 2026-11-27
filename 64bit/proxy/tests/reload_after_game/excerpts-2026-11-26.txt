@@ -1,0 +1,77 @@
+# 0805 live excerpts, 2026-11-26, c5h-c (Goldberg, mods548, EXE 4390913), beta 0.1b4h1 installer layout (proxy 5cea6db8, build 482ce16be).
+# Full logs, the reports and the cdb dump stay on F:/c5-64bit-work/0805/ (s1..s4, cdb4, reports).
+
+## run folders (one per proxy boot)
+s1: 20261126-131329-30824-1 20261126-132256-30824-1 
+s2: 20261126-132933-3408-1 20261126-134021-3408-1 
+s3: 20261126-135012-3024-1 20261126-135452-3024-1 
+s4: 20261126-140342-45576-1 20261126-141301-45576-1 20261126-142130-45576-1 20261126-142708-45576-1 
+
+## image bases (modlist.exe; the proxy = MODS\(1) Community Patch\CvGameCore_Expansion2.dll, size 0x36A000; the base game's DLL size 0x709000)
+session 1 (pid 30824): proxy 0x58100000; after BACK and the harness's re-activation again 0x58100000
+session 2 (pid 3408): base DLL 0x6C760000 after Exit to Main Menu; proxy image 2 at 0x6CA20000 (image 1 not listed; 0x67AA0000 from the crash address)
+session 3 (pid 3024): proxy 1 0x68960000; base DLL 0x684F0000 after the exit; proxy 2 0x684F0000
+session 4 (pid 45576): proxy 1 0x67AA0000; base DLL 0x74A50000; proxy 2 0x67A30000; base DLL 0x86F00000; proxy 3 0x73EA0000; proxy 4 0x87C20000
+
+## exe-crash records (the proxy's filter, ticket 0419)
+exception 0xC0000005 EXCEPTION_ACCESS_VIOLATION at an address in no module (0x67B150C0), thread 42744
+code: 0xC0000005 EXCEPTION_ACCESS_VIOLATION
+where: an address in no module (0x67B150C0)
+address: 0x67B150C0
+access: execution at 0x67B150C0
+thread: 42744 (not the proxy's boot thread 38388)
+
+exception 0xC0000005 EXCEPTION_ACCESS_VIOLATION at an address in no module (0x689D50C0), thread 11832
+code: 0xC0000005 EXCEPTION_ACCESS_VIOLATION
+where: an address in no module (0x689D50C0)
+address: 0x689D50C0
+access: execution at 0x689D50C0
+thread: 11832 (not the proxy's boot thread 61840)
+
+## cdb, session 4, the second-chance AV (registers and the faulting thread's stack)
+0164-SECOND-CHANCE
+Debug session time: Thu Nov 26 14:28:32.131 2026 (UTC - 5:00)
+System Uptime: 3 days 23:45:28.292
+Process Uptime: 0 days 0:26:29.197
+  Kernel time: 0 days 0:04:20.937
+  User time: 0 days 0:11:19.328
+Last event: b208.43b4: Access violation - code c0000005 (!!! second chance !!!)
+  debugger time: Thu Nov 26 14:28:32.130 2026 (UTC - 5:00)
+eax=24e37f38 ebx=00000260 ecx=733ed2c8 edx=67aa50c0 esi=24bfb610 edi=24bfb610
+eip=67aa50c0 esp=007ded5c ebp=007deeb0 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
+<Unloaded_CvGameCore_Expansion2.dll>+0x50c0:
+67aa50c0 0000            add     byte ptr [eax],al          ds:002b:24e37f38=c8
+ChildEBP RetAddr      Args to Child              
+WARNING: Frame IP not in any known module. Following frames may be wrong.
+007ded58 6ee1a984     24bfb610 24bfb610 24e37f38 <Unloaded_CvGameCore_Expansion2.dll>+0x50c0
+007deeb0 6ee1ab03     24bfb610 00000001 00000240 lua51_Win32!lua_getinfo+0x1374
+007deec8 6ee120d5     24bfb610 24e37f28 ffffffff lua51_Win32!lua_getinfo+0x14f3
+007def3c 6ee1ad4f     24bfb610 6ee120c0 007def90 lua51_Win32!lua_call+0x55
+007def74 6ee15725     6ee120c0 007def90 00000250 lua51_Win32!lua_yield+0x7f
+007def98 6ee1a984     24bfb610 24bfb610 24e37f18 lua51_Win32!luaL_newstate+0x1695
+007df0f0 6ee1ab03     24bfb610 00000001 00000120 lua51_Win32!lua_getinfo+0x1374
+007df108 6ee120d5     24bfb610 24e37e18 ffffffff lua51_Win32!lua_getinfo+0x14f3
+007df17c 6ee1ad4f     24bfb610 6ee120c0 007df1d0 lua51_Win32!lua_call+0x55
+007df1b4 6ee15825     6ee120c0 007df1d0 00000140 lua51_Win32!lua_yield+0x7f
+007df1d8 6ee1a984     24bfb610 24bfb610 24e37df8 lua51_Win32!luaL_newstate+0x1795
+007df330 6ee1ab03     24bfb610 00000001 007dfac8 lua51_Win32!lua_getinfo+0x1374
+007df348 6ee120d5     24bfb610 24e37d18 00000001 lua51_Win32!lua_getinfo+0x14f3
+007df3bc 6ee1ad4f     24bfb610 6ee120c0 007df410 lua51_Win32!lua_call+0x55
+007df3f4 6ee12133     6ee120c0 007df410 00000040 lua51_Win32!lua_yield+0x7f
+007df41c 87c9f5a4     24bfb610 00000002 00000001 lua51_Win32!lua_pcall+0x53
+007df450 6ee1a984     24bfb610 00000000 24bfb610 CvGameCore_Expansion2!`anonymous namespace'::RunExternalLua+0x144 (FPO: [Non-Fpo]) (CONV: cdecl)
+007df484 6ee121b0     24bfb610 25083680 00000000 lua51_Win32!lua_getinfo+0x1374
+007df504 6ee1ad4f     24bfb610 6ee12150 007df550 lua51_Win32!lua_pcall+0xd0
+007df53c 6ee121f1     6ee12150 007df550 00000010 lua51_Win32!lua_yield+0x7f
+007df558 00ef4e52     24bfb610 87c9f460 007dfac8 lua51_Win32!lua_cpcall+0x31
+007dfb68 87d01b63     00000000 09400000 00000011 CivilizationV_DX11!GetFileSystemMgr+0xcbed2
+007dfdd0 87cc78c7     87c8dcd0 00190048 0000001a CvGameCore_Expansion2!ProxyRtInt::BeforeUpdate+0x63 (FPO: [Non-Fpo]) (CONV: cdecl)
+007dfe2c 87c4ca97     8853f6ac 001a0048 8853f6d8 CvGameCore_Expansion2!ProxyRt::Begin+0x247 (FPO: [Non-Fpo]) (CONV: cdecl)
+007dfe54 00ac8c4a     785a7498 77a725e0 455f0044 CvGameCore_Expansion2!Proxy_ICvGame2::Update+0x27 (FPO: [Non-Fpo]) (CONV: stdcall)
+007dfe70 00e1a403     00e1a360 00e1a360 007dfe94 CivilizationV_DX11+0xd8c4a
+00000000 00000000     00000000 00000000 00000000 CivilizationV_DX11!GetTempHeap+0x963
+
+
+## the address resolved in the 4h1 proxy's PDB (cdb -z on the DLL file)
+CvGameCore_Expansion2+0x750c0 = proxy_lua.cpp, anonymous namespace, FuncThunk(lua_State*)

@@ -1,0 +1,38 @@
+Ticket 0159 acceptance (implementer, account B, 2026-11-14). Branch task-0159-x64-dll-fast-config.
+
+1. Third configuration in build.py: `--config fast` = release's compile flags and defines without -flto, link without
+   /LTCG (/OPT:REF /OPT:ICF kept). Name in: the DLL's marker section .vpcfg ("VP-BUILD-CONFIG=fast; not for timing"),
+   build-summary.json ("config": "fast", "for_timing": false, "whole_program": false), build.log NOTE line, and the
+   layout name rule <layout>-fast (x64-04b1211b-pa803776-fast). [L] the fast DLL of the pin has the .vpcfg section;
+   the pin's release DLL has none.
+   Tests: tools/x64-dll/tests/test_config.py 11 passed (flags, release/debug lines unchanged, marker found in a real
+   lld-link output and absent without it, timing_refusal's three signs).
+
+2. perf/turnbench refuses a fast DLL: turnbench.py calls build.py timing_refusal for every arm before the lock.
+   Tests: perf/turnbench/tests/test_turnbench_fast_refusal.py 6 passed (marker, build record, layout name, named arm,
+   CLI exit 1 "arm x64: refused: ... marker section ...", a release layout passes).
+   Frame-rate tools: MC #285, the shared check is build.py timing_refusal(path); 0157 wires it into framecap.py.
+
+3. d10 save identity, fast against release of the pin: run_d10.py on the fast layout (DLL 7186F758...) against
+   i0ship-26234371, 2026-11-14 00:13-00:52 EST: PASS, tiny/standard/huge parts 1-3, only the version-string exception,
+   x86 direct = x64 direct 30,666 / 351,496 / 683,123 rows = the counts of 9045's run of the release pin.
+   Direct: huge x64 continuation of the common x86 T375 save, release vs fast: 14 tables, 357,454 rows IDENTICAL.
+   Report C:/c5-64bit-work/0159/d10-fast/report.txt (deleted at hand-back; figures in the research file).
+
+4. Link peak private memory and time (build.py's own measurement, K32GetProcessMemoryInfo on the linker's handle),
+   pin 04b1211b8, on C:, 2026-11-13/14:
+     release  470.7 s  13,340 MB peak private  (DLL 74588135...4570 = the pin, byte for byte)
+     fast       1.9 s     466 MB
+     debug      1.9 s     531 MB
+
+5. One whole-program link at a time: perf/quietlock/linkplace.py around build.py's release link (WHOLE_PROGRAM =
+   release only; debug and fast take no place). 1 place; waits in place with a progress line naming the holder (pid,
+   owner, since, linker pid, what, out folder), gives up after 60 min (exit 4, objects kept for --link-only); a holder
+   whose process and linker are gone is stale and freed; the memory floor of COMMON 16 applies at the take.
+   Tests: perf/quietlock/tests/test_linkplace.py 15 passed; the whole perf/quietlock suite 63 passed (py38 check incl.).
+   [L] the real release link: place taken 23:57:25, linker pid recorded, released 00:05:19 after 474 s.
+
+6. README (tools/x64-dll/README.md "The fast configuration and the whole-program link place") and research
+   (research/06-tooling-and-workflows/x64-dll-build-configurations.md, listed in the section README) describe both.
+
+After merging main (2026-11-14 00:5x): tools/x64-dll/tests + turnbench refusal + test_linkplace + test_py38: 75 passed.

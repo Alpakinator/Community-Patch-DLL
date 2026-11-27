@@ -1,0 +1,201 @@
+diff --git a/CvGameCoreDLL_Expansion2/CvAStar.cpp b/CvGameCoreDLL_Expansion2/CvAStar.cpp
+index 7ceccba83..140e67b9a 100644
+--- a/CvGameCoreDLL_Expansion2/CvAStar.cpp
++++ b/CvGameCoreDLL_Expansion2/CvAStar.cpp
+@@ -4116,7 +4116,7 @@ FDataStream& operator>>(FDataStream& kStream, CvPathNodeArray& writeTo)
+ {
+ 	writeTo.clear();
+ 
+-	size_t count = 0;
++	uint count = 0;
+ 	CvPathNode current;
+ 
+ 	kStream >> count;
+@@ -4132,7 +4132,7 @@ FDataStream& operator>>(FDataStream& kStream, CvPathNodeArray& writeTo)
+ //cannot use templated serialziation because this is a derived class
+ FDataStream& operator<<(FDataStream& kStream, const CvPathNodeArray& readFrom)
+ {
+-	kStream << readFrom.size();
++	kStream << (uint)readFrom.size();
+ 	for (size_t i = 0; i < readFrom.size(); i++)
+ 		kStream << readFrom.at(i);
+ 
+diff --git a/CvGameCoreDLL_Expansion2/CvEspionageClasses.cpp b/CvGameCoreDLL_Expansion2/CvEspionageClasses.cpp
+index facad2427..b635faba1 100644
+--- a/CvGameCoreDLL_Expansion2/CvEspionageClasses.cpp
++++ b/CvGameCoreDLL_Expansion2/CvEspionageClasses.cpp
+@@ -6671,35 +6671,35 @@ FDataStream& operator<<(FDataStream& saveTo, const CvPlayerEspionage& readFrom)
+ 	saveTo << uiVersion;
+ 	MOD_SERIALIZE_INIT_WRITE(saveTo);
+ 
+-	saveTo << readFrom.m_aSpyList.size();
++	saveTo << (uint)readFrom.m_aSpyList.size();
+ 	for(uint i = 0; i < readFrom.m_aSpyList.size(); i++)
+ 	{
+ 		saveTo << readFrom.m_aSpyList[i];
+ 	}
+ 
+-	saveTo << readFrom.m_aaPlayerStealableTechList.size();
++	saveTo << (uint)readFrom.m_aaPlayerStealableTechList.size();
+ 	for(uint uiCiv = 0; uiCiv < readFrom.m_aaPlayerStealableTechList.size(); uiCiv++)
+ 	{
+-		saveTo << readFrom.m_aaPlayerStealableTechList[uiCiv].size();
++		saveTo << (uint)readFrom.m_aaPlayerStealableTechList[uiCiv].size();
+ 		for(uint uiTech = 0; uiTech < readFrom.m_aaPlayerStealableTechList[uiCiv].size(); uiTech++)
+ 		{
+ 			saveTo << readFrom.m_aaPlayerStealableTechList[uiCiv][uiTech];
+ 		}
+ 	}
+ 
+-	saveTo << readFrom.m_aiNumTechsToStealList.size();
++	saveTo << (uint)readFrom.m_aiNumTechsToStealList.size();
+ 	for(uint uiCiv = 0; uiCiv < readFrom.m_aiNumTechsToStealList.size(); uiCiv++)
+ 	{
+ 		saveTo << readFrom.m_aiNumTechsToStealList[uiCiv];
+ 	}
+ 	
+-	saveTo << readFrom.m_aiNumSpyActionsDone.size();
++	saveTo << (uint)readFrom.m_aiNumSpyActionsDone.size();
+ 	for(uint uiCiv = 0; uiCiv < readFrom.m_aiNumSpyActionsDone.size(); uiCiv++)
+ 	{
+ 		saveTo << readFrom.m_aiNumSpyActionsDone[uiCiv];
+ 	}
+ 
+-	saveTo << readFrom.m_aSpyNotificationMessages.size();
++	saveTo << (uint)readFrom.m_aSpyNotificationMessages.size();
+ 	for(uint ui = 0; ui < readFrom.m_aSpyNotificationMessages.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aSpyNotificationMessages[ui].m_iCityX;
+@@ -6712,7 +6712,7 @@ FDataStream& operator<<(FDataStream& saveTo, const CvPlayerEspionage& readFrom)
+ 		saveTo << readFrom.m_aSpyNotificationMessages[ui].m_iGWID;
+ 	}
+ 
+-	saveTo << readFrom.m_aIntrigueNotificationMessages.size();
++	saveTo << (uint)readFrom.m_aIntrigueNotificationMessages.size();
+ 	for(uint ui = 0; ui < readFrom.m_aIntrigueNotificationMessages.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aIntrigueNotificationMessages[ui].m_eDiscoveringPlayer;
+@@ -10582,43 +10582,43 @@ FDataStream& operator<<(FDataStream& saveTo, const CvEspionageAI& readFrom)
+ 	saveTo << uiVersion;
+ 	MOD_SERIALIZE_INIT_WRITE(saveTo);
+ 
+-	saveTo << readFrom.m_aiCivOutOfTechTurn.size();
++	saveTo << (uint)readFrom.m_aiCivOutOfTechTurn.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiCivOutOfTechTurn.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiCivOutOfTechTurn[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiNumSpiesCaught.size();
++	saveTo << (uint)readFrom.m_aiNumSpiesCaught.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiNumSpiesCaught.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiNumSpiesCaught[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiNumSpiesKilled.size();
++	saveTo << (uint)readFrom.m_aiNumSpiesKilled.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiNumSpiesKilled.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiNumSpiesKilled[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiNumSpiesDied.size();
++	saveTo << (uint)readFrom.m_aiNumSpiesDied.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiNumSpiesDied.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiNumSpiesDied[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiTurnLastSpyCaught.size();
++	saveTo << (uint)readFrom.m_aiTurnLastSpyCaught.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiTurnLastSpyCaught.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiTurnLastSpyCaught[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiTurnLastSpyKilled.size();
++	saveTo << (uint)readFrom.m_aiTurnLastSpyKilled.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiTurnLastSpyKilled.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiTurnLastSpyKilled[ui];
+ 	}
+ 
+-	saveTo << readFrom.m_aiTurnLastSpyDied.size();
++	saveTo << (uint)readFrom.m_aiTurnLastSpyDied.size();
+ 	for(uint ui = 0; ui < readFrom.m_aiTurnLastSpyDied.size(); ui++)
+ 	{
+ 		saveTo << readFrom.m_aiTurnLastSpyDied[ui];
+diff --git a/CvGameCoreDLL_Expansion2/CvGame.cpp b/CvGameCoreDLL_Expansion2/CvGame.cpp
+index d10eb9810..67e4dd32d 100644
+--- a/CvGameCoreDLL_Expansion2/CvGame.cpp
++++ b/CvGameCoreDLL_Expansion2/CvGame.cpp
+@@ -86,13 +86,14 @@ int GetJonRand(int iRange) { return GC.getGame().getJonRandNum(iRange,"generic")
+ struct stringHash
+ {
+ 	//taken from std::tr1::hash<string> but modified to look at all characters
+-	size_t operator()(const std::string& key) const
++	// 32-bit on every build: the values are saved (D10)
++	uint operator()(const std::string& key) const
+ 	{
+-		size_t _Val = 2166136261U;
++		uint _Val = 2166136261U;
+ 		size_t _First = 0;
+ 		size_t _Last = key.size();
+ 		for(; _First < _Last; _First++)
+-			_Val = 16777619U * _Val ^ (size_t)key[_First];
++			_Val = 16777619U * _Val ^ (uint)key[_First];
+ 		return (_Val);
+ 	}
+ };
+@@ -5085,7 +5086,7 @@ void CvGame::SetStaticTutorialActive(bool bStaticTutorialActive)
+ bool CvGame::HasAdvisorMessageBeenSeen(const char* szAdvisorMessageName)
+ {
+ 	stringHash hasher;
+-	std::tr1::unordered_set<size_t>::iterator it = m_AdvisorMessagesViewed.find( hasher(szAdvisorMessageName) );
++	std::tr1::unordered_set<uint>::iterator it = m_AdvisorMessagesViewed.find( hasher(szAdvisorMessageName) );
+ 	return it != m_AdvisorMessagesViewed.end();
+ }
+ 
+@@ -8369,7 +8370,7 @@ void CvGame::setName(const char* szName)
+ bool CvGame::isDestroyedCityName(const CvString& szName) const
+ {
+ 	stringHash hasher;
+-	std::vector<size_t>::const_iterator it = std::find(m_aszDestroyedCities.begin(), m_aszDestroyedCities.end(), hasher(szName.c_str()));
++	std::vector<uint>::const_iterator it = std::find(m_aszDestroyedCities.begin(), m_aszDestroyedCities.end(), hasher(szName.c_str()));
+ 	return it != m_aszDestroyedCities.end();
+ }
+ 
+@@ -8384,7 +8385,7 @@ void CvGame::addDestroyedCityName(const CvString& szName)
+ bool CvGame::isGreatPersonBorn(CvString& szName) const
+ {
+ 	stringHash hasher;
+-	std::vector<size_t>::const_iterator it = std::find(m_aszGreatPeopleBorn.begin(), m_aszGreatPeopleBorn.end(), hasher(szName.c_str()));
++	std::vector<uint>::const_iterator it = std::find(m_aszGreatPeopleBorn.begin(), m_aszGreatPeopleBorn.end(), hasher(szName.c_str()));
+ 	return it != m_aszGreatPeopleBorn.end();
+ }
+ 
+diff --git a/CvGameCoreDLL_Expansion2/CvGame.h b/CvGameCoreDLL_Expansion2/CvGame.h
+index d4230bc85..d80d01c5e 100644
+--- a/CvGameCoreDLL_Expansion2/CvGame.h
++++ b/CvGameCoreDLL_Expansion2/CvGame.h
+@@ -896,7 +896,7 @@ protected:
+ 	bool m_bTutorialEverAttacked;
+ 	bool m_bEverRightClickMoved;
+ 	bool m_bCombatWarned;
+-	std::tr1::unordered_set<size_t> m_AdvisorMessagesViewed;
++	std::tr1::unordered_set<uint> m_AdvisorMessagesViewed;
+ 	// slewis - tutorial values
+ 
+ 	HandicapTypes m_eHandicap;
+@@ -959,8 +959,8 @@ protected:
+ 
+ 	Database::Results* m_pDiploResponseQuery;
+ 
+-	std::vector<size_t> m_aszDestroyedCities;
+-	std::vector<size_t> m_aszGreatPeopleBorn;
++	std::vector<uint> m_aszDestroyedCities;
++	std::vector<uint> m_aszGreatPeopleBorn;
+ 
+ 	CvRandom m_mapRand;
+ 	CvRandom m_jonRand;

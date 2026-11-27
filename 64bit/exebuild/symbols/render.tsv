@@ -1,0 +1,10 @@
+# exebuild/symbols/render.tsv - EXE symbols used by render/ (the c5render library: .shader blobs, create sites). Epic 0590.
+# Columns (tab-separated): name, kind, anchor_va, consumer, note. The anchor VA is the symbol's VA in Steam build 4390913
+# (DX11 EXE, ImageBase 0x400000). Never write another build's VA here: those are in the local tables (exe_tables setting).
+# Format and kinds: research/02-exe-internals/exe-build-table.md section 3.
+# Ticket 4966: the create-site list is the one array of render/. Its first column holds every blob of the .shader
+# section (1,417), so every blob VA render/ names in its own tables (terrainsets, water, ice, fow, decal, forest, arc,
+# bake: build-4390913 VAs) is resolved through this array by c5r::shaders::ShaderSection::findByVa; none needs a row of
+# its own. Columns: blob VA, size, stage, set, init function, call site, handle global, VS vertex-format mask.
+name	kind	anchor_va	consumer	note
+render_shader_create_sites	array	-	render/src/shaders/shadersection.cpp	file=render/src/shaders/create_sites_table.inc;cols=shader,keep,keep,keep,code,code,data,keep

@@ -1,0 +1,42 @@
+# consumers.tsv - who consumes a DLL -> engine call (issue 3303, epic 3300; design:
+# research/05-graphics-composition/renderer-in-server-design.md section 2). Read by proxy/gen/classify.py into the last
+# column `consumer` of policy-table.tsv and the `consumer` field of model.json's dll_to_engine methods.
+#   exe       the EXE consumes it (it crosses); the default for every dll_to_engine row not listed here
+#   renderer  only the server's renderer consumes it (it would stop crossing: a later epic's decision, written here)
+#   both      the server's renderer takes it from the feed (server/src/feed/srv_feed.h) AND it crosses to the EXE
+# One row per method: interface (the declaring interface, as policy-table.tsv names it), method, consumer, reason.
+# Every row must name an existing dll_to_engine method; classify.py stops on an unknown method, a value outside the
+# three above, an empty reason or a duplicate row. Lines starting with '#' are comments.
+interface	method	consumer	reason
+ICvEngineUtility1	GameplayPlotStateChange	both	feed kPlotState: resource, improvement, route as the active team sees them (plot record layout fields); the EXE still draws improvements and routes in increment 2
+ICvEngineUtility1	GameplayFeatureChanged	both	feed kFeatureChanged: the plot record's feature; the EXE still draws features
+ICvEngineUtility1	GameplayFOWChanged	both	feed kFowChanged: the plot record's fog bits; the EXE draws fog in increment 2
+ICvEngineUtility1	GameplayCityCreated	both	feed kCityCreated; the EXE draws cities
+ICvEngineUtility1	GameplayCityDestroyed	both	feed kCityDestroyed; the EXE draws cities
+ICvEngineUtility1	GameplayCityCaptured	both	feed kCityCaptured; the EXE draws cities
+ICvEngineUtility1	GameplayNaturalWonderRevealed	both	feed kNaturalWonder (plot re-read at the next LeaveUpdate); the EXE shows the reveal
+ICvEngineUtility1	GameplayWallCreated	both	feed kWallCreated; the EXE draws city walls
+ICvEngineUtility1	GameplayYieldMightHaveChanged	both	feed kYieldChanged (plot re-read at the next LeaveUpdate); the EXE draws yield icons
+ICvUserInterface1	UpdateCountryBorder	both	feed kBorderChanged: the plot record's owner; the EXE draws borders in increment 2
+ICvEngineUtility1	GameplayEraChanged	both	feed kEraChanged (epic 0375): the player row's era, the seed allocator's era window; the EXE re-creates the units whose art changes
+ICvEngineUtility1	GameplayUnitCreated	both	feed kUnitCreated (epic 0375): the unit table and the server's unit scene; the EXE keeps its Unit system (state ii-d)
+ICvEngineUtility1	GameplayUnitMoved	both	feed kUnitMoved with its path (epic 0375): the unit table, the controller's move
+ICvEngineUtility1	GameplayUnitTeleported	both	feed kUnitTeleported (epic 0375): the unit's plot and facing
+ICvEngineUtility1	GameplayUnitDestroyed	both	feed kUnitDestroyed (epic 0375): the record leaves the table, the seed allocator frees its index
+ICvEngineUtility1	GameplayUnitDestroyedInCombat	both	feed kUnitDestroyedInCombat (epic 0375): the dead flag
+ICvEngineUtility1	GameplayUnitSetDamage	both	feed kUnitSetDamage (epic 0375): the figure count
+ICvEngineUtility1	GameplayUnitFortify	both	feed kUnitFortify (epic 0375): the fortified flag, the controller's fortify
+ICvEngineUtility1	GameplayUnitWork	both	feed kUnitWork (epic 0375): the controller's work action
+ICvEngineUtility1	GameplayUnitParadrop	both	feed kUnitParadrop (epic 0375): the controller's paradrop action
+ICvEngineUtility1	GameplayUnitActivate	both	feed kUnitActivate (epic 0375): the controller's activate action
+ICvEngineUtility1	GameplayUnitEmbark	both	feed kUnitEmbark (epic 0375): the embarked flag; a creation when the key is unknown
+ICvEngineUtility1	GameplayUnitGarrison	both	feed kUnitGarrison (epic 0375): the garrisoned flag
+ICvEngineUtility1	GameplayUnitShouldDimFlag	both	feed kUnitShouldDimFlag (epic 0375): recorded only; the flag is the EXE's
+ICvEngineUtility1	GameplayUnitVisibility	both	feed kUnitVisibility (epic 0375): the visible flag and the fade
+ICvEngineUtility1	GameplayUnitCombat	both	feed kUnitCombat with its combat record (epic 0375): the seed allocator's combat hold; the EXE's returned value goes back to the DLL
+ICvEngineUtility1	GameplayCitySetDamage	both	feed kCitySetDamage (epic 0375); the EXE draws cities
+ICvEngineUtility1	GameplayCityPopulationChanged	both	feed kCityPopulationChanged (epic 0375); the EXE draws cities
+ICvEngineUtility1	GameplayCityCombat	both	feed kCityCombat with its combat record (epic 0375): the seed allocator's combat hold; the EXE's returned value goes back to the DLL
+ICvEngineUtility1	GameplayUnitMissionEnd	both	feed kUnitMissionEnd (epic 0375): recorded; no event for the controller
+ICvEngineUtility1	GameplayUnitRebased	both	feed kUnitRebased (epic 0375): the unit's plot
+ICvEngineUtility1	GameplayUnitResetAnimationState	both	feed kUnitResetAnimationState (epic 0375): the controller's reset

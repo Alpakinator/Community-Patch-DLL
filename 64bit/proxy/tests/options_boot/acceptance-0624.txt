@@ -1,0 +1,50 @@
+Ticket 0624 - acceptance as of the hand-back of 2026-11-20 (branch task-0624-options-default-guard; account B, impl-0624)
+Research: research/07-architecture-decisions/options-file.md section 7 (7.1-7.5); installer-notes.md section 9.
+
+(1) Reproduction
+    offline [C]: proxy/tests/options_boot/test_options_boot.py builds main's proxy_options.cpp of 7682d4511 (before the
+      fix): a deleted file is re-created at the table's defaults, ServerRenderer 0 and every server feature 0, no LOUD
+      line; an existing file that lacks the set's keys gives their defaults without a word. 2/2 (describing the gap).
+    live [L, 2026-11-20 19:52-20:06 EST, c5h-f, old build 0x546CD0A8, MC-B's grant]: rc0b's TEST installer laid,
+      VP64Options.ini deleted, C5H-0366-TINY_0008 loaded with rc0b's proxy: "did not exist: created with every option at
+      its default", ServerRenderer 0, ServerUnits/HiddenEmbarks/AiSkipVisualDrain/AiDrainUnordered 0, no render key, no
+      LOUD line, config mask 0xffec3f67 (D33). The player sees the EXE's own terrain, water, rivers and relief, but no
+      fog of war (unexplored tiles flat gray), no forests, decals or yield icons, none of the server's features.
+      CORRECTION: not "a world without terrain" (ticket title, W31, installer-notes 9); a degraded world. Restored by
+      SHA-256, claim released 20:06. Visual Checks: one DIAGNOSTIC picture, issue 0624.
+    existing file lacking keys: the keys take the table's defaults (old: silent; new: one "options: note:" line).
+(2) Fix [C, L offline]: OptionsBoot(x64Dir, d33, why) re-creates a missing file in a D33 session with
+    <x64_dir>\release-options.txt and ServerRenderer = 1 (one LOUD line naming the set), or does not create it when the
+    set is missing or unusable; the guard's one place is Boot() in proxy/src/proxy_rt.cpp right after OptionsBoot
+    (OptionsGuard): D33 + ServerRenderer 0 -> boot FAILED server-start/options-renderer-off -> pack=1's D33 route
+    (NO PLAY, the D118 report, vp64helper failed, popup with Try again, exit 3). Test hooks server_config= and
+    crashlogs\shell.helper skip it with one LOUD "TEST HOOK" line (MC #8701); a player cannot set either by accident
+    through any shipped tool [I].
+(3) docs/OPTIONS.md: reset by deleting the file (with the release's set while the patch is on), the older-file note,
+    ServerRenderer = 0 by hand (the popup, no play) vs vp64helper off; lead-0042's yes #8733. Installer and helper
+    unchanged.
+(4) Tests:
+    offline: test_options_boot.py 13/13 (new code 53/53 plain and under MSVC ASan; created-with-set, created-without-set
+      refusal, bad set, existing-file-missing-keys, hand-edited 0, both hooks, stock unchanged; --expect-fail).
+    loader: test_proxy_session.py 155/155 (D33 cases with ServerRenderer = 1; options-no-set-d33 refused with the
+      report; options-set-d33 re-created and booted); test_proxy_rt.py 203/203. Proxy built at 1fd51353e from the
+      branch head (d201bd70..., 20:10), server/x64 DLL of layout x64-1fd51353-p1e09fc7 (same schema hash); 20:11-20:19.
+    live on build 26577625, MODS form, installer-laid [L, 2026-11-20 23:29 - 2026-11-21 00:16, c5h-new-a, this
+      branch's TEST installer 4e165812...; research 7.6]: (i) untouched session plays 3 turns, 0 LOUD: PASS;
+      (ii) file deleted -> re-created with the set + ServerRenderer 1, one LOUD line, plays: PASS; (iii)
+      ServerRenderer 0 by hand -> NO PLAY, report options-renderer-off, popup: PASS; (iv) composite renamed and
+      (iv b) of another version -> NO PLAY, report composite-refused, installer advice in the popup: PASS.
+    MODPACK form (i)-(iii): after 0626 releases c5h-new-mpk (Sat 12:27), post-merge (MC #8839 (4)).
+(5) 43-civ variant and modpack form: same set, same place (VP64 beside the proxy, no x64_dir in the shipped
+    vpproxy.ini) [C from build_installer.py/install.iss]; the 43 variant stays [C] (no LTO build; MC #8839 (5) adds
+    it to 0601's acceptance); the modpack form live: post-merge, see (4).
+(5 new, MC #8762) The composite guard: a D33 session with ServerRenderer = 1 whose composite is REFUSED fails the boot
+    right after ProxyShell::Configure (Boot, proxy_rt.cpp; ProxyShell::RefusedComposite keeps the refusal's text,
+    CheckComposite unchanged): server-start/composite-refused, summary "... partial or damaged: run the patch's
+    installer again", the same D125 route. Hooks: server_config= one LOUD TEST HOOK line; shell.helper never refuses.
+    Tests on the head (proxy 9e1657fb..., 20:41-20:45): test_options_boot 13/13 (62/62 plain and ASan),
+    test_proxy_session 165/165 (composite-refused-d33 NO PLAY + report; composite-ok-d33 and composite-refused-stock
+    negatives), test_proxy_rt 205/205 (shell-missing-d33 and its hook). docs/OPTIONS.md composite paragraph (lead-0042
+    #8782). The picture of this state live [L, 2026-11-20 22:11-22:32, c5h-f, rc0b without the guard, compositor
+    removed]: the same degraded world as ServerRenderer 0 (research 7.4b).
+(6) Research: options-file.md 7 (new, + section 1 row corrected), installer-notes.md 9 (corrected in place), README row.

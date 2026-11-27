@@ -1,0 +1,96 @@
+name: Propose an extra
+description: Propose an optional change to what the 64-bit patch draws (a bugfix or a visual addition), before writing it.
+title: "Extra: "
+labels: ["extra", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An extra changes only what the 64-bit patch draws, behind one line in the patch's options file, and is off by
+        default until it is approved. Read the contribution guide for extras first. Please do not attach pictures of the
+        game, saves or logs: describe what you see in words.
+
+  - type: input
+    id: key
+    attributes:
+      label: Proposed key
+      description: >-
+        The line in [Extras]. A bugfix starts with "Fix"; a visual addition starts with neither "Fix" nor "Enable";
+        an experiment starts with "Experiment". The key must not exist yet.
+      placeholder: "e.g. FixSomethingDrawnWrongly"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - "Bugfix: the game draws something wrongly, and this draws it correctly"
+        - "Visual addition: new visual polish that the game does not have"
+        - "Experiment: a trial, compared with the game's picture before it is promoted or dropped"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sees
+    attributes:
+      label: What the player sees
+      description: With the extra on, compared with the game's own picture. For a bugfix, the defect as the unpatched game shows it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reads
+    attributes:
+      label: What it reads
+      description: >-
+        The event feed's kinds or tables it uses (server/src/feed/srv_feed.h), or a new render message from the DLL
+        (its plot, its four values, and the DLL function where it would be sent, after which state change).
+    validations:
+      required: true
+
+  - type: textarea
+    id: display-only
+    attributes:
+      label: Why it is display-only
+      description: >-
+        It must not change the game's rules, state, saves or multiplayer messages (rule E1), and it must show only what
+        the game's own interface already lets the player know (rule E7).
+    validations:
+      required: true
+
+  - type: input
+    id: needs
+    attributes:
+      label: Extra it needs
+      description: The key of another extra it builds on, or "none".
+      placeholder: none
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: Expected cost
+      description: What it costs per frame, per turn and in memory, as far as you can tell before measuring (rule E8).
+
+  - type: textarea
+    id: art
+    attributes:
+      label: New art
+      description: >-
+        Any texture, model or other art the extra brings: who made it and where it comes from. Nothing taken from the
+        game's files; new art is published under the repository's licence (rule E10). "None" if it uses only the
+        player's own installation.
+      placeholder: none
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you write the code
+      options:
+        - label: I have read the contribution guide for extras and its rules E1 to E12.
+          required: true
+        - label: I ask for an option id here, and will merge with default 0.
+          required: true
+        - label: I will publish the contribution under GPL-3.0-or-later.
+          required: true

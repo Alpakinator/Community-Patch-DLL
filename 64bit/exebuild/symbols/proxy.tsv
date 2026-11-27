@@ -1,0 +1,87 @@
+# exebuild/symbols/proxy.tsv - EXE symbols used by proxy/ (the 32-bit proxy DLL in the EXE). Epic 0590, D202.
+# Columns (tab-separated): name, kind, anchor_va, consumer, note. The anchor VA is the symbol's VA in Steam build 4390913
+# (DX11 EXE, ImageBase 0x400000). Never write another build's VA here: those are in the local tables (exe_tables setting).
+# Format and kinds: research/02-exe-internals/exe-build-table.md section 3. Seed rows (ticket 4960): one import slot and
+# one vtable for the generator's tests; the proxy carrier fills the rest.
+name	kind	anchor_va	consumer	note
+qg_iat_interlockedexchangeadd	iat	0x9D647C	proxy/src/proxy_queue_guard.cpp	KERNEL32.dll!InterlockedExchangeAdd
+ses_gvs_vtbl	vtable	0xA20908	proxy/src/proxy_session.cpp	GameViewState vtable (.rdata), compared with the GVS vptr
+# ---- ticket 4963 (W2-0590): every EXE address of proxy/src. g_Civ5App is shell.tsv's cam_app (one name per address).
+# Session and view mask (proxy_session.cpp, proxy_shell.cpp Mask, proxy_pacing.h): ses_gvs_vtbl above, cam_app.
+pxm_terrain_gate	code	0x468BCC	proxy/src/proxy_shell.cpp	GVS::StartupGame Terrain gate: or [esi+1B4h],1; mov ecx,[g_Civ5App]; test [ecx+940h],1 (mid-function)
+pxm_river_test	code	0x6570C5	proxy/src/proxy_shell.cpp	terrain render: mov edx,[g_Civ5App]; mov eax,[edx+0C0h]; test [eax+1B4h],100h (mid-function)
+pxm_river_gate	code	0x4761A1	proxy/src/proxy_shell.cpp	app Startup: test eax,100h (River); jz; mov ecx,<system> (mid-function)
+pxm_arrows_gate	code	0x476359	proxy/src/proxy_shell.cpp	app Startup: test eax,400000h (Arrows); jz; mov ecx,<system> (mid-function)
+pxm_arrows_test	code	0x7495D6	proxy/src/proxy_shell.cpp	render pass B: test [esi+1B4h],400000h (Arrows) (mid-function)
+pxm_viewmask_init	code	0x64A8D0	proxy/src/proxy_shell.cpp	GameViewState ctor: mov [esi+1B4h],ebp (view mask = -1) (mid-function)
+# White mask / model fog (proxy_shell.cpp White, D136; tickets 0172, 0339).
+pxw_tex_loader	code	0x8C6540	proxy/src/proxy_shell.cpp	the EXE's texture loader (__thiscall, this = [pxw_renderer], one argument: the path)
+pxw_tex_loader_create	code	0x8C65FB	proxy/src/proxy_shell.cpp	texture loader: the create call (mid-function)
+pxw_tex_loader_return	code	0x8C6628	proxy/src/proxy_shell.cpp	texture loader: the return (mid-function)
+pxw_renderer	data	0x3010570	proxy/src/proxy_shell.cpp	the renderer global: the texture loader's this
+pxw_device	data	0x301057C	proxy/src/proxy_shell.cpp	the D3D11 device global the loader creates textures with
+pxw_fow_mask	data	0xDA12AC	proxy/src/proxy_shell.cpp	FOW mask texture handle (0 with FluidFOW off)
+pxw_fow_base	data	0xDA12B0	proxy/src/proxy_shell.cpp	FOW cloud base layer texture handle
+pxw_fog_ramp	data	0xDA12B4	proxy/src/proxy_shell.cpp	distance-fog ramp texture handle
+pxw_tex_views	data	0x414C348	proxy/src/proxy_shell.cpp	texture handle table: 12 bytes per handle, +0 = shader resource view
+pxw_white_path	rdata	0xA3D66C	proxy/src/proxy_shell.cpp	the map editor's White.dds path string (only its address is compared)
+pxw_drawobj_alloc	data	0x30BCE00	proxy/src/proxy_shell.cpp	the static draw-object pool's allocator (+0x40 high-water index, +0x44 use counts)
+pxw_drawobj_pool	data	0x313DE88	proxy/src/proxy_shell.cpp	the static draw-object pool (0x80 bytes per entry)
+pxw_editor_site	code	0x561FCB	proxy/src/proxy_shell.cpp	the map editor's own loader call with White.dds (mid-function)
+pxw_builder_read	code	0x7B267C	proxy/src/proxy_shell.cpp	building draw-object builder: read of pxw_fow_mask (mid-function)
+pxw_pool_alloc_fn	code	0x8C69B0	proxy/src/proxy_shell.cpp	the draw-object allocation function
+pxw_drawobj_highwater	code	0x8C5C84	proxy/src/proxy_shell.cpp	draw-object allocator: high-water index test (mid-function)
+pxw_drawobj_usecount	code	0x8C5C9B	proxy/src/proxy_shell.cpp	draw-object allocator: use count increment (mid-function)
+pxw_forest_program	code	0x6C210C	proxy/src/proxy_shell.cpp	forest builder: the program's set-up call (mid-function)
+pxw_forest_read	code	0x6C2231	proxy/src/proxy_shell.cpp	forest builder: read of pxw_fow_mask (mid-function)
+pxw_city_read	code	0x5A25D4	proxy/src/proxy_shell.cpp	city-template builder: read of pxw_fow_mask (mid-function)
+pxw_city_ramp	code	0x5A25AF	proxy/src/proxy_shell.cpp	city-template builder: read of pxw_fog_ramp (mid-function)
+pxw_fluidfow_base_load	code	0x44AF23	proxy/src/proxy_shell.cpp	FluidFOW's load of FogCloudTile_dif_02.dds into pxw_fow_base (mid-function)
+pxw_base_building_read	code	0x7B2695	proxy/src/proxy_shell.cpp	building builder: read of pxw_fow_base into t8 (mid-function)
+pxw_base_forest_read	code	0x6C224A	proxy/src/proxy_shell.cpp	forest builder: read of pxw_fow_base into t7 (mid-function)
+pxw_base_city_read	code	0x5A25E5	proxy/src/proxy_shell.cpp	city-template builder: read of pxw_fow_base into t8 (mid-function)
+# UI message queue guard (proxy_queue_guard.cpp, ticket 0492): qg_iat_interlockedexchangeadd above.
+qg_channel_index	data	0x1A0E400	proxy/src/proxy_queue_guard.cpp	int: the channel the writers use
+qg_channels	data	0x1A0F080	proxy/src/proxy_queue_guard.cpp	UI message queue channel 0 (channel c at + c * 0x800180)
+# UI draw buffers (proxy_uidraw.cpp, ticket 0487; #13406's CvExeAddresses.h DX11 column).
+uid_create_streams	code	0x5C991B	proxy/src/proxy_uidraw.cpp	UIManager_StartupRenderer_CreateCommandStreams (mid-function)
+uid_read_uimanager	code	0x5C9A1F	proxy/src/proxy_uidraw.cpp	UIManager_StartupRenderer_ReadUIManager (mid-function)
+uid_uimanager	data	0x2DD1D1C	proxy/src/proxy_uidraw.cpp	g_pUIManager
+uid_cstream_ctor	code	0x8CE150	proxy/src/proxy_uidraw.cpp	CCommandStream constructor (DX11)
+uid_cstream_dtor	code	0x8CCD20	proxy/src/proxy_uidraw.cpp	CCommandStream destructor (DX11)
+uid_cstream_clear	code	0x8CD490	proxy/src/proxy_uidraw.cpp	CCommandStream::ClearStream
+uid_new_array	code	0x82C090	proxy/src/proxy_uidraw.cpp	operator new[]
+uid_malloc_aligned	code	0x813A80	proxy/src/proxy_uidraw.cpp	FireMallocAlignedNoTracking
+uid_delete_array	code	0x813D10	proxy/src/proxy_uidraw.cpp	operator delete[] (called by the destructor)
+uid_free_aligned	code	0x813CF0	proxy/src/proxy_uidraw.cpp	FireFreeAlignedNoTracking (called by the destructor)
+# AI pacing, D165 options 2-4 (proxy_pacing.h/.cpp; tickets 4662, 4665, 4675): cam_app, ses_gvs_vtbl.
+pac_util_vftable	vtable	0x9EA718	proxy/src/proxy_pacing.cpp	the engine utility vftable (264 entries)
+pac_secs_per_turn	code	0x704B60	proxy/src/proxy_pacing.cpp	engine utility slot 102, getSecsPerTurn
+pac_frame_site	code	0x7258C1	proxy/src/proxy_pacing.cpp	GameViewState::Update: the return address of its getSecsPerTurn call (after call edx)
+pac_ai_turn_byte	data	0x2DE0447	proxy/src/proxy_pacing.cpp	the frame's AI-turn byte
+pac_hold	data	0x2DE044C	proxy/src/proxy_pacing.cpp	the update hold counter
+pac_qb_index	data	0x2A10200	proxy/src/proxy_pacing.cpp	queue B's index
+pac_qb_buf	data	0x2A10E08	proxy/src/proxy_pacing.cpp	queue B's buffers (q = buf + 0x4C * index)
+# Leader scenes (proxy_leaderscene.cpp, ticket 0381).
+lsc_scene_map	data	0xDA27A4	proxy/src/proxy_leaderscene.cpp	the leader-head object (0xDA2780) + 0x24: std::map player -> scene
+# The shell's sound executor (proxy_sound_exec.cpp, ticket 4723; research/02-exe-internals/exe-audio.md 8, names of lead-0590 #7706).
+audio_play3d	code	0x8DC7F0	proxy/src/proxy_sound_exec.cpp	FAudioGame 3D play: thiscall, 11 stack words, ret 0x2C (exe-audio.md 2 step 4)
+audio_game_obj	data	0x5F54F34	proxy/src/proxy_sound_exec.cpp	the FAudioGame object pointer (this of audio_play3d)
+audio_sound_stop	code	0x90EDE0	proxy/src/proxy_sound_exec.cpp	FSound::Stop: thiscall, no arguments, a bool (exe-audio.md 4.1)
+audio_play3d_call	code	0x74C823	proxy/src/proxy_sound_exec.cpp	the call of audio_play3d in the Sound trigger's type-0x15 handler (its E8 at 0x74C82A; pattern with C(audio_play3d), lead-0590 #8203)
+audio_stop_call	code	0x8DB93A	proxy/src/proxy_sound_exec.cpp	the call of audio_sound_stop in the unit-loop record function (its E8 at 0x8DB93F; pattern with C(audio_sound_stop), lead-0590 #8203)
+audio_sound_fade	code	0x90EB90	proxy/src/proxy_sound_exec.cpp	FSound fade: thiscall (float seconds, float, int), ret 0xC; with 0.0 s, or no volume ramp, it requests the end (+0x08 = 4, +0x28 = 1) and the manager ends the voice at its next update (AIL_end_sample) and reuses it (ticket 5051; unit-combat-server.md 18.24)
+audio_fade_call	code	0x8DB6C7	proxy/src/proxy_sound_exec.cpp	the unit-loop heartbeat's call of audio_sound_fade in 0x8DB660 (its E8 at 0x8DB6CD; pattern with C(audio_sound_fade), as audio_stop_call; ticket 5051)
+# The shell's effect player (proxy_effect_player.cpp, ticket 4727; research/05-graphics-composition/effects-formats.md 8.1 and 15.7; lead-0590 #8368).
+effect_alloc_oneshot	code	0x846030	proxy/src/proxy_effect_player.cpp	the 4 MB queue's record allocator of type 0x28 (owned one-shot effect): cdecl, no argument, ret; EAX = record + 0x10
+effect_alloc_lasting	code	0x866AB0	proxy/src/proxy_effect_player.cpp	the 4 MB queue's record allocator of type 0x29 (owned lasting effect, also the move): cdecl, no argument, ret; EAX = record + 0x10
+effect_alloc_stop	code	0x866A50	proxy/src/proxy_effect_player.cpp	the 4 MB queue's record allocator of type 0x2A (stop by owner key): cdecl, no argument, ret; EAX = record + 0x10
+effect_oneshot_call	code	0x4CE52D	proxy/src/proxy_effect_player.cpp	the call of effect_alloc_oneshot in the model's timed-trigger start (0x4CE510; its E8 at 0x4CE53D; pattern with C(effect_alloc_oneshot), lead-0590 #8368)
+effect_lasting_call	code	0x745755	proxy/src/proxy_effect_player.cpp	the call of effect_alloc_lasting in the projectile's frame step (0x7454E0; its E8 at 0x745765; pattern with C(effect_alloc_lasting))
+effect_stop_call	code	0x754336	proxy/src/proxy_effect_player.cpp	the call of effect_alloc_stop in the pillaged farm's smoke (0x754330; its E8 at 0x754349; pattern with C(effect_alloc_stop))
+rts_combat_gate	code	0x7321BE	proxy/src/proxy_route_s.cpp	combat simulation start test: mov ecx,[g_Civ5App]; test dword [ecx+940h],800h; jz (mid-function; ticket 4783, route S arms as one: the proxy clears bit 0x800 of [cam_app]+0x940 while armed)
+# The minimap's unexplored cells (proxy_minimap_fog.cpp, ticket 0727; research/05-graphics-composition/observer-switch-minimap.md 6.2, 6.6).
+mmf_slot	data	0x1A0C338	proxy/src/proxy_minimap_fog.cpp	the Minimap system's active player slot (a dword; the block list's owner object starts here)
+mmf_blocks	data	0x1A0C340	proxy/src/proxy_minimap_fog.cpp	the pointer to the sentinel node of the per-slot block list (node: next, prev, slot, then the block)
+mmf_system	data	0x1A0C670	proxy/src/proxy_minimap_fog.cpp	MiniMap_System's static object (+0x18 bit 0 = events deferred, +0x1C = redraw bits)
+mmf_wrap	data	0x1A0C568	proxy/src/proxy_minimap_fog.cpp	the byte the fog handler's box rule reads: 1 = the map wraps in x

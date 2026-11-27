@@ -1,0 +1,36 @@
+# Third-party source archives the x64 build compiles (epic 1400, 2026-11-10). Read by tools/x64-dll/thirdparty.py.
+# Nothing here is committed to the repository. Each archive is looked up, in order: an explicit path given to the
+# build script; the cache root ($CV64_DEPS_CACHE, default %LOCALAPPDATA%\Temp\claude\cv64-deps);
+# a download from `url` into the cache root. The SHA-256 below is checked every time; a mismatch is fatal.
+
+[lua]
+version = 5.1.4
+file    = lua-5.1.4.tar.gz
+url     = https://www.lua.org/ftp/lua-5.1.4.tar.gz
+size    = 216679
+sha256  = b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a
+source  = sha256 as published on https://www.lua.org/ftp/ (checked 2026-11-10, issue 1005)
+why     = the game's lua51_Win32.dll is stock Lua 5.1.4 (research: closedlib-stubs/SYMBOLS-database-localization-lua.md)
+
+[sqlite]
+version = 3.7.17
+file    = sqlite-amalgamation-3071700.zip
+url     = https://www.sqlite.org/2013/sqlite-amalgamation-3071700.zip
+size    = 1426563
+sha256  = 022ef41bd83a1333faf40dc8f1f8469205f4a18c30dc5e137889ba7ea924ef30
+sha1    = 5cd468d429e23c927ed1761f656dfd2e1285be16
+source  = downloaded from sqlite.org 2026-11-10 03:56 EST by the team-1400 coordinator; sha256 and sha1 computed
+          on that download (sqlite.org published no SHA-256 for 2013 releases; not compared with a published value)
+why     = the game's CvGameDatabase library wraps SQLite 3.7.17 (brief epic-1400; same planner, collation, affinity)
+
+[zlib]
+version = 1.2.3
+file    = zlib-1.2.3.tar.gz
+url     = https://zlib.net/fossils/zlib-1.2.3.tar.gz
+size    = 496597
+sha256  = 1795c7d067a43174113fdf03447532f373e1c6c57c08d61d9e4e9be5e244b05e
+sha1    = 60faeaaf250642db5c0ea36cd6dcc9f99c8f3902
+source  = downloaded from zlib.net/fossils 2026-11-10 by the team-2000 coordinator; sha256 and sha1 computed on that
+          download 2026-11-10 08:25 EST (zlib.net publishes no SHA-256 for fossils; not compared with a published value)
+why     = the game's zlib1.dll (EXE import) is zlib 1.2.3; only 1.2.3 reproduces the game's compressed save bodies
+          byte for byte (issue 2001, research/03-dll-engine-boundary/server-host.md section 9)
